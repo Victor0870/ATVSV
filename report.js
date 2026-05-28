@@ -7,11 +7,14 @@ import {
   getDoc,
   collection,
   query,
+  where,
   orderBy,
+  limit,
   getDocs
 } from "./firebase-config.js";
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
+const DEFAULT_QUERY_LIMIT = 300;
 
 let currentFirebaseUser = null;
 let currentUserProfile = null;
@@ -69,9 +72,9 @@ function observeReportAuthState() {
       currentUserProfile = profile;
 
       ensureReportAccess(profile);
-
       showReportScreen(profile, user);
-      await loadReportData();
+
+      await loadReportData(getCurrentFilters());
     } catch (error) {
       console.error(error);
       showAccessDenied(error.message || "Bạn không có quyền xem trang báo cáo.");
@@ -131,12 +134,62 @@ function showReportScreen(profile, firebaseUser) {
   document.getElementById("reportUserRole").textContent = profile.role || "-";
 }
 
-async function loadReportData() {
+function getCurrentFilters() {
+  return {
+    dateFrom: document.getElementById("filterDateFrom").value,
+    dateTo: document.getElementById("filterDateTo").value,
+    area: document.getElementById("filterArea").value,
+    result: document.getElementById("filterResult").value,
+    keyword: document.getElementById("filterKeyword").value.trim().toLowerCase()
+  };
+}
+
+async function applyFilters() {
+  const filters = getCurrentFilters();
+
+  if (filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) {
+    showToast("Ngày bắt đầu không được lớn hơn ngày kết thúc.", "error");
+    return;
+  }
+
+  await loadReportData(filters);
+}
+
+async function resetFilters() {
+  document.getElementById("filterDateFrom").value = "";
+  document.getElementById("filterDateTo").value = "";
+  document.getElementById("filterArea").value = "ALL";
+  document.getElementById("filterResult").value = "ALL";
+  document.getElementById("filterKeyword").value = "";
+
+  await loadReportData(getCurrentFilters());
+}
+
+async function loadReportData(filters) {
   showPageLoader(true, "Đang tải dữ liệu báo cáo...");
 
   try {
     const submissionsRef = collection(db, "submissions");
-    const q = query(submissionsRef, orderBy("createdAt", "desc"));
+    const constraints = [];
+
+    if (filters.area && filters.area !== "ALL") {
+      constraints.push(where("khuVuc", "==", filters.area));
+    }
+
+    if (filters.dateFrom) {
+      const fromDate = new Date(`${filters.dateFrom}T00:00:00`);
+      constraints.push(where("createdAt", ">=", fromDate));
+    }
+
+    if (filters.dateTo) {
+      const toDate = new Date(`${filters.dateTo}T23:59:59.999`);
+      constraints.push(where("createdAt", "<=", toDate));
+    }
+
+    constraints.push(orderBy("createdAt", "desc"));
+    constraints.push(limit(DEFAULT_QUERY_LIMIT));
+
+    const q = query(submissionsRef, ...constraints);
     const snapshot = await getDocs(q);
 
     allSubmissions = snapshot.docs.map((docSnap) => {
@@ -147,7 +200,7 @@ async function loadReportData() {
       };
     });
 
-    filteredSubmissions = [...allSubmissions];
+    filteredSubmissions = applyClientSideFilters(allSubmissions, filters);
     selectedSubmissionId = filteredSubmissions.length ? filteredSubmissions[0].submissionId : null;
 
     renderReportStats(filteredSubmissions);
@@ -156,78 +209,43 @@ async function loadReportData() {
     if (selectedSubmissionId) {
       renderReportDetail(selectedSubmissionId);
     } else {
-      renderEmptyDetail("Chưa có dữ liệu báo cáo.");
+      renderEmptyDetail("Không có dữ liệu phù hợp với bộ lọc.");
     }
 
     updateReportCountText();
+
+    if (snapshot.size >= DEFAULT_QUERY_LIMIT) {
+      showToast(`Đang hiển thị tối đa ${DEFAULT_QUERY_LIMIT} phiếu gần nhất theo bộ lọc.`, "info");
+    }
   } catch (error) {
     console.error(error);
-    showToast("Không thể tải dữ liệu báo cáo.", "error");
+
+    if (String(error.message || "").includes("index")) {
+      showToast("Truy vấn cần tạo chỉ mục Firestore. Hãy bấm link trong lỗi ở Console để tạo index.", "error");
+    } else {
+      showToast("Không thể tải dữ liệu báo cáo.", "error");
+    }
+
     renderEmptyDetail("Không thể tải dữ liệu báo cáo.");
   } finally {
     showPageLoader(false);
   }
 }
 
-function applyFilters() {
-  const dateFrom = document.getElementById("filterDateFrom").value;
-  const dateTo = document.getElementById("filterDateTo").value;
-  const area = document.getElementById("filterArea").value;
-  const result = document.getElementById("filterResult").value;
-  const keyword = document.getElementById("filterKeyword").value.trim().toLowerCase();
-
-  filteredSubmissions = allSubmissions.filter((item) => {
-    const createdDate = (item.createdAtText || "").slice(0, 10);
+function applyClientSideFilters(data, filters) {
+  return data.filter((item) => {
     const searchTarget = `${item.hoTen || ""} ${item.taiKhoan || ""} ${item.email || ""}`.toLowerCase();
 
-    const matchDateFrom = !dateFrom || createdDate >= dateFrom;
-    const matchDateTo = !dateTo || createdDate <= dateTo;
-    const matchArea = area === "ALL" || item.khuVuc === area;
-    const matchKeyword = !keyword || searchTarget.includes(keyword);
+    const matchKeyword = !filters.keyword || searchTarget.includes(filters.keyword);
 
     let matchResult = true;
-    if (result !== "ALL") {
+    if (filters.result !== "ALL") {
       const answers = Array.isArray(item.answers) ? item.answers : [];
-      matchResult = answers.some((answer) => answer.result === result);
+      matchResult = answers.some((answer) => answer.result === filters.result);
     }
 
-    return matchDateFrom && matchDateTo && matchArea && matchKeyword && matchResult;
+    return matchKeyword && matchResult;
   });
-
-  selectedSubmissionId = filteredSubmissions.length ? filteredSubmissions[0].submissionId : null;
-
-  renderReportStats(filteredSubmissions);
-  renderReportList();
-
-  if (selectedSubmissionId) {
-    renderReportDetail(selectedSubmissionId);
-  } else {
-    renderEmptyDetail("Không có dữ liệu phù hợp với bộ lọc.");
-  }
-
-  updateReportCountText();
-}
-
-function resetFilters() {
-  document.getElementById("filterDateFrom").value = "";
-  document.getElementById("filterDateTo").value = "";
-  document.getElementById("filterArea").value = "ALL";
-  document.getElementById("filterResult").value = "ALL";
-  document.getElementById("filterKeyword").value = "";
-
-  filteredSubmissions = [...allSubmissions];
-  selectedSubmissionId = filteredSubmissions.length ? filteredSubmissions[0].submissionId : null;
-
-  renderReportStats(filteredSubmissions);
-  renderReportList();
-
-  if (selectedSubmissionId) {
-    renderReportDetail(selectedSubmissionId);
-  } else {
-    renderEmptyDetail("Chưa có dữ liệu báo cáo.");
-  }
-
-  updateReportCountText();
 }
 
 function renderReportStats(data) {
