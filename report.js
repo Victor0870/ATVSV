@@ -1,0 +1,521 @@
+import {
+  auth,
+  db,
+  onAuthStateChanged,
+  signOut,
+  doc,
+  getDoc,
+  collection,
+  query,
+  orderBy,
+  getDocs
+} from "./firebase-config.js";
+
+const ALLOWED_REPORT_ROLES = ["admin", "manager"];
+
+let currentFirebaseUser = null;
+let currentUserProfile = null;
+let allSubmissions = [];
+let filteredSubmissions = [];
+let selectedSubmissionId = null;
+let toastTimer = null;
+
+document.addEventListener("DOMContentLoaded", initReportPage);
+
+function initReportPage() {
+  bindReportEvents();
+  observeReportAuthState();
+}
+
+function bindReportEvents() {
+  document.getElementById("applyFilterBtn").addEventListener("click", applyFilters);
+  document.getElementById("resetFilterBtn").addEventListener("click", resetFilters);
+  document.getElementById("exportCsvBtn").addEventListener("click", exportCsv);
+  document.getElementById("reportLogoutBtn").addEventListener("click", handleLogout);
+
+  document.getElementById("reportList").addEventListener("click", (event) => {
+    const card = event.target.closest(".submission-card");
+    if (!card) return;
+
+    const submissionId = card.dataset.submissionId;
+    selectedSubmissionId = submissionId;
+    renderReportList();
+    renderReportDetail(submissionId);
+  });
+
+  document.getElementById("reportDetail").addEventListener("click", (event) => {
+    const image = event.target.closest(".report-detail-image");
+    if (image) {
+      openImageModal(image.dataset.fullSrc);
+    }
+  });
+
+  document.getElementById("closeImageModalBtn").addEventListener("click", closeImageModal);
+  document.getElementById("imageModalBackdrop").addEventListener("click", closeImageModal);
+}
+
+function observeReportAuthState() {
+  showPageLoader(true, "Đang kiểm tra quyền truy cập báo cáo...");
+
+  onAuthStateChanged(auth, async (user) => {
+    try {
+      if (!user) {
+        showAccessDenied("Bạn chưa đăng nhập. Vui lòng đăng nhập trước khi xem báo cáo.");
+        return;
+      }
+
+      currentFirebaseUser = user;
+      const profile = await loadCurrentUserProfile(user.uid);
+      currentUserProfile = profile;
+
+      ensureReportAccess(profile);
+
+      showReportScreen(profile, user);
+      await loadReportData();
+    } catch (error) {
+      console.error(error);
+      showAccessDenied(error.message || "Bạn không có quyền xem trang báo cáo.");
+    } finally {
+      showPageLoader(false);
+    }
+  });
+}
+
+async function loadCurrentUserProfile(uid) {
+  const userRef = doc(db, "users", uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    throw new Error("Không tìm thấy hồ sơ người dùng trong Firestore.");
+  }
+
+  const data = userSnap.data();
+
+  return {
+    uid,
+    email: data.email || "",
+    taiKhoan: data.taiKhoan || "",
+    hoTen: data.hoTen || "",
+    khuVuc: data.khuVuc || "",
+    role: data.role || "user",
+    status: data.status || "inactive"
+  };
+}
+
+function ensureReportAccess(profile) {
+  if (!profile) {
+    throw new Error("Không tìm thấy hồ sơ người dùng.");
+  }
+
+  if (profile.status !== "active") {
+    throw new Error("Tài khoản của bạn đang ở trạng thái không hoạt động.");
+  }
+
+  if (!ALLOWED_REPORT_ROLES.includes(profile.role)) {
+    throw new Error("Bạn không có quyền xem trang báo cáo.");
+  }
+}
+
+function showAccessDenied(message) {
+  document.getElementById("reportScreen").classList.add("hidden");
+  document.getElementById("reportAccessDenied").classList.remove("hidden");
+  document.getElementById("reportAccessMessage").textContent = message;
+}
+
+function showReportScreen(profile, firebaseUser) {
+  document.getElementById("reportAccessDenied").classList.add("hidden");
+  document.getElementById("reportScreen").classList.remove("hidden");
+
+  document.getElementById("reportUserName").textContent = profile.hoTen || "-";
+  document.getElementById("reportUserEmail").textContent = firebaseUser.email || profile.email || "-";
+  document.getElementById("reportUserRole").textContent = profile.role || "-";
+}
+
+async function loadReportData() {
+  showPageLoader(true, "Đang tải dữ liệu báo cáo...");
+
+  try {
+    const submissionsRef = collection(db, "submissions");
+    const q = query(submissionsRef, orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+
+    allSubmissions = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data
+      };
+    });
+
+    filteredSubmissions = [...allSubmissions];
+    selectedSubmissionId = filteredSubmissions.length ? filteredSubmissions[0].submissionId : null;
+
+    renderReportStats(filteredSubmissions);
+    renderReportList();
+
+    if (selectedSubmissionId) {
+      renderReportDetail(selectedSubmissionId);
+    } else {
+      renderEmptyDetail("Chưa có dữ liệu báo cáo.");
+    }
+
+    updateReportCountText();
+  } catch (error) {
+    console.error(error);
+    showToast("Không thể tải dữ liệu báo cáo.", "error");
+    renderEmptyDetail("Không thể tải dữ liệu báo cáo.");
+  } finally {
+    showPageLoader(false);
+  }
+}
+
+function applyFilters() {
+  const dateFrom = document.getElementById("filterDateFrom").value;
+  const dateTo = document.getElementById("filterDateTo").value;
+  const area = document.getElementById("filterArea").value;
+  const result = document.getElementById("filterResult").value;
+  const keyword = document.getElementById("filterKeyword").value.trim().toLowerCase();
+
+  filteredSubmissions = allSubmissions.filter((item) => {
+    const createdDate = (item.createdAtText || "").slice(0, 10);
+    const searchTarget = `${item.hoTen || ""} ${item.taiKhoan || ""} ${item.email || ""}`.toLowerCase();
+
+    const matchDateFrom = !dateFrom || createdDate >= dateFrom;
+    const matchDateTo = !dateTo || createdDate <= dateTo;
+    const matchArea = area === "ALL" || item.khuVuc === area;
+    const matchKeyword = !keyword || searchTarget.includes(keyword);
+
+    let matchResult = true;
+    if (result !== "ALL") {
+      const answers = Array.isArray(item.answers) ? item.answers : [];
+      matchResult = answers.some((answer) => answer.result === result);
+    }
+
+    return matchDateFrom && matchDateTo && matchArea && matchKeyword && matchResult;
+  });
+
+  selectedSubmissionId = filteredSubmissions.length ? filteredSubmissions[0].submissionId : null;
+
+  renderReportStats(filteredSubmissions);
+  renderReportList();
+
+  if (selectedSubmissionId) {
+    renderReportDetail(selectedSubmissionId);
+  } else {
+    renderEmptyDetail("Không có dữ liệu phù hợp với bộ lọc.");
+  }
+
+  updateReportCountText();
+}
+
+function resetFilters() {
+  document.getElementById("filterDateFrom").value = "";
+  document.getElementById("filterDateTo").value = "";
+  document.getElementById("filterArea").value = "ALL";
+  document.getElementById("filterResult").value = "ALL";
+  document.getElementById("filterKeyword").value = "";
+
+  filteredSubmissions = [...allSubmissions];
+  selectedSubmissionId = filteredSubmissions.length ? filteredSubmissions[0].submissionId : null;
+
+  renderReportStats(filteredSubmissions);
+  renderReportList();
+
+  if (selectedSubmissionId) {
+    renderReportDetail(selectedSubmissionId);
+  } else {
+    renderEmptyDetail("Chưa có dữ liệu báo cáo.");
+  }
+
+  updateReportCountText();
+}
+
+function renderReportStats(data) {
+  let totalOk = 0;
+  let totalNg = 0;
+  let totalNa = 0;
+
+  data.forEach((submission) => {
+    const answers = Array.isArray(submission.answers) ? submission.answers : [];
+    answers.forEach((answer) => {
+      if (answer.result === "OK") totalOk += 1;
+      if (answer.result === "NG") totalNg += 1;
+      if (answer.result === "N/A") totalNa += 1;
+    });
+  });
+
+  document.getElementById("statTotalSubmissions").textContent = data.length;
+  document.getElementById("statTotalOk").textContent = totalOk;
+  document.getElementById("statTotalNg").textContent = totalNg;
+  document.getElementById("statTotalNa").textContent = totalNa;
+}
+
+function renderReportList() {
+  const listContainer = document.getElementById("reportList");
+
+  if (!filteredSubmissions.length) {
+    listContainer.innerHTML = `
+      <div class="empty-card" style="margin: 12px;">
+        <h3>Không có dữ liệu</h3>
+        <p>Không tìm thấy phiếu nào phù hợp với điều kiện lọc hiện tại.</p>
+      </div>
+    `;
+    return;
+  }
+
+  listContainer.innerHTML = filteredSubmissions
+    .map((item) => {
+      const isActive = item.submissionId === selectedSubmissionId;
+      const summary = item.summary || {};
+      return `
+        <div class="submission-card ${isActive ? "active" : ""}" data-submission-id="${escapeHtml(item.submissionId)}">
+          <div class="submission-title">${escapeHtml(item.hoTen || "-")} - ${escapeHtml(item.submissionId || "-")}</div>
+          <div class="submission-meta">
+            <div><strong>Thời gian:</strong> ${escapeHtml(item.createdAtText || "-")}</div>
+            <div><strong>Tài khoản:</strong> ${escapeHtml(item.taiKhoan || "-")}</div>
+            <div><strong>Email:</strong> ${escapeHtml(item.email || "-")}</div>
+            <div><strong>Khu vực:</strong> ${escapeHtml(item.khuVuc || "-")}</div>
+          </div>
+          <div class="badge-row">
+            <span class="badge ok">OK: ${summary.okCount || 0}</span>
+            <span class="badge ng">NG: ${summary.ngCount || 0}</span>
+            <span class="badge na">N/A: ${summary.naCount || 0}</span>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderReportDetail(submissionId) {
+  const detailContainer = document.getElementById("reportDetail");
+  const submission = filteredSubmissions.find((item) => item.submissionId === submissionId);
+
+  if (!submission) {
+    renderEmptyDetail("Không tìm thấy chi tiết phiếu.");
+    return;
+  }
+
+  const answersHtml = (submission.answers || [])
+    .map((answer, index) => {
+      const resultClass = answer.result === "NG" ? "ng" : answer.result === "OK" ? "ok" : "na";
+      const images = Array.isArray(answer.images) ? answer.images : [];
+
+      return `
+        <div class="detail-answer">
+          <div class="detail-answer-question">${index + 1}. ${escapeHtml(answer.question || "-")}</div>
+          <div class="badge-row">
+            <span class="badge ${resultClass}">${escapeHtml(answer.result || "-")}</span>
+            <span class="badge">${escapeHtml(answer.category || "-")}</span>
+          </div>
+
+          ${
+            answer.note
+              ? `<div class="detail-answer-note"><strong>Mô tả lỗi:</strong> ${escapeHtml(answer.note)}</div>`
+              : ""
+          }
+
+          ${
+            images.length
+              ? `
+                <div class="detail-image-grid">
+                  ${images
+                    .map(
+                      (img) => `
+                        <div class="detail-image-item">
+                          <img
+                            src="${img.url}"
+                            alt="Ảnh minh chứng"
+                            class="report-detail-image"
+                            data-full-src="${img.url}"
+                          >
+                          <div class="detail-image-caption">
+                            <div><strong>Tên file:</strong> ${escapeHtml(img.name || "-")}</div>
+                            <div><strong>Dung lượng:</strong> ${formatBytes(img.size || 0)}</div>
+                          </div>
+                        </div>
+                      `
+                    )
+                    .join("")}
+                </div>
+              `
+              : ""
+          }
+        </div>
+      `;
+    })
+    .join("");
+
+  detailContainer.innerHTML = `
+    <div class="detail-header">
+      <h3>${escapeHtml(submission.submissionId || "-")}</h3>
+      <div class="detail-meta">
+        <div><strong>Thời gian:</strong> ${escapeHtml(submission.createdAtText || "-")}</div>
+        <div><strong>Họ tên:</strong> ${escapeHtml(submission.hoTen || "-")}</div>
+        <div><strong>Email:</strong> ${escapeHtml(submission.email || "-")}</div>
+        <div><strong>Tài khoản:</strong> ${escapeHtml(submission.taiKhoan || "-")}</div>
+        <div><strong>Khu vực:</strong> ${escapeHtml(submission.khuVuc || "-")}</div>
+      </div>
+      <div class="badge-row">
+        <span class="badge ok">OK: ${submission.summary?.okCount || 0}</span>
+        <span class="badge ng">NG: ${submission.summary?.ngCount || 0}</span>
+        <span class="badge na">N/A: ${submission.summary?.naCount || 0}</span>
+      </div>
+    </div>
+
+    ${answersHtml || '<div class="empty-detail">Phiếu này chưa có câu trả lời.</div>'}
+  `;
+}
+
+function renderEmptyDetail(message) {
+  document.getElementById("reportDetail").innerHTML = `
+    <div class="empty-detail">${escapeHtml(message)}</div>
+  `;
+}
+
+function updateReportCountText() {
+  document.getElementById("reportCountText").textContent = `${filteredSubmissions.length} kết quả`;
+}
+
+function exportCsv() {
+  if (!filteredSubmissions.length) {
+    showToast("Không có dữ liệu để xuất CSV", "error");
+    return;
+  }
+
+  const rows = [
+    [
+      "MaPhieu",
+      "ThoiGian",
+      "TaiKhoan",
+      "HoTen",
+      "Email",
+      "KhuVuc",
+      "HangMuc",
+      "NoiDungKiemTra",
+      "KetQua",
+      "MoTaLoi",
+      "SoLuongAnh",
+      "DanhSachAnh"
+    ]
+  ];
+
+  filteredSubmissions.forEach((submission) => {
+    const answers = Array.isArray(submission.answers) ? submission.answers : [];
+
+    answers.forEach((answer) => {
+      const images = Array.isArray(answer.images) ? answer.images : [];
+      rows.push([
+        submission.submissionId || "",
+        submission.createdAtText || "",
+        submission.taiKhoan || "",
+        submission.hoTen || "",
+        submission.email || "",
+        submission.khuVuc || "",
+        answer.category || "",
+        answer.question || "",
+        answer.result || "",
+        answer.note || "",
+        images.length,
+        images.map((img) => img.url || "").join(" | ")
+      ]);
+    });
+  });
+
+  const csvContent = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `bao-cao-checklist-${getDateForFileName()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  showToast("Đã xuất file CSV", "success");
+}
+
+async function handleLogout() {
+  try {
+    await signOut(auth);
+    window.location.href = "./index.html";
+  } catch (error) {
+    console.error(error);
+    showToast("Không thể đăng xuất. Vui lòng thử lại.", "error");
+  }
+}
+
+function openImageModal(src) {
+  const modal = document.getElementById("imageModal");
+  const img = document.getElementById("imageModalPreview");
+
+  img.src = src;
+  modal.classList.remove("hidden");
+}
+
+function closeImageModal() {
+  const modal = document.getElementById("imageModal");
+  const img = document.getElementById("imageModalPreview");
+
+  img.src = "";
+  modal.classList.add("hidden");
+}
+
+function showPageLoader(show, text = "Đang xử lý...") {
+  const loader = document.getElementById("pageLoader");
+  const loaderText = document.getElementById("pageLoaderText");
+
+  if (loaderText) loaderText.textContent = text;
+
+  if (show) {
+    loader.classList.remove("hidden");
+  } else {
+    loader.classList.add("hidden");
+  }
+}
+
+function showToast(message, type = "info") {
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 3200);
+}
+
+function formatBytes(bytes) {
+  if (!bytes && bytes !== 0) return "-";
+  if (bytes === 0) return "0 B";
+
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.floor(Math.log(bytes) / Math.log(1024));
+  const value = bytes / Math.pow(1024, index);
+  return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
+}
+
+function csvEscape(value) {
+  const safeValue = value == null ? "" : String(value);
+  return `"${safeValue.replace(/"/g, '""')}"`;
+}
+
+function getDateForFileName() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(
+    now.getMinutes()
+  )}${pad(now.getSeconds())}`;
+}
+
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = value == null ? "" : String(value);
+  return div.innerHTML;
+}
