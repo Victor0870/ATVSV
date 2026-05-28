@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserExists() {
+      return signedIn() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isActiveUser() {
+      return currentUserExists() &&
+             currentUserDoc().data.status == "active";
+    }
+
+    function isAdminOrManager() {
+      return isActiveUser() &&
+             (currentUserDoc().data.role == "admin" ||
+              currentUserDoc().data.role == "manager");
+    }
+
+    function isAdmin() {
+      return isActiveUser() &&
+             currentUserDoc().data.role == "admin";
+    }
+
+    match /users/{userId} {
+      // Người dùng chỉ đọc được hồ sơ của chính mình
+      // Admin/manager có thể đọc hồ sơ user khác
+      allow read: if signedIn() &&
+                  (request.auth.uid == userId || isAdminOrManager());
+
+      // Chỉ admin được tạo / sửa / xóa user profile
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /submissions/{submissionId} {
+      // Admin/manager đọc được toàn bộ submissions
+      // Chủ sở hữu có thể đọc phiếu của chính mình nếu cần
+      allow read: if isAdminOrManager() ||
+                  (signedIn() && resource.data.uid == request.auth.uid);
+
+      // User active chỉ được tạo phiếu của chính họ
+      allow create: if isActiveUser() &&
+                    request.resource.data.uid == request.auth.uid &&
+                    request.resource.data.email == request.auth.token.email &&
+                    request.resource.data.taiKhoan == currentUserDoc().data.taiKhoan &&
+                    request.resource.data.hoTen == currentUserDoc().data.hoTen &&
+                    request.resource.data.khuVuc == currentUserDoc().data.khuVuc;
+
+      // User thường không được sửa/xóa sau khi tạo
+      // Admin/manager được phép nếu cần xử lý dữ liệu
+      allow update, delete: if isAdminOrManager();
+    }
+  }
+}
