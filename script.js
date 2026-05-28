@@ -54,6 +54,8 @@ function bindEvents() {
   const questionsContainer = document.getElementById("questionsContainer");
   questionsContainer.addEventListener("change", handleQuestionContainerChange);
   questionsContainer.addEventListener("click", handleQuestionContainerClick);
+
+  window.addEventListener("beforeunload", revokeAllPreviewUrls);
 }
 
 function observeAuthState() {
@@ -114,8 +116,8 @@ async function handleLogin(event) {
 
 async function handleLogout() {
   try {
-    await signOut(auth);
     clearChecklistState();
+    await signOut(auth);
     showToast("Đã đăng xuất", "info");
   } catch (error) {
     console.error(error);
@@ -504,11 +506,16 @@ function previewSelectedImages(questionId) {
 function removeSelectedImage(questionId, imageIndex) {
   if (!tempImagesByQuestion[questionId]) return;
 
+  const removed = tempImagesByQuestion[questionId][imageIndex];
+  revokePreviewUrl(removed);
+
   tempImagesByQuestion[questionId].splice(imageIndex, 1);
   previewSelectedImages(questionId);
 }
 
 function clearQuestionSupplementalData(questionId) {
+  revokeQuestionPreviewUrls(questionId);
+
   const noteField = document.getElementById(`note_${questionId}`);
   const previewContainer = document.getElementById(`preview_${questionId}`);
   const errorBox = document.getElementById(`error_${questionId}`);
@@ -532,9 +539,31 @@ function clearQuestionSupplementalData(questionId) {
 }
 
 function clearChecklistState() {
+  revokeAllPreviewUrls();
   renderedQuestions = [];
   tempImagesByQuestion = {};
   isSubmitting = false;
+}
+
+function revokePreviewUrl(imageItem) {
+  if (imageItem && imageItem.previewUrl && imageItem.previewUrl.startsWith("blob:")) {
+    try {
+      URL.revokeObjectURL(imageItem.previewUrl);
+    } catch (error) {
+      console.warn("Không thể giải phóng preview URL:", error);
+    }
+  }
+}
+
+function revokeQuestionPreviewUrls(questionId) {
+  const images = tempImagesByQuestion[questionId] || [];
+  images.forEach(revokePreviewUrl);
+}
+
+function revokeAllPreviewUrls() {
+  Object.keys(tempImagesByQuestion).forEach((questionId) => {
+    revokeQuestionPreviewUrls(questionId);
+  });
 }
 
 async function resizeImageFile(file) {
@@ -577,7 +606,7 @@ async function resizeImageFile(file) {
         ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob(
-          async (blob) => {
+          (blob) => {
             if (!blob) {
               reject(new Error(`Không thể nén ảnh "${file.name}"`));
               return;
@@ -586,22 +615,18 @@ async function resizeImageFile(file) {
             const safeName = file.name.replace(/\.[^/.]+$/, "");
             const finalName = `${safeName}.jpg`;
             const compressedFile = new File([blob], finalName, { type: "image/jpeg" });
+            const previewUrl = URL.createObjectURL(blob);
 
-            try {
-              const previewUrl = await blobToDataURL(blob);
-              resolve({
-                originalFile: file,
-                file: compressedFile,
-                name: finalName,
-                originalSize: file.size,
-                resizedSize: compressedFile.size,
-                width,
-                height,
-                previewUrl
-              });
-            } catch (error) {
-              reject(error);
-            }
+            resolve({
+              originalFile: file,
+              file: compressedFile,
+              name: finalName,
+              originalSize: file.size,
+              resizedSize: compressedFile.size,
+              width,
+              height,
+              previewUrl
+            });
           },
           "image/jpeg",
           0.78
@@ -612,15 +637,6 @@ async function resizeImageFile(file) {
     };
 
     reader.readAsDataURL(file);
-  });
-}
-
-function blobToDataURL(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Không thể tạo preview ảnh"));
-    reader.onloadend = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
   });
 }
 
@@ -817,7 +833,6 @@ async function submitChecklist(event) {
   } catch (error) {
     console.error(error);
 
-    // Nếu ghi Firestore lỗi sau khi đã upload ảnh, thử xóa ảnh rác
     if (uploadedStoragePaths.length) {
       await Promise.allSettled(
         uploadedStoragePaths.map((path) => {
