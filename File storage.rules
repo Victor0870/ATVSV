@@ -1,60 +1,86 @@
 rules_version = '2';
 
-service firebase.storage {
-  match /b/{bucket}/o {
+service cloud.firestore {
+  match /databases/{database}/documents {
 
     function signedIn() {
       return request.auth != null;
     }
 
-    function currentUserExists() {
-      return signedIn() &&
-        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function currentUserDoc() {
-      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid));
+    function currentUserExists() {
+      return signedIn() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     function isActiveUser() {
       return currentUserExists() &&
-        currentUserDoc().data.status == "active";
+             currentUserDoc().data.status == "active";
     }
 
     function isAdminOrManager() {
       return isActiveUser() &&
-        (currentUserDoc().data.role == "admin" ||
-         currentUserDoc().data.role == "manager");
+             (currentUserDoc().data.role == "admin" ||
+              currentUserDoc().data.role == "manager");
     }
 
-    function isImageFile() {
-      return request.resource != null &&
-             request.resource.contentType.matches("image/.*");
+    function isAdmin() {
+      return isActiveUser() &&
+             currentUserDoc().data.role == "admin";
     }
 
-    function sizeAllowed() {
-      // Giới hạn file upload sau nén dưới 10MB
-      return request.resource != null &&
-             request.resource.size < 10 * 1024 * 1024;
+    function isValidArea(area) {
+      return area == "Nhà máy" || area == "Chi nhánh";
     }
 
-    match /checksheet-images/{uid}/{submissionId}/{fileName} {
-      // Chủ sở hữu hoặc admin/manager được đọc ảnh
-      allow read: if (signedIn() && request.auth.uid == uid) || isAdminOrManager();
+    match /users/{userId} {
+      // Đọc hồ sơ:
+      // - user đọc hồ sơ của chính mình
+      // - admin/manager đọc được user khác
+      allow read: if signedIn() &&
+                  (request.auth.uid == userId || isAdminOrManager());
 
-      // Chỉ user active được upload vào thư mục chính uid của họ
-      allow write: if isActiveUser() &&
-                   request.auth.uid == uid &&
-                   isImageFile() &&
-                   sizeAllowed();
+      // Tự đăng ký:
+      // user được tạo chính hồ sơ của mình, nhưng chỉ ở trạng thái inactive và role=user
+      allow create: if (
+                      signedIn() &&
+                      request.auth.uid == userId &&
+                      !exists(/databases/$(database)/documents/users/$(userId)) &&
+                      request.resource.data.uid == request.auth.uid &&
+                      request.resource.data.email == request.auth.token.email &&
+                      request.resource.data.role == "user" &&
+                      request.resource.data.status == "inactive" &&
+                      request.resource.data.taiKhoan is string &&
+                      request.resource.data.hoTen is string &&
+                      isValidArea(request.resource.data.khuVuc)
+                    )
+                    ||
+                    isAdmin();
 
-      // Cho phép chủ sở hữu hoặc admin/manager xóa ảnh
-      allow delete: if (signedIn() && request.auth.uid == uid) || isAdminOrManager();
+      // Chỉ admin được sửa / xóa user
+      allow update, delete: if isAdmin();
     }
 
-    // Chặn toàn bộ các đường dẫn khác
-    match /{allPaths=**} {
-      allow read, write: if false;
+    match /submissions/{submissionId} {
+      // Admin/manager đọc toàn hệ thống
+      // Chủ sở hữu đọc phiếu của mình
+      allow read: if isAdminOrManager() ||
+                  (signedIn() && resource.data.uid == request.auth.uid);
+
+      // Chỉ user active mới được tạo phiếu của chính họ
+      allow create: if isActiveUser() &&
+                    request.resource.data.uid == request.auth.uid &&
+                    request.resource.data.email == request.auth.token.email &&
+                    request.resource.data.taiKhoan == currentUserDoc().data.taiKhoan &&
+                    request.resource.data.hoTen == currentUserDoc().data.hoTen &&
+                    request.resource.data.khuVuc == currentUserDoc().data.khuVuc;
+
+      // Không cho user thường sửa/xóa phiếu
+      // Admin/manager có thể xử lý nếu cần
+      allow update, delete: if isAdminOrManager();
     }
   }
 }
