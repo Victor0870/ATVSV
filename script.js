@@ -6,7 +6,9 @@ import {
   browserLocalPersistence,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
+  deleteUser,
   doc,
   getDoc,
   setDoc,
@@ -29,6 +31,7 @@ let currentUserProfile = null;
 let renderedQuestions = [];
 let tempImagesByQuestion = {};
 let isSubmitting = false;
+let isHandlingRegistration = false;
 let toastTimer = null;
 
 document.addEventListener("DOMContentLoaded", initApp);
@@ -42,11 +45,16 @@ async function initApp() {
     console.warn("Không thể thiết lập persistence:", error);
   }
 
+  showAuthTab("login");
   observeAuthState();
 }
 
 function bindEvents() {
+  document.getElementById("showLoginTabBtn").addEventListener("click", () => showAuthTab("login"));
+  document.getElementById("showRegisterTabBtn").addEventListener("click", () => showAuthTab("register"));
+
   document.getElementById("loginForm").addEventListener("submit", handleLogin);
+  document.getElementById("registerForm").addEventListener("submit", handleRegister);
   document.getElementById("logoutBtn").addEventListener("click", handleLogout);
   document.getElementById("togglePasswordBtn").addEventListener("click", togglePasswordVisibility);
   document.getElementById("checklistForm").addEventListener("submit", submitChecklist);
@@ -58,10 +66,33 @@ function bindEvents() {
   window.addEventListener("beforeunload", revokeAllPreviewUrls);
 }
 
+function showAuthTab(tabName) {
+  const loginBtn = document.getElementById("showLoginTabBtn");
+  const registerBtn = document.getElementById("showRegisterTabBtn");
+  const loginPanel = document.getElementById("loginPanel");
+  const registerPanel = document.getElementById("registerPanel");
+
+  if (tabName === "register") {
+    registerBtn.classList.add("active");
+    loginBtn.classList.remove("active");
+    registerPanel.classList.add("active");
+    loginPanel.classList.remove("active");
+  } else {
+    loginBtn.classList.add("active");
+    registerBtn.classList.remove("active");
+    loginPanel.classList.add("active");
+    registerPanel.classList.remove("active");
+  }
+}
+
 function observeAuthState() {
   showPageLoader(true, "Đang kiểm tra phiên đăng nhập...");
 
   onAuthStateChanged(auth, async (user) => {
+    if (isHandlingRegistration) {
+      return;
+    }
+
     try {
       if (!user) {
         currentFirebaseUser = null;
@@ -112,6 +143,107 @@ async function handleLogin(event) {
   } finally {
     setButtonLoading(loginBtn, false);
   }
+}
+
+async function handleRegister(event) {
+  event.preventDefault();
+
+  const registerBtn = document.getElementById("registerBtn");
+
+  const email = document.getElementById("registerEmailInput").value.trim().toLowerCase();
+  const password = document.getElementById("registerPasswordInput").value;
+  const confirmPassword = document.getElementById("registerConfirmPasswordInput").value;
+  const taiKhoan = document.getElementById("registerTaiKhoanInput").value.trim();
+  const hoTen = document.getElementById("registerHoTenInput").value.trim();
+  const khuVuc = document.getElementById("registerKhuVucInput").value;
+
+  const validationMessage = validateRegisterForm({
+    email,
+    password,
+    confirmPassword,
+    taiKhoan,
+    hoTen,
+    khuVuc
+  });
+
+  if (validationMessage) {
+    showToast(validationMessage, "error");
+    return;
+  }
+
+  let createdAuthUser = null;
+
+  setButtonLoading(registerBtn, true, "Đang đăng ký...");
+  showPageLoader(true, "Đang tạo tài khoản...");
+  isHandlingRegistration = true;
+
+  try {
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    createdAuthUser = credential.user;
+
+    const userProfile = {
+      uid: createdAuthUser.uid,
+      email,
+      taiKhoan,
+      hoTen,
+      khuVuc,
+      role: "user",
+      status: "inactive",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
+    await setDoc(doc(db, "users", createdAuthUser.uid), userProfile);
+
+    document.getElementById("registerForm").reset();
+    document.getElementById("emailInput").value = email;
+
+    await signOut(auth);
+
+    currentFirebaseUser = null;
+    currentUserProfile = null;
+    showLoginScreen();
+    showAuthTab("login");
+
+    showToast("Đăng ký thành công. Tài khoản đang chờ admin phê duyệt.", "success");
+  } catch (error) {
+    console.error(error);
+
+    // Nếu tạo Auth thành công nhưng lưu Firestore lỗi, xóa user Auth để tránh tài khoản mồ côi
+    if (createdAuthUser) {
+      try {
+        await deleteUser(createdAuthUser);
+      } catch (deleteError) {
+        console.warn("Không thể xóa user Auth sau khi đăng ký lỗi:", deleteError);
+      }
+    }
+
+    showToast(getRegisterErrorMessage(error), "error");
+  } finally {
+    isHandlingRegistration = false;
+    setButtonLoading(registerBtn, false);
+    showPageLoader(false);
+  }
+}
+
+function validateRegisterForm({ email, password, confirmPassword, taiKhoan, hoTen, khuVuc }) {
+  if (!email || !password || !confirmPassword || !taiKhoan || !hoTen || !khuVuc) {
+    return "Vui lòng nhập đầy đủ thông tin đăng ký.";
+  }
+
+  if (password.length < 6) {
+    return "Mật khẩu phải có tối thiểu 6 ký tự.";
+  }
+
+  if (password !== confirmPassword) {
+    return "Mật khẩu xác nhận không khớp.";
+  }
+
+  if (![AREAS.PRODUCTION, AREAS.WAREHOUSE].includes(String(khuVuc).trim())) {
+    return "Khu vực đăng ký không hợp lệ.";
+  }
+
+  return "";
 }
 
 async function handleLogout() {
@@ -172,11 +304,14 @@ function ensureAuthorizedAccess(profile) {
     throw new Error("Hồ sơ người dùng không hợp lệ");
   }
 
+  const khuVuc = String(profile.khuVuc || "").trim();
+  profile.khuVuc = khuVuc;
+
   if (profile.status !== "active") {
-    throw new Error("Tài khoản của bạn đang ở trạng thái không hoạt động");
+    throw new Error("Tài khoản của bạn đang chờ quản trị viên phê duyệt.");
   }
 
-  if (![AREAS.PRODUCTION, AREAS.WAREHOUSE].includes(profile.khuVuc)) {
+  if (![AREAS.PRODUCTION, AREAS.WAREHOUSE].includes(khuVuc)) {
     throw new Error("Khu vực của tài khoản không hợp lệ");
   }
 }
@@ -187,6 +322,7 @@ function showLoginScreen() {
   document.getElementById("loginForm").reset();
   document.getElementById("passwordInput").type = "password";
   document.getElementById("togglePasswordBtn").textContent = "Hiện";
+  showAuthTab("login");
 }
 
 function showChecklistScreen(profile, firebaseUser) {
@@ -916,6 +1052,25 @@ function getFirebaseErrorMessage(error) {
       return "Lỗi kết nối mạng. Vui lòng kiểm tra Internet.";
     default:
       return error?.message || "Đã xảy ra lỗi không xác định.";
+  }
+}
+
+function getRegisterErrorMessage(error) {
+  const code = error?.code || "";
+
+  switch (code) {
+    case "auth/email-already-in-use":
+      return "Email này đã được đăng ký.";
+    case "auth/invalid-email":
+      return "Email không đúng định dạng.";
+    case "auth/weak-password":
+      return "Mật khẩu quá yếu. Vui lòng dùng mật khẩu mạnh hơn.";
+    case "permission-denied":
+      return "Không đủ quyền tạo hồ sơ người dùng. Hãy kiểm tra Firestore Rules.";
+    case "auth/network-request-failed":
+      return "Lỗi kết nối mạng. Vui lòng kiểm tra Internet.";
+    default:
+      return error?.message || "Không thể đăng ký tài khoản.";
   }
 }
 
