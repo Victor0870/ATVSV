@@ -37,12 +37,12 @@ import {
  * Lấy trong Firebase Console > Project settings > General > Your apps
  */
 const firebaseConfig = {
-  apiKey: "AIzaSyAvKmCX-mDsO3oQ8TBWL3GlP_Sc17wxV_U",
-  authDomain: "e-checksheet-atvsv.firebaseapp.com",
-  projectId: "e-checksheet-atvsv",
-  storageBucket: "e-checksheet-atvsv.firebasestorage.app",
-  messagingSenderId: "856741565418",
-  appId: "1:856741565418:web:9c0e088f3eac4aac715893"
+  apiKey: "AIzaSyArUb1e4FUhIvvTUe9c_ul1falHvheeybc",
+  authDomain: "e-checksheet-atvsv-c1d45.firebaseapp.com",
+  projectId: "e-checksheet-atvsv-c1d45",
+  storageBucket: "e-checksheet-atvsv-c1d45.firebasestorage.app",
+  messagingSenderId: "958269031699",
+  appId: "1:958269031699:web:905782a636a0fed47a46e6"
 };
 
 const app = initializeApp(firebaseConfig);
