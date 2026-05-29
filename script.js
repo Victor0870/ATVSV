@@ -18,8 +18,8 @@ import {
 } from "./firebase-config.js";
 
 const AREAS = {
-  PRODUCTION: "Sản xuất / Thử nghiệm / Phòng Lab",
-  WAREHOUSE: "Kho vận / Chi nhánh"
+  PRODUCTION: "Nhà máy",
+  WAREHOUSE: "Chi nhánh"
 };
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
