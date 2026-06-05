@@ -26,13 +26,12 @@
 
       <nav class="admin-sidebar-nav">
         <p class="admin-nav-label">Chức năng</p>
-        <a href="#" class="admin-nav-item active">
+        <a href="#usersSection" class="admin-nav-item active" data-section="users">
           Quản lý người dùng
         </a>
-        <div class="admin-nav-item disabled">
-          <span>Cấu hình Checklist</span>
-          <em>Bước 2</em>
-        </div>
+        <a href="#checklistSection" class="admin-nav-item" data-section="checklist">
+          Cấu hình Checklist
+        </a>
 
         <p class="admin-nav-label">Liên kết nhanh</p>
         <a href="./index.html" class="admin-nav-item">Làm Checklist ATVSV</a>
@@ -83,7 +82,7 @@
         </div>
       </header>
 
-      <section class="admin-section">
+      <section id="usersSection" class="admin-section">
         <div class="admin-section-header">
           <div class="panel-header">
             <h2>Danh sách người dùng đăng ký</h2>
@@ -124,17 +123,75 @@
         </div>
       </section>
 
-      <section class="admin-section admin-section-muted admin-locked-section">
-        <div class="admin-locked-overlay">
-          <h3>Quản lý câu hỏi Checklist ATVSV</h3>
-          <p>Chức năng thêm/sửa câu hỏi checklist sẽ được cập nhật ở Bước 2.</p>
+      <section id="checklistSection" class="admin-section">
+        <div class="admin-section-header">
+          <div class="panel-header">
+            <h2>Quản lý câu hỏi Checklist</h2>
+          </div>
+          <div class="admin-checklist-actions">
+            <button type="button" id="addChecklistBtn" class="primary-btn">Thêm câu hỏi</button>
+            <button type="button" id="reloadChecklistBtn" class="ghost-btn">Tải lại</button>
+          </div>
         </div>
-        <div class="panel-header">
-          <h2>Cập nhật câu hỏi checklist</h2>
-          <p class="panel-desc">Tùy biến nội dung câu hỏi theo khu vực và danh mục.</p>
+
+        <div class="admin-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Danh mục</th>
+                <th>Nội dung câu hỏi</th>
+                <th>Khu vực</th>
+                <th>Thứ tự</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="checklistTableBody">
+              <tr>
+                <td colspan="6" class="empty-table">Đang tải checklist...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
     </main>
+  </div>
+
+  <div id="checklistModal" class="modal hidden">
+    <div class="modal-backdrop" id="checklistModalBackdrop"></div>
+    <div class="modal-content">
+      <h3 id="checklistModalTitle">Thêm câu hỏi checklist</h3>
+      <div class="form-group">
+        <label for="checkCategory">Danh mục</label>
+        <input type="text" id="checkCategory" placeholder="Ví dụ: Môi trường & 5S">
+      </div>
+      <div class="form-group">
+        <label for="checkText">Nội dung câu hỏi</label>
+        <textarea id="checkText" rows="4" placeholder="Nhập nội dung câu hỏi kiểm tra..."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="checkArea">Khu vực áp dụng</label>
+        <select id="checkArea">
+          <option value="ALL">Tất cả</option>
+          <option value="Nhà máy">Nhà máy</option>
+          <option value="Chi nhánh">Chi nhánh</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="checkOrder">Thứ tự hiển thị</label>
+        <input type="number" id="checkOrder" min="1" value="1">
+      </div>
+      <div class="form-group checkbox-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="checkActive" checked>
+          <span>Đang sử dụng (hiển thị trên checklist)</span>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="saveChecklistBtn" class="primary-btn">Lưu</button>
+        <button type="button" id="cancelChecklistBtn" class="ghost-btn">Hủy</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast hidden"></div>

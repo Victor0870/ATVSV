@@ -18,6 +18,7 @@ import {
   getDownloadURL,
   deleteObject
 } from "./firebase-config.js";
+import { fetchChecklistItems, groupChecklistForArea } from "./checklist-service.js";
 
 const AREAS = {
   PRODUCTION: "Nhà máy",
@@ -110,7 +111,7 @@ function observeAuthState() {
       ensureAuthorizedAccess(profile);
 
       currentUserProfile = profile;
-      showChecklistScreen(profile, user);
+      await showChecklistScreen(profile, user);
     } catch (error) {
       console.error(error);
       await safeSignOut();
@@ -351,7 +352,7 @@ function showLoginScreen(prefillEmail = "") {
 
   showAuthTab("login");
 }
-function showChecklistScreen(profile, firebaseUser) {
+async function showChecklistScreen(profile, firebaseUser) {
   document.getElementById("loginScreen").classList.add("hidden");
   document.getElementById("checklistScreen").classList.remove("hidden");
 
@@ -374,183 +375,119 @@ function showChecklistScreen(profile, firebaseUser) {
     adminLink?.classList.add("hidden");
   }
 
-  renderQuestions(profile.khuVuc);
+  await renderQuestions(profile.khuVuc);
 }
 
-function buildQuestionConfig() {
-  return [
-    {
-      category: "Quản lý an toàn và tình huống khẩn cấp",
-      questions: [
-        { text: "Người lao động có trang bị đủ dụng cụ bảo hộ lao động (PPE) không?", areas: "ALL" },
-        { text: "Danh bạ liên lạc trong tình huống khẩn cấp có được hiển thị ở khu vực làm việc không?", areas: "ALL" },
-        { text: "Có hộp cứu thương và được kiểm tra định kỳ không?", areas: "ALL" },
-        { text: "Các nút bấm báo động có bị che chắn hay bị vỡ, biến dạng không?", areas: "ALL" },
-        { text: "Lối thoát hiểm, cửa thoát hiểm có bị che chắn không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "Môi trường & 5S",
-      questions: [
-        { text: "Phân loại rác có thực hiện đúng theo quy định không?", areas: "ALL" },
-        { text: "Khu vực làm việc có rác bẩn hay dầu rơi vãi không?", areas: "ALL" },
-        { text: "Bóng chiếu sáng có hoạt động bình thường không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "An toàn Điện và PCCC",
-      questions: [
-        { text: "Thiết bị chữa cháy có ở đúng vị trí, áp suất vạch xanh không?", areas: "ALL" },
-        { text: "Các ổ cắm điện có bị mòn, vỡ hay có dấu hiệu cháy không?", areas: "ALL" },
-        { text: "Thiết bị tiêu thụ điện có được tắt đi sau khi sử dụng không?", areas: "ALL" },
-        { text: "Có đảm bảo khoảng cách tối thiểu từ vật tư, hàng hóa đến các bảng điện không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "Thao tác với vật tư hàng hóa",
-      questions: [
-        {
-          byArea: {
-            [AREAS.WAREHOUSE]: "Hàng hóa được vận chuyển và sắp xếp đúng theo hướng dẫn vận hành của kho không?",
-            [AREAS.PRODUCTION]: "Hàng hóa được vận chuyển và sắp xếp đúng theo hướng dẫn/SOP không?"
-          }
-        },
-        { text: "Hàng hóa có chắn lối đi hay cửa thoát hiểm không?", areas: "ALL" },
-        { text: "Hàng hóa, vật tư được xếp ngay ngắn và đúng theo layout không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "An toàn vận hành máy móc thiết bị",
-      questions: [
-        { text: "Thiết bị, máy móc có được kiểm tra định kỳ không?", areas: "ALL" },
-        { text: "Máy móc, thiết bị có hiện tượng bất thường (rò dầu, âm thanh lạ, mùi khét...) không?", areas: "ALL" },
-        { text: "Hệ thống thông gió có đầy đủ và hoạt động tốt không?", areas: [AREAS.PRODUCTION] }
-      ]
-    }
-  ];
-}
-
-function getQuestionsByArea(area) {
-  const source = buildQuestionConfig();
-  const output = [];
-
-  source.forEach((group) => {
-    const questions = [];
-
-    group.questions.forEach((item) => {
-      if (item.byArea) {
-        if (item.byArea[area]) {
-          questions.push({
-            category: group.category,
-            text: item.byArea[area]
-          });
-        }
-      } else if (item.areas === "ALL" || (Array.isArray(item.areas) && item.areas.includes(area))) {
-        questions.push({
-          category: group.category,
-          text: item.text
-        });
-      }
-    });
-
-    if (questions.length > 0) {
-      output.push({
-        category: group.category,
-        questions
-      });
-    }
-  });
-
-  return output;
-}
-
-function renderQuestions(area) {
+async function renderQuestions(area) {
   const container = document.getElementById("questionsContainer");
-  const groups = getQuestionsByArea(area);
+  if (!container) return;
 
-  clearChecklistState();
-  renderedQuestions = [];
+  showPageLoader(true, "Đang tải checklist...");
 
-  let html = "";
-  let questionIndex = 0;
+  try {
+    const { items, source } = await fetchChecklistItems();
+    const groups = groupChecklistForArea(items, area);
 
-  groups.forEach((group) => {
-    html += `
-      <section class="category-card">
-        <div class="category-header">${escapeHtml(group.category)}</div>
-        <div class="question-list">
-    `;
+    if (!groups.length) {
+      container.innerHTML = `<div class="empty-card">Không có câu hỏi checklist cho khu vực này.</div>`;
+      showToast("Không tìm thấy câu hỏi checklist phù hợp.", "error");
+      return;
+    }
 
-    group.questions.forEach((question) => {
-      questionIndex += 1;
-      const questionId = `q${questionIndex}`;
+    if (source === "fallback") {
+      showToast("Đang dùng checklist dự phòng. Vui lòng liên hệ admin.", "info");
+    }
 
-      renderedQuestions.push({
-        id: questionId,
-        category: group.category,
-        question: question.text
+    clearChecklistState();
+    renderedQuestions = [];
+
+    let html = "";
+    let questionIndex = 0;
+
+    groups.forEach((group) => {
+      html += `
+        <section class="category-card">
+          <div class="category-header">${escapeHtml(group.category)}</div>
+          <div class="question-list">
+      `;
+
+      group.questions.forEach((question) => {
+        questionIndex += 1;
+        const questionId = question.id || `q${questionIndex}`;
+
+        renderedQuestions.push({
+          id: questionId,
+          category: group.category,
+          question: question.text
+        });
+
+        html += `
+          <article class="question-item" id="item_${questionId}">
+            <div class="question-text">${questionIndex}. ${escapeHtml(question.text)}</div>
+
+            <div class="options-row">
+              <label class="option-chip ok">
+                <input type="radio" name="answer_${questionId}" value="OK" data-question-id="${questionId}">
+                <span>OK</span>
+              </label>
+
+              <label class="option-chip ng">
+                <input type="radio" name="answer_${questionId}" value="NG" data-question-id="${questionId}">
+                <span>NG</span>
+              </label>
+
+              <label class="option-chip na">
+                <input type="radio" name="answer_${questionId}" value="N/A" data-question-id="${questionId}">
+                <span>N/A</span>
+              </label>
+            </div>
+
+            <div class="extra-fields hidden" id="extra_${questionId}">
+              <div class="form-group">
+                <label for="note_${questionId}">Mô tả lỗi phát hiện</label>
+                <textarea id="note_${questionId}" placeholder="Mô tả lỗi phát hiện..."></textarea>
+                <div class="helper-text">Bắt buộc nhập mô tả khi chọn NG.</div>
+              </div>
+
+              <div class="image-upload-box">
+                <label>Ảnh minh chứng lỗi (tối đa 2 ảnh)</label>
+                <div class="image-upload-actions">
+                  <input
+                    type="file"
+                    class="image-input"
+                    id="imageInput_${questionId}"
+                    data-question-id="${questionId}"
+                    accept="image/*"
+                    capture="environment"
+                    multiple
+                  >
+                  <div class="helper-text">
+                    Ảnh sẽ được tự động resize tối đa 1280px và nén JPEG trước khi upload.
+                  </div>
+                </div>
+                <div id="preview_${questionId}" class="image-preview-grid"></div>
+              </div>
+            </div>
+
+            <div class="error-text hidden" id="error_${questionId}"></div>
+          </article>
+        `;
       });
 
       html += `
-        <article class="question-item" id="item_${questionId}">
-          <div class="question-text">${questionIndex}. ${escapeHtml(question.text)}</div>
-
-          <div class="options-row">
-            <label class="option-chip ok">
-              <input type="radio" name="answer_${questionId}" value="OK" data-question-id="${questionId}">
-              <span>OK</span>
-            </label>
-
-            <label class="option-chip ng">
-              <input type="radio" name="answer_${questionId}" value="NG" data-question-id="${questionId}">
-              <span>NG</span>
-            </label>
-
-            <label class="option-chip na">
-              <input type="radio" name="answer_${questionId}" value="N/A" data-question-id="${questionId}">
-              <span>N/A</span>
-            </label>
           </div>
-
-          <div class="extra-fields hidden" id="extra_${questionId}">
-            <div class="form-group">
-              <label for="note_${questionId}">Mô tả lỗi phát hiện</label>
-              <textarea id="note_${questionId}" placeholder="Mô tả lỗi phát hiện..."></textarea>
-              <div class="helper-text">Bắt buộc nhập mô tả khi chọn NG.</div>
-            </div>
-
-            <div class="image-upload-box">
-              <label>Ảnh minh chứng lỗi (tối đa 2 ảnh)</label>
-              <div class="image-upload-actions">
-                <input
-                  type="file"
-                  class="image-input"
-                  id="imageInput_${questionId}"
-                  data-question-id="${questionId}"
-                  accept="image/*"
-                  capture="environment"
-                  multiple
-                >
-                <div class="helper-text">
-                  Ảnh sẽ được tự động resize tối đa 1280px và nén JPEG trước khi upload.
-                </div>
-              </div>
-              <div id="preview_${questionId}" class="image-preview-grid"></div>
-            </div>
-          </div>
-
-          <div class="error-text hidden" id="error_${questionId}"></div>
-        </article>
+        </section>
       `;
     });
 
-    html += `
-        </div>
-      </section>
-    `;
-  });
-
-  container.innerHTML = html;
+    container.innerHTML = html;
+  } catch (error) {
+    console.error(error);
+    container.innerHTML = `<div class="empty-card">Không thể tải checklist. Vui lòng thử lại.</div>`;
+    showToast(error.message || "Không thể tải checklist", "error");
+  } finally {
+    showPageLoader(false);
+  }
 }
 
 function handleQuestionContainerChange(event) {
