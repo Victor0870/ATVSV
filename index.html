@@ -3,191 +3,281 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Checksheet ATVSV - Idemitsu</title>
+  <title>E‑Checksheet ATVSV - Idemitsu</title>
   <link rel="stylesheet" href="./style.css">
 </head>
+
 <body>
-  <div id="pageLoader" class="page-loader hidden">
-    <div class="loader-card">
-      <div class="spinner"></div>
-      <p id="pageLoaderText">Đang tải dữ liệu...</p>
-    </div>
+
+<div id="pageLoader" class="page-loader hidden">
+  <div class="loader-card">
+    <div class="spinner"></div>
+    <p id="pageLoaderText">Đang tải dữ liệu...</p>
   </div>
+</div>
 
-  <main class="app-shell">
-    <!-- Màn hình đăng nhập / đăng ký -->
-    <section id="loginScreen" class="screen auth-screen">
-      <div class="auth-card">
-        <div class="brand-line"></div>
-        <h1 class="auth-title">E-Checksheet ATVSV</h1>
-        <p class="auth-subtitle">Idemitsu Lubricants Vietnam</p>
+<main class="app-shell">
 
-        <div class="auth-switch">
-          <button type="button" id="showLoginTabBtn" class="switch-btn active">Đăng nhập</button>
-          <button type="button" id="showRegisterTabBtn" class="switch-btn">Đăng ký</button>
-        </div>
+<!-- LOGIN / REGISTER -->
+<section id="loginScreen" class="screen auth-screen">
 
-        <!-- Form đăng nhập -->
-        <div id="loginPanel" class="auth-panel active">
-          <form id="loginForm" class="form-stack">
-            <div class="form-group">
-              <label for="emailInput">Email đăng nhập</label>
-              <input
-                type="email"
-                id="emailInput"
-                placeholder="Nhập email"
-                autocomplete="email"
-                required
-              >
-            </div>
+<div class="auth-card">
 
-            <div class="form-group">
-              <label for="passwordInput">Mật khẩu</label>
-              <div class="password-wrap">
-                <input
-                  type="password"
-                  id="passwordInput"
-                  placeholder="Nhập mật khẩu"
-                  autocomplete="current-password"
-                  required
-                >
-                <button type="button" id="togglePasswordBtn" class="ghost-btn small-btn">Hiện</button>
-              </div>
-            </div>
+<h1 class="auth-title">E‑Checksheet ATVSV</h1>
+<p class="auth-subtitle">Idemitsu Lubricants Vietnam</p>
 
-            <button type="submit" id="loginBtn" class="primary-btn full-btn">Đăng nhập</button>
-          </form>
+<div class="auth-switch">
+<button id="showLoginTabBtn" class="switch-btn active">Đăng nhập</button>
+<button id="showRegisterTabBtn" class="switch-btn">Đăng ký</button>
+</div>
 
-          <div class="note-box">
-            <strong>Lưu ý:</strong>
-            <span>Chỉ tài khoản đã được admin kích hoạt mới sử dụng được checklist.</span>
-          </div>
-        </div>
 
-        <!-- Form đăng ký -->
-        <div id="registerPanel" class="auth-panel">
-          <form id="registerForm" class="form-stack">
-            <div class="form-group">
-              <label for="registerEmailInput">Email</label>
-              <input
-                type="email"
-                id="registerEmailInput"
-                placeholder="Nhập email"
-                autocomplete="email"
-                required
-              >
-            </div>
+<!-- LOGIN -->
 
-            <div class="form-group">
-              <label for="registerPasswordInput">Mật khẩu</label>
-              <input
-                type="password"
-                id="registerPasswordInput"
-                placeholder="Tối thiểu 6 ký tự"
-                autocomplete="new-password"
-                required
-              >
-            </div>
+<div id="loginPanel" class="auth-panel active">
 
-            <div class="form-group">
-              <label for="registerConfirmPasswordInput">Xác nhận mật khẩu</label>
-              <input
-                type="password"
-                id="registerConfirmPasswordInput"
-                placeholder="Nhập lại mật khẩu"
-                autocomplete="new-password"
-                required
-              >
-            </div>
+<form id="loginForm">
 
-            <div class="form-group">
-              <label for="registerTaiKhoanInput">Tài khoản nội bộ</label>
-              <input
-                type="text"
-                id="registerTaiKhoanInput"
-                placeholder="Ví dụ: test01"
-                required
-              >
-            </div>
+<div class="form-group">
+<label>Email</label>
+<input type="email" id="emailInput" required>
+</div>
 
-            <div class="form-group">
-              <label for="registerHoTenInput">Họ tên</label>
-              <input
-                type="text"
-                id="registerHoTenInput"
-                placeholder="Nhập họ tên đầy đủ"
-                required
-              >
-            </div>
+<div class="form-group">
+<label>Mật khẩu</label>
+<input type="password" id="passwordInput" required>
+</div>
 
-            <div class="form-group">
-              <label for="registerKhuVucInput">Khu vực</label>
-              <select id="registerKhuVucInput" required>
-                <option value="">-- Chọn khu vực --</option>
-                <option value="Nhà máy">Nhà máy</option>
-                <option value="Chi nhánh">Chi nhánh</option>
-              </select>
-            </div>
+<button id="loginBtn" class="primary-btn">Đăng nhập</button>
 
-            <button type="submit" id="registerBtn" class="primary-btn full-btn">Đăng ký tài khoản</button>
-          </form>
+</form>
 
-          <div class="note-box">
-            <strong>Lưu ý:</strong>
-            <span>Sau khi đăng ký, tài khoản sẽ ở trạng thái <b>chờ admin phê duyệt</b>. Bạn chỉ đăng nhập được sau khi admin đổi trạng thái sang <b>active</b>.</span>
-          </div>
-        </div>
-      </div>
-    </section>
+</div>
 
-    <!-- Màn hình checklist -->
-    <section id="checklistScreen" class="screen hidden">
-      <div class="topbar">
-        <div class="topbar-left">
-          <span class="topbar-tag">E-Checksheet nội bộ</span>
-        </div>
-        <div class="topbar-right">
-          <a id="reportLink" href="./report.html" class="ghost-btn hidden">Xem báo cáo</a>
-          <button type="button" id="logoutBtn" class="ghost-btn">Đăng xuất</button>
-        </div>
-      </div>
 
-      <header class="hero-card">
-        <h1>MẠNG LƯỚI ATVSV - DANH MỤC KIỂM TRA ATVSLĐ</h1>
-        <p>Idemitsu Lubricants Vietnam</p>
-      </header>
+<!-- REGISTER -->
 
-      <section class="user-info-grid">
-        <div class="info-card">
-          <span class="info-label">Họ tên</span>
-          <strong id="displayHoTen">-</strong>
-        </div>
-        <div class="info-card">
-          <span class="info-label">Email</span>
-          <strong id="displayEmail">-</strong>
-        </div>
-        <div class="info-card">
-          <span class="info-label">Tài khoản</span>
-          <strong id="displayTaiKhoan">-</strong>
-        </div>
-        <div class="info-card">
-          <span class="info-label">Khu vực / Phân xưởng</span>
-          <strong id="displayKhuVuc">-</strong>
-        </div>
-      </section>
+<div id="registerPanel" class="auth-panel">
 
-      <form id="checklistForm">
-        <div id="questionsContainer"></div>
+<form id="registerForm">
 
-        <div class="submit-bar">
-          <button type="submit" id="submitBtn" class="primary-btn full-btn">Gửi Báo Cáo</button>
-        </div>
-      </form>
-    </section>
-  </main>
+<div class="form-group">
+<label>Email</label>
+<input type="email" id="registerEmailInput" required>
+</div>
 
-  <div id="toast" class="toast hidden"></div>
+<div class="form-group">
+<label>Mật khẩu</label>
+<input type="password" id="registerPasswordInput" required>
+</div>
 
-  <script type="module" src="./script.js"></script>
+<div class="form-group">
+<label>Xác nhận mật khẩu</label>
+<input type="password" id="registerConfirmPasswordInput" required>
+</div>
+
+<div class="form-group">
+<label>Tài khoản</label>
+<input type="text" id="registerTaiKhoanInput" required>
+</div>
+
+<div class="form-group">
+<label>Họ tên</label>
+<input type="text" id="registerHoTenInput" required>
+</div>
+
+
+<div class="form-group">
+<label>Khu vực</label>
+
+<select id="registerKhuVucInput" required>
+
+<option value="">-- chọn khu vực --</option>
+
+<option value="Nhà máy">Nhà máy</option>
+
+<option value="Chi nhánh">Chi nhánh</option>
+
+</select>
+
+</div>
+
+
+<div class="form-group hidden" id="registerChiNhanhGroup">
+
+<label>Chi nhánh</label>
+
+<select id="registerChiNhanhInput">
+
+<option value="">-- chọn chi nhánh --</option>
+
+<option>Chi nhánh Hà Nội</option>
+
+<option>Chi nhánh Hà Tĩnh</option>
+
+<option>Chi nhánh Đà Nẵng</option>
+
+<option>Chi nhánh Hồ Chí Minh</option>
+
+<option>Chi nhánh Cần Thơ</option>
+
+</select>
+
+</div>
+
+
+<button id="registerBtn" class="primary-btn">
+
+Đăng ký tài khoản
+
+</button>
+
+</form>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- CHECKLIST SCREEN -->
+
+<section id="checklistScreen" class="screen hidden">
+
+<div class="topbar">
+
+<div>
+
+<span class="topbar-tag">Hệ thống kiểm tra ATVSV</span>
+
+</div>
+
+<div class="topbar-right">
+
+<a id="dashboardLink" href="./dashboard.html" class="ghost-btn hidden">
+
+Dashboard
+
+</a>
+
+<a id="reportLink" href="./report.html" class="ghost-btn hidden">
+
+Báo cáo
+
+</a>
+
+<a id="adminLink" href="./admin.html" class="ghost-btn hidden">
+
+Quản lý Admin
+
+</a>
+
+<button id="logoutBtn" class="ghost-btn">
+
+Đăng xuất
+
+</button>
+
+</div>
+
+</div>
+
+
+
+<header class="hero-card">
+
+<h1>
+
+MẠNG LƯỚI ATVSV
+
+</h1>
+
+<p>
+
+Danh mục kiểm tra an toàn vệ sinh lao động
+
+</p>
+
+</header>
+
+
+
+<section class="user-info-grid">
+
+<div class="info-card">
+
+<span class="info-label">Họ tên</span>
+
+<strong id="displayHoTen">-</strong>
+
+</div>
+
+
+<div class="info-card">
+
+<span class="info-label">Email</span>
+
+<strong id="displayEmail">-</strong>
+
+</div>
+
+
+<div class="info-card">
+
+<span class="info-label">Tài khoản</span>
+
+<strong id="displayTaiKhoan">-</strong>
+
+</div>
+
+
+<div class="info-card">
+
+<span class="info-label">Khu vực</span>
+
+<strong id="displayKhuVuc">-</strong>
+
+</div>
+
+
+<div class="info-card">
+
+<span class="info-label">Chi nhánh</span>
+
+<strong id="displayChiNhanh">-</strong>
+
+</div>
+
+</section>
+
+
+<form id="checklistForm">
+
+<div id="questionsContainer"></div>
+
+<div class="submit-bar">
+
+<button id="submitBtn" class="primary-btn">
+
+Gửi Báo Cáo
+
+</button>
+
+</div>
+
+</form>
+
+</section>
+
+</main>
+
+
+<div id="toast" class="toast hidden"></div>
+
+
+<script type="module" src="./script.js"></script>
+
 </body>
+
 </html>
