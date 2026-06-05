@@ -49,6 +49,95 @@ async function initApp() {
   observeAuthState();
 }
 
+import { db } from './firebase-config.js';
+import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore.js";
+
+let QUESTIONS_CONFIG = []; // Thay vì mảng hardcoded, ta để mảng rỗng ban đầu
+
+async function loadDynamicChecklist() {
+    showLoader(true);
+    try {
+        // Lấy danh sách câu hỏi từ Firestore theo thứ tự sắp xếp (nêu có trường 'stt')
+        const q = query(collection(db, "checklistItems"), orderBy("stt", "asc"));
+        const querySnapshot = await getDocs(q);
+        
+        QUESTIONS_CONFIG = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            QUESTIONS_CONFIG.push({
+                id: doc.id,
+                content: data.content,
+                khuVuc: data.khuVuc || "Tất cả", // Phân loại theo khu vực nếu cần
+                type: data.type || "radio"
+            });
+        });
+
+        // Sau khi đã nạp dữ liệu động thành công, tiến hành render giao diện
+        renderChecklistForm(QUESTIONS_CONFIG);
+        
+    } catch (error) {
+        console.error("Lỗi khi tải cấu hình checklist động:", error);
+        showToast("Không thể tải danh sách câu hỏi kiểm tra. Vui lòng tải lại trang!", "error");
+    } finally {
+        showLoader(false);
+    }
+}
+
+import { db } from './firebase-config.js';
+import { collection, query, orderBy, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore.js";
+
+let lastVisibleDoc = null; // Lưu trữ bản ghi cuối cùng của trang hiện tại
+const PAGE_SIZE = 20;      // Mỗi trang hiển thị 20 bản ghi thay vì nạp cả 300 bản ghi
+
+async function loadReports(isNextPage = false) {
+    showLoader(true);
+    try {
+        let q = query(
+            collection(db, "submissions"),
+            orderBy("createdAt", "desc"),
+            limit(PAGE_SIZE)
+        );
+
+        // Nếu người dùng bấm "Trang tiếp theo"
+        if (isNextPage && lastVisibleDoc) {
+            q = query(
+                collection(db, "submissions"),
+                orderBy("createdAt", "desc"),
+                startAfter(lastVisibleDoc),
+                limit(PAGE_SIZE)
+            );
+        }
+
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            if (isNextPage) {
+                showToast("Đã hết dữ liệu báo cáo.", "info");
+            } else {
+                renderReportTable([]); // Bảng rỗng
+            }
+            showLoader(false);
+            return;
+        }
+
+        // Lưu lại bản ghi cuối cùng để làm điểm bắt đầu cho trang sau
+        lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+        const reports = [];
+        querySnapshot.forEach((doc) => {
+            reports.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Render ra bảng (nếu là trang kế tiếp thì append, trang đầu thì ghi đè)
+        renderReportTable(reports, isNextPage);
+
+    } catch (error) {
+        console.error("Lỗi tải báo cáo:", error);
+        showToast("Lỗi khi tải dữ liệu báo cáo.", "error");
+    } finally {
+        showLoader(false);
+    }
+}
 function bindEvents() {
   document.getElementById("showLoginTabBtn").addEventListener("click", () => showAuthTab("login"));
   document.getElementById("showRegisterTabBtn").addEventListener("click", () => showAuthTab("register"));
