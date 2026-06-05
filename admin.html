@@ -6,76 +6,137 @@
   <title>Quản trị hệ thống - Idemitsu</title>
   <link rel="stylesheet" href="./style.css">
 </head>
-<body>
+<body class="admin-page">
   <div id="pageLoader" class="page-loader hidden">
     <div class="loader-card">
       <div class="spinner"></div>
-      <p id="pageLoaderText">Đang tải dữ liệu...</p>
+      <p id="pageLoaderText">Đang tải dữ liệu hệ thống...</p>
     </div>
   </div>
 
-  <main class="app-shell">
-    <div class="topbar">
-      <div class="topbar-left">
-        <span class="topbar-tag">Quản trị hệ thống</span>
-      </div>
-      <div class="topbar-right">
-        <a href="./index.html" class="ghost-btn">Checklist</a>
-        <a href="./report.html" class="ghost-btn">Báo cáo</a>
-        <button id="adminLogoutBtn" class="ghost-btn">Đăng xuất</button>
-      </div>
-    </div>
-
-    <header class="hero-card">
-      <h1>QUẢN TRỊ HỆ THỐNG ATVSV</h1>
-      <p>Idemitsu Lubricants Vietnam</p>
-    </header>
-
-    <!-- Bước 1: Phê duyệt tài khoản -->
-    <section class="admin-section">
-      <div class="panel-header">
-        <h2>Quản lý người dùng</h2>
-        <p class="panel-desc">Phê duyệt tài khoản đăng ký từ web — không cần vào Firebase Console.</p>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-brand">
+        <div class="admin-brand-icon">AT</div>
+        <div>
+          <strong>IDEMITSU ILV</strong>
+          <span>Hệ thống ATVSV</span>
+        </div>
       </div>
 
-      <div class="admin-filter-bar">
-        <button type="button" id="filterAllBtn" class="filter-chip active">Tất cả</button>
-        <button type="button" id="filterPendingBtn" class="filter-chip">
-          Chờ duyệt <span id="pendingCountBadge" class="count-badge hidden">0</span>
+      <nav class="admin-sidebar-nav">
+        <p class="admin-nav-label">Chức năng</p>
+        <a href="#" class="admin-nav-item active">
+          Quản lý người dùng
+        </a>
+        <div class="admin-nav-item disabled">
+          <span>Cấu hình Checklist</span>
+          <em>Bước 2</em>
+        </div>
+
+        <p class="admin-nav-label">Liên kết nhanh</p>
+        <a href="./index.html" class="admin-nav-item">Làm Checklist ATVSV</a>
+        <a href="./report.html" class="admin-nav-item">Báo cáo &amp; Thống kê</a>
+      </nav>
+
+      <div class="admin-sidebar-footer">
+        <div class="admin-user-card">
+          <div id="adminUserInitials" class="admin-user-avatar">AD</div>
+          <div class="admin-user-meta">
+            <strong id="adminUserName">Administrator</strong>
+            <span id="adminUserEmail">admin@idemitsu.com</span>
+          </div>
+        </div>
+        <button type="button" id="adminLogoutBtn" class="ghost-btn full-btn admin-logout-btn">
+          Đăng xuất hệ thống
         </button>
       </div>
+    </aside>
 
-      <div class="admin-table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Họ tên</th>
-              <th>Tài khoản</th>
-              <th>Khu vực</th>
-              <th>Vai trò</th>
-              <th>Trạng thái</th>
-              <th>Ngày đăng ký</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody id="userTableBody">
-            <tr>
-              <td colspan="8" class="empty-table">Đang tải danh sách người dùng...</td>
-            </tr>
-          </tbody>
-        </table>
+    <main class="admin-main">
+      <div class="topbar admin-topbar">
+        <div class="topbar-left">
+          <span class="topbar-tag">Quản trị hệ thống</span>
+          <span class="admin-breadcrumb">/ Phê duyệt nội bộ</span>
+        </div>
+        <div class="topbar-right">
+          <span id="currentDate" class="admin-date"></span>
+          <span class="admin-status-dot">Hệ thống đang hoạt động</span>
+        </div>
       </div>
-    </section>
 
-    <!-- Bước 2: Quản lý checklist (sẽ triển khai tiếp) -->
-    <section class="admin-section admin-section-muted">
-      <div class="panel-header">
-        <h2>Quản lý checklist</h2>
-        <p class="panel-desc">Chức năng thêm/sửa câu hỏi checklist sẽ được cập nhật ở Bước 2.</p>
-      </div>
-    </section>
-  </main>
+      <header class="hero-card admin-hero">
+        <div class="admin-hero-text">
+          <span class="admin-hero-badge">Idemitsu Lubricants Vietnam</span>
+          <h1>CỔNG QUẢN TRỊ ATVSV</h1>
+          <p>Kiểm soát an toàn lao động, kiểm duyệt thành viên &amp; vận hành checklist an toàn.</p>
+        </div>
+        <div class="admin-stats-grid">
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Chờ phê duyệt</span>
+            <strong id="statPending" class="admin-stat-value pending">0</strong>
+          </div>
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Đã hoạt động</span>
+            <strong id="statActive" class="admin-stat-value active">0</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="admin-section">
+        <div class="admin-section-header">
+          <div class="panel-header">
+            <h2>Danh sách người dùng đăng ký</h2>
+            <p class="panel-desc">Phê duyệt hoặc từ chối tài khoản nhân viên đăng ký tự động trên hệ thống</p>
+          </div>
+          <div class="admin-search-wrap">
+            <input type="text" id="userSearchInput" class="admin-search-input" placeholder="Tìm kiếm tên, email...">
+          </div>
+        </div>
+
+        <div class="admin-filter-bar">
+          <button type="button" id="filterAllBtn" class="filter-chip active">Tất cả người dùng</button>
+          <button type="button" id="filterPendingBtn" class="filter-chip">
+            Đang chờ duyệt
+            <span id="pendingCountBadge" class="count-badge hidden">0</span>
+          </button>
+          <span class="admin-filter-hint">Nhấn <b>Phê duyệt</b> để cấp quyền đăng nhập cho tài khoản.</span>
+        </div>
+
+        <div class="admin-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Email / Tài khoản</th>
+                <th>Họ và tên</th>
+                <th>Khu vực</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Ngày đăng ký</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <tr>
+                <td colspan="7" class="empty-table">Đang tải cơ sở dữ liệu...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-section admin-section-muted admin-locked-section">
+        <div class="admin-locked-overlay">
+          <h3>Quản lý câu hỏi Checklist ATVSV</h3>
+          <p>Chức năng thêm/sửa câu hỏi checklist sẽ được cập nhật ở Bước 2.</p>
+        </div>
+        <div class="panel-header">
+          <h2>Cập nhật câu hỏi checklist</h2>
+          <p class="panel-desc">Tùy biến nội dung câu hỏi theo khu vực và danh mục.</p>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <div id="toast" class="toast hidden"></div>
   <script type="module" src="./admin.js"></script>
