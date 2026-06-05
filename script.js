@@ -16,7 +16,11 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
-  deleteObject
+  deleteObject,
+  collection,
+  query,
+  orderBy,
+  getDocs
 } from "./firebase-config.js";
 
 const AREAS = {
@@ -34,6 +38,9 @@ let isSubmitting = false;
 let isHandlingRegistration = false;
 let toastTimer = null;
 
+// Mảng chứa cấu hình câu hỏi động lấy từ Firestore
+let DYNAMIC_QUESTIONS_CONFIG = [];
+
 document.addEventListener("DOMContentLoaded", initApp);
 
 async function initApp() {
@@ -49,95 +56,6 @@ async function initApp() {
   observeAuthState();
 }
 
-import { db } from './firebase-config.js';
-import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore.js";
-
-let QUESTIONS_CONFIG = []; // Thay vì mảng hardcoded, ta để mảng rỗng ban đầu
-
-async function loadDynamicChecklist() {
-    showLoader(true);
-    try {
-        // Lấy danh sách câu hỏi từ Firestore theo thứ tự sắp xếp (nêu có trường 'stt')
-        const q = query(collection(db, "checklistItems"), orderBy("stt", "asc"));
-        const querySnapshot = await getDocs(q);
-        
-        QUESTIONS_CONFIG = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            QUESTIONS_CONFIG.push({
-                id: doc.id,
-                content: data.content,
-                khuVuc: data.khuVuc || "Tất cả", // Phân loại theo khu vực nếu cần
-                type: data.type || "radio"
-            });
-        });
-
-        // Sau khi đã nạp dữ liệu động thành công, tiến hành render giao diện
-        renderChecklistForm(QUESTIONS_CONFIG);
-        
-    } catch (error) {
-        console.error("Lỗi khi tải cấu hình checklist động:", error);
-        showToast("Không thể tải danh sách câu hỏi kiểm tra. Vui lòng tải lại trang!", "error");
-    } finally {
-        showLoader(false);
-    }
-}
-
-import { db } from './firebase-config.js';
-import { collection, query, orderBy, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore.js";
-
-let lastVisibleDoc = null; // Lưu trữ bản ghi cuối cùng của trang hiện tại
-const PAGE_SIZE = 20;      // Mỗi trang hiển thị 20 bản ghi thay vì nạp cả 300 bản ghi
-
-async function loadReports(isNextPage = false) {
-    showLoader(true);
-    try {
-        let q = query(
-            collection(db, "submissions"),
-            orderBy("createdAt", "desc"),
-            limit(PAGE_SIZE)
-        );
-
-        // Nếu người dùng bấm "Trang tiếp theo"
-        if (isNextPage && lastVisibleDoc) {
-            q = query(
-                collection(db, "submissions"),
-                orderBy("createdAt", "desc"),
-                startAfter(lastVisibleDoc),
-                limit(PAGE_SIZE)
-            );
-        }
-
-        const querySnapshot = await getDocs(q);
-        
-        if (querySnapshot.empty) {
-            if (isNextPage) {
-                showToast("Đã hết dữ liệu báo cáo.", "info");
-            } else {
-                renderReportTable([]); // Bảng rỗng
-            }
-            showLoader(false);
-            return;
-        }
-
-        // Lưu lại bản ghi cuối cùng để làm điểm bắt đầu cho trang sau
-        lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-        const reports = [];
-        querySnapshot.forEach((doc) => {
-            reports.push({ id: doc.id, ...doc.data() });
-        });
-
-        // Render ra bảng (nếu là trang kế tiếp thì append, trang đầu thì ghi đè)
-        renderReportTable(reports, isNextPage);
-
-    } catch (error) {
-        console.error("Lỗi tải báo cáo:", error);
-        showToast("Lỗi khi tải dữ liệu báo cáo.", "error");
-    } finally {
-        showLoader(false);
-    }
-}
 function bindEvents() {
   document.getElementById("showLoginTabBtn").addEventListener("click", () => showAuthTab("login"));
   document.getElementById("showRegisterTabBtn").addEventListener("click", () => showAuthTab("register"));
@@ -298,7 +216,6 @@ async function handleRegister(event) {
   } catch (error) {
     console.error(error);
 
-    // Nếu tạo Auth thành công nhưng lưu Firestore lỗi, xóa user Auth để tránh tài khoản mồ côi
     if (createdAuthUser) {
       try {
         await deleteUser(createdAuthUser);
@@ -414,7 +331,7 @@ function showLoginScreen() {
   showAuthTab("login");
 }
 
-function showChecklistScreen(profile, firebaseUser) {
+async function showChecklistScreen(profile, firebaseUser) {
   document.getElementById("loginScreen").classList.add("hidden");
   document.getElementById("checklistScreen").classList.remove("hidden");
 
@@ -430,107 +347,70 @@ function showChecklistScreen(profile, firebaseUser) {
     reportLink.classList.add("hidden");
   }
 
-  renderQuestions(profile.khuVuc);
+  // Tải danh sách câu hỏi động từ Firestore trước khi hiển thị
+  await loadDynamicChecklist(profile.khuVuc);
 }
 
-function buildQuestionConfig() {
-  return [
-    {
-      category: "Quản lý an toàn và tình huống khẩn cấp",
-      questions: [
-        { text: "Người lao động có trang bị đủ dụng cụ bảo hộ lao động (PPE) không?", areas: "ALL" },
-        { text: "Danh bạ liên lạc trong tình huống khẩn cấp có được hiển thị ở khu vực làm việc không?", areas: "ALL" },
-        { text: "Có hộp cứu thương và được kiểm tra định kỳ không?", areas: "ALL" },
-        { text: "Các nút bấm báo động có bị che chắn hay bị vỡ, biến dạng không?", areas: "ALL" },
-        { text: "Lối thoát hiểm, cửa thoát hiểm có bị che chắn không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "Môi trường & 5S",
-      questions: [
-        { text: "Phân loại rác có thực hiện đúng theo quy định không?", areas: "ALL" },
-        { text: "Khu vực làm việc có rác bẩn hay dầu rơi vãi không?", areas: "ALL" },
-        { text: "Bóng chiếu sáng có hoạt động bình thường không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "An toàn Điện và PCCC",
-      questions: [
-        { text: "Thiết bị chữa cháy có ở đúng vị trí, áp suất vạch xanh không?", areas: "ALL" },
-        { text: "Các ổ cắm điện có bị mòn, vỡ hay có dấu hiệu cháy không?", areas: "ALL" },
-        { text: "Thiết bị tiêu thụ điện có được tắt đi sau khi sử dụng không?", areas: "ALL" },
-        { text: "Có đảm bảo khoảng cách tối thiểu từ vật tư, hàng hóa đến các bảng điện không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "Thao tác với vật tư hàng hóa",
-      questions: [
-        {
-          byArea: {
-            [AREAS.WAREHOUSE]: "Hàng hóa được vận chuyển và sắp xếp đúng theo hướng dẫn vận hành của kho không?",
-            [AREAS.PRODUCTION]: "Hàng hóa được vận chuyển và sắp xếp đúng theo hướng dẫn/SOP không?"
-          }
-        },
-        { text: "Hàng hóa có chắn lối đi hay cửa thoát hiểm không?", areas: "ALL" },
-        { text: "Hàng hóa, vật tư được xếp ngay ngắn và đúng theo layout không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "An toàn vận hành máy móc thiết bị",
-      questions: [
-        { text: "Thiết bị, máy móc có được kiểm tra định kỳ không?", areas: "ALL" },
-        { text: "Máy móc, thiết bị có hiện tượng bất thường (rò dầu, âm thanh lạ, mùi khét...) không?", areas: "ALL" },
-        { text: "Hệ thống thông gió có đầy đủ và hoạt động tốt không?", areas: [AREAS.PRODUCTION] }
-      ]
-    }
-  ];
-}
+// Hàm tải câu hỏi động từ Firestore thay thế bộ câu hỏi tĩnh cứng cũ
+async function loadDynamicChecklist(area) {
+  showPageLoader(true, "Đang tải danh mục kiểm tra...");
+  try {
+    const q = query(collection(db, "checklistItems"), orderBy("order", "asc"));
+    const snapshot = await getDocs(q);
 
-function getQuestionsByArea(area) {
-  const source = buildQuestionConfig();
-  const output = [];
+    const tempMap = {};
 
-  source.forEach((group) => {
-    const questions = [];
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      // Bỏ qua nếu câu hỏi bị tắt hoạt động (active == false)
+      if (data.active === false) return;
 
-    group.questions.forEach((item) => {
-      if (item.byArea) {
-        if (item.byArea[area]) {
-          questions.push({
-            category: group.category,
-            text: item.byArea[area]
-          });
-        }
-      } else if (item.areas === "ALL" || (Array.isArray(item.areas) && item.areas.includes(area))) {
-        questions.push({
-          category: group.category,
-          text: item.text
-        });
+      // Kiểm tra vùng áp dụng
+      const targetArea = data.area || "ALL";
+      if (targetArea !== "ALL" && targetArea !== area) return;
+
+      const category = data.category || "Danh mục chung";
+      if (!tempMap[category]) {
+        tempMap[category] = [];
       }
+
+      tempMap[category].push({
+        text: data.text || ""
+      });
     });
 
-    if (questions.length > 0) {
-      output.push({
-        category: group.category,
-        questions
-      });
-    }
-  });
+    DYNAMIC_QUESTIONS_CONFIG = Object.keys(tempMap).map(category => {
+      return {
+        category: category,
+        questions: tempMap[category]
+      };
+    });
 
-  return output;
+    // Nếu cấu hình trống (chưa có câu hỏi nào trên DB), dùng bộ câu hỏi dự phòng (Fallback)
+    if (DYNAMIC_QUESTIONS_CONFIG.length === 0) {
+      renderQuestionsFallback(area);
+    } else {
+      renderQuestionsFromConfig();
+    }
+  } catch (error) {
+    console.error("Lỗi khi tải cấu hình checklist động:", error);
+    showToast("Không thể đồng bộ câu hỏi từ đám mây, đang tải dữ liệu dự phòng", "info");
+    renderQuestionsFallback(area);
+  } finally {
+    showPageLoader(false);
+  }
 }
 
-function renderQuestions(area) {
+// Hàm render câu hỏi dựa trên dữ liệu động lấy thành công từ Firestore
+function renderQuestionsFromConfig() {
   const container = document.getElementById("questionsContainer");
-  const groups = getQuestionsByArea(area);
-
   clearChecklistState();
   renderedQuestions = [];
 
   let html = "";
   let questionIndex = 0;
 
-  groups.forEach((group) => {
+  DYNAMIC_QUESTIONS_CONFIG.forEach((group) => {
     html += `
       <section class="category-card">
         <div class="category-header">${escapeHtml(group.category)}</div>
@@ -604,6 +484,134 @@ function renderQuestions(area) {
         </div>
       </section>
     `;
+  });
+
+  container.innerHTML = html;
+}
+
+// Cấu hình dự phòng trong code (Fallback) đề phòng Firestore trống câu hỏi
+function buildQuestionConfigFallback() {
+  return [
+    {
+      category: "Quản lý an toàn và tình huống khẩn cấp",
+      questions: [
+        { text: "Người lao động có trang bị đủ dụng cụ bảo hộ lao động (PPE) không?", areas: "ALL" },
+        { text: "Danh bạ liên lạc trong tình huống khẩn cấp có được hiển thị ở khu vực làm việc không?", areas: "ALL" },
+        { text: "Có hộp cứu thương và được kiểm tra định kỳ không?", areas: "ALL" },
+        { text: "Các nút bấm báo động có bị che chắn hay bị vỡ, biến dạng không?", areas: "ALL" },
+        { text: "Lối thoát hiểm, cửa thoát hiểm có bị che chắn không?", areas: "ALL" }
+      ]
+    },
+    {
+      category: "Môi trường & 5S",
+      questions: [
+        { text: "Phân loại rác có thực hiện đúng theo quy định không?", areas: "ALL" },
+        { text: "Khu vực làm việc có rác bẩn hay dầu rơi vãi không?", areas: "ALL" },
+        { text: "Bóng chiếu sáng có hoạt động bình thường không?", areas: "ALL" }
+      ]
+    },
+    {
+      category: "An toàn Điện và PCCC",
+      questions: [
+        { text: "Thiết bị chữa cháy có ở đúng vị trí, áp suất vạch xanh không?", areas: "ALL" },
+        { text: "Các ổ cắm điện có bị mòn, vỡ hay có dấu hiệu cháy không?", areas: "ALL" },
+        { text: "Thiết bị tiêu thụ điện có được tắt đi sau khi sử dụng không?", areas: "ALL" },
+        { text: "Có đảm bảo khoảng cách tối thiểu từ vật tư, hàng hóa đến các bảng điện không?", areas: "ALL" }
+      ]
+    },
+    {
+      category: "Thao tác với vật tư hàng hóa",
+      questions: [
+        {
+          byArea: {
+            [AREAS.WAREHOUSE]: "Hàng hóa được vận chuyển và sắp xếp đúng theo hướng dẫn vận hành của kho không?",
+            [AREAS.PRODUCTION]: "Hàng hóa được vận chuyển và sắp xếp đúng theo hướng dẫn/SOP không?"
+          }
+        },
+        { text: "Hàng hóa có chắn lối đi hay cửa thoát hiểm không?", areas: "ALL" },
+        { text: "Hàng hóa, vật tư được xếp ngay ngắn và đúng theo layout không?", areas: "ALL" }
+      ]
+    },
+    {
+      category: "An toàn vận hành máy móc thiết bị",
+      questions: [
+        { text: "Thiết bị, máy móc có được kiểm tra định kỳ không?", areas: "ALL" },
+        { text: "Máy móc, thiết bị có hiện tượng bất thường (rò dầu, âm thanh lạ, mùi khét...) không?", areas: "ALL" },
+        { text: "Hệ thống thông gió có đầy đủ và hoạt động tốt không?", areas: [AREAS.PRODUCTION] }
+      ]
+    }
+  ];
+}
+
+function renderQuestionsFallback(area) {
+  const container = document.getElementById("questionsContainer");
+  const source = buildQuestionConfigFallback();
+  const groups = [];
+
+  source.forEach((group) => {
+    const questions = [];
+    group.questions.forEach((item) => {
+      if (item.byArea) {
+        if (item.byArea[area]) {
+          questions.push({ category: group.category, text: item.byArea[area] });
+        }
+      } else if (item.areas === "ALL" || (Array.isArray(item.areas) && item.areas.includes(area))) {
+        questions.push({ category: group.category, text: item.text });
+      }
+    });
+
+    if (questions.length > 0) {
+      groups.push({ category: group.category, questions });
+    }
+  });
+
+  clearChecklistState();
+  renderedQuestions = [];
+
+  let html = "";
+  let questionIndex = 0;
+
+  groups.forEach((group) => {
+    html += `
+      <section class="category-card">
+        <div class="category-header">${escapeHtml(group.category)}</div>
+        <div class="question-list">
+    `;
+
+    group.questions.forEach((question) => {
+      questionIndex += 1;
+      const questionId = `q${questionIndex}`;
+
+      renderedQuestions.push({
+        id: questionId,
+        category: group.category,
+        question: question.text
+      });
+
+      html += `
+        <article class="question-item" id="item_${questionId}">
+          <div class="question-text">${questionIndex}. ${escapeHtml(question.text)}</div>
+          <div class="options-row">
+            <label class="option-chip ok"><input type="radio" name="answer_${questionId}" value="OK" data-question-id="${questionId}"><span>OK</span></label>
+            <label class="option-chip ng"><input type="radio" name="answer_${questionId}" value="NG" data-question-id="${questionId}"><span>NG</span></label>
+            <label class="option-chip na"><input type="radio" name="answer_${questionId}" value="N/A" data-question-id="${questionId}"><span>N/A</span></label>
+          </div>
+          <div class="extra-fields hidden" id="extra_${questionId}">
+            <div class="form-group">
+              <label for="note_${questionId}">Mô tả lỗi phát hiện</label>
+              <textarea id="note_${questionId}" placeholder="Mô tả lỗi phát hiện..."></textarea>
+            </div>
+            <div class="image-upload-box">
+              <label>Ảnh minh chứng lỗi (tối đa 2 ảnh)</label>
+              <input type="file" class="image-input" id="imageInput_${questionId}" data-question-id="${questionId}" accept="image/*" capture="environment" multiple>
+              <div id="preview_${questionId}" class="image-preview-grid"></div>
+            </div>
+          </div>
+          <div class="error-text hidden" id="error_${questionId}"></div>
+        </article>
+      `;
+    });
+    html += `</div></section>`;
   });
 
   container.innerHTML = html;
@@ -1077,7 +1085,7 @@ async function submitChecklist(event) {
 
 function resetChecklistForm() {
   if (!currentUserProfile) return;
-  renderQuestions(currentUserProfile.khuVuc);
+  loadDynamicChecklist(currentUserProfile.khuVuc);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
