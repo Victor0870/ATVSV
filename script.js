@@ -317,6 +317,7 @@ function ensureAuthorizedAccess(profile) {
     throw new Error("Hồ sơ người dùng không hợp lệ");
   }
 
+  // Chuẩn hóa chuỗi, loại bỏ khoảng trắng
   const khuVuc = String(profile.khuVuc || "").trim();
   profile.khuVuc = khuVuc;
 
@@ -324,8 +325,9 @@ function ensureAuthorizedAccess(profile) {
     throw new Error("Tài khoản của bạn đang chờ quản trị viên phê duyệt.");
   }
 
-  if (![AREAS.PRODUCTION, AREAS.WAREHOUSE].includes(khuVuc)) {
-    throw new Error("Khu vực của tài khoản không hợp lệ");
+  // Thay vì so sánh mảng strict, hãy kiểm tra trực tiếp chuỗi:
+  if (khuVuc !== "Nhà máy" && khuVuc !== "Chi nhánh") {
+    throw new Error("Khu vực của tài khoản không hợp lệ: " + khuVuc);
   }
 }
 
