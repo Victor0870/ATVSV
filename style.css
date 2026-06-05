@@ -1,7 +1,9 @@
 :root {
   --brand-red: #ed1c24;
+  --brand-red-dark: #cf1118;
   --brand-black: #333333;
   --bg-soft: #f4f6f9;
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
   --white: #ffffff;
   --border: #d9dde5;
   --muted: #6b7280;
@@ -12,6 +14,7 @@
   --danger-bg: #fff4f4;
   --success-bg: #f3fff7;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --shadow-soft: 0 18px 50px rgba(0, 0, 0, 0.08);
   --radius-xl: 20px;
   --radius-lg: 16px;
   --radius-md: 12px;
@@ -33,6 +36,7 @@ body {
 
 body {
   min-height: 100vh;
+  background: var(--bg-gradient);
 }
 
 a {
@@ -62,50 +66,120 @@ img {
   width: 100%;
 }
 
+/* ==========================================================================
+   AUTH SCREEN
+   ========================================================================== */
+
 .auth-screen {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px 16px;
 }
 
 .auth-card {
   width: 100%;
-  max-width: 420px;
-  background: var(--white);
-  border: 2px solid var(--brand-red);
-  border-radius: 22px;
-  box-shadow: var(--shadow);
-  padding: 28px 22px;
+  max-width: 500px;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdfd 100%);
+  border: 1px solid rgba(237, 28, 36, 0.12);
+  border-radius: 24px;
+  box-shadow: var(--shadow-soft);
+  padding: 30px 24px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 5px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--brand-red), #ff7b80);
 }
 
 .brand-line {
-  width: 56px;
+  width: 62px;
   height: 6px;
   border-radius: 999px;
-  background: var(--brand-red);
+  background: linear-gradient(90deg, var(--brand-red), #ff6d73);
   margin-bottom: 18px;
 }
 
 .auth-title {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.3;
+  font-size: 30px;
+  line-height: 1.25;
+  font-weight: 800;
+  color: #1f2937;
 }
 
 .auth-subtitle {
   margin: 8px 0 24px;
   color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Tab switch */
+.auth-switch {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: #f3f4f6;
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid #eceff3;
+}
+
+.switch-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 11px;
+  transition: all 0.25s ease;
+}
+
+.switch-btn:hover {
+  color: var(--brand-black);
+}
+
+.switch-btn.active {
+  background: #ffffff;
+  color: var(--brand-red);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Panel auth */
+.auth-panel {
+  display: none;
+  animation: fadeUp 0.25s ease;
+}
+
+.auth-panel.active {
+  display: block;
 }
 
 .note-box {
   margin-top: 18px;
-  padding: 14px;
+  padding: 14px 16px;
   border-radius: 14px;
-  background: #fff5f5;
+  background: linear-gradient(180deg, #fff6f6 0%, #fffafa 100%);
+  border: 1px solid #ffd9dc;
   color: var(--brand-black);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.note-box strong {
+  color: var(--brand-red-dark);
 }
 
 .form-stack {
@@ -123,6 +197,7 @@ img {
 .form-group label {
   font-size: 14px;
   font-weight: 700;
+  color: #374151;
 }
 
 input,
@@ -130,19 +205,25 @@ select,
 textarea {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 14px 14px;
-  font-size: 16px;
+  font-size: 15px;
   background: #fff;
   color: var(--brand-black);
   outline: none;
+  transition: all 0.2s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--brand-red);
-  box-shadow: 0 0 0 3px rgba(237, 28, 36, 0.12);
+  box-shadow: 0 0 0 4px rgba(237, 28, 36, 0.12);
 }
 
 textarea {
@@ -164,7 +245,7 @@ textarea {
 .inline-btn {
   border: none;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: 0.22s ease;
   border-radius: 14px;
   font-weight: 700;
   font-size: 15px;
@@ -174,29 +255,38 @@ textarea {
 }
 
 .primary-btn {
-  background: var(--brand-red);
+  background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
   color: #fff;
   padding: 14px 18px;
   box-shadow: 0 10px 18px rgba(237, 28, 36, 0.2);
 }
 
-.primary-btn:hover,
-.inline-btn:hover {
-  opacity: 0.95;
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(237, 28, 36, 0.24);
 }
 
 .ghost-btn {
-  background: #e5e7eb;
+  background: #eef1f4;
   color: var(--brand-black);
   padding: 12px 16px;
+  border: 1px solid #e3e8ef;
+}
+
+.ghost-btn:hover {
+  background: #e5e7eb;
 }
 
 .inline-btn {
   padding: 12px 18px;
 }
 
+.inline-btn:hover {
+  opacity: 0.95;
+}
+
 .small-btn {
-  min-width: 68px;
+  min-width: 72px;
 }
 
 .full-btn {
@@ -207,7 +297,12 @@ textarea {
 .ghost-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
+
+/* ==========================================================================
+   MAIN APP
+   ========================================================================== */
 
 .topbar {
   display: flex;
@@ -351,6 +446,7 @@ textarea {
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  transition: 0.2s ease;
 }
 
 .option-chip.ok input:checked + span {
@@ -791,6 +887,17 @@ textarea {
   cursor: pointer;
 }
 
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (min-width: 768px) {
   .app-shell {
     padding: 24px;
@@ -844,46 +951,31 @@ textarea {
     grid-column: span 2;
   }
 }
-/* ==========================================================================
-   BỔ SUNG CSS QUẢN LÝ TAB ĐĂNG NHẬP / ĐĂNG KÝ (DÁN VÀO CUỐI FILE STYLE.CSS)
-   ========================================================================== */
 
-/* 1. Mặc định ẩn tất cả các auth-panel đi */
-.auth-panel {
-  display: none !important;
-}
+@media (max-width: 640px) {
+  .auth-card {
+    padding: 24px 18px 20px;
+    border-radius: 20px;
+  }
 
-/* 2. Chỉ hiển thị panel nào có kèm class .active (Do script.js tự động cấp khi click) */
-.auth-panel.active {
-  display: block !important;
-}
+  .auth-title {
+    font-size: 24px;
+  }
 
-/* 3. Làm đẹp bộ nút bấm chuyển Tab trông chuyên nghiệp hơn thay vì nút thô mặc định */
-.auth-switch {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-  background: #f4f6f9;
-  padding: 4px;
-  border-radius: 12px;
-}
+  .auth-subtitle {
+    font-size: 13px;
+  }
 
-.switch-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  padding: 10px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #6b7280;
-  cursor: pointer;
-  border-radius: 10px;
-  transition: all 0.2s ease;
-}
+  .password-wrap {
+    flex-direction: column;
+  }
 
-/* Style khi nút Tab được chọn (Đổi sang màu chữ đen, nền trắng phẳng chỉn chu) */
-.switch-btn.active {
-  background: #ffffff;
-  color: #333333;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  .small-btn {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .options-row {
+    grid-template-columns: 1fr;
+  }
 }

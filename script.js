@@ -50,39 +50,38 @@ async function initApp() {
 }
 
 function bindEvents() {
-  document.getElementById("showLoginTabBtn").addEventListener("click", () => showAuthTab("login"));
-  document.getElementById("showRegisterTabBtn").addEventListener("click", () => showAuthTab("register"));
+  document.getElementById("showLoginTabBtn")?.addEventListener("click", () => showAuthTab("login"));
+  document.getElementById("showRegisterTabBtn")?.addEventListener("click", () => showAuthTab("register"));
 
-  document.getElementById("loginForm").addEventListener("submit", handleLogin);
-  document.getElementById("registerForm").addEventListener("submit", handleRegister);
-  document.getElementById("logoutBtn").addEventListener("click", handleLogout);
-  document.getElementById("togglePasswordBtn").addEventListener("click", togglePasswordVisibility);
-  document.getElementById("checklistForm").addEventListener("submit", submitChecklist);
+  document.getElementById("loginForm")?.addEventListener("submit", handleLogin);
+  document.getElementById("registerForm")?.addEventListener("submit", handleRegister);
+  document.getElementById("logoutBtn")?.addEventListener("click", handleLogout);
+  document.getElementById("togglePasswordBtn")?.addEventListener("click", togglePasswordVisibility);
+  document.getElementById("checklistForm")?.addEventListener("submit", submitChecklist);
 
   const questionsContainer = document.getElementById("questionsContainer");
-  questionsContainer.addEventListener("change", handleQuestionContainerChange);
-  questionsContainer.addEventListener("click", handleQuestionContainerClick);
+  questionsContainer?.addEventListener("change", handleQuestionContainerChange);
+  questionsContainer?.addEventListener("click", handleQuestionContainerClick);
 
   window.addEventListener("beforeunload", revokeAllPreviewUrls);
 }
-
 function showAuthTab(tabName) {
   const loginBtn = document.getElementById("showLoginTabBtn");
   const registerBtn = document.getElementById("showRegisterTabBtn");
   const loginPanel = document.getElementById("loginPanel");
   const registerPanel = document.getElementById("registerPanel");
 
-  if (tabName === "register") {
-    registerBtn.classList.add("active");
-    loginBtn.classList.remove("active");
-    registerPanel.classList.add("active");
-    loginPanel.classList.remove("active");
-  } else {
-    loginBtn.classList.add("active");
-    registerBtn.classList.remove("active");
-    loginPanel.classList.add("active");
-    registerPanel.classList.remove("active");
-  }
+  const isRegister = tabName === "register";
+
+  loginBtn?.classList.toggle("active", !isRegister);
+  registerBtn?.classList.toggle("active", isRegister);
+
+  loginPanel?.classList.toggle("active", !isRegister);
+  registerPanel?.classList.toggle("active", isRegister);
+
+  /* Thêm dòng này để chắc chắn panel bị ẩn/hiện đúng */
+  loginPanel?.classList.toggle("hidden", isRegister);
+  registerPanel?.classList.toggle("hidden", !isRegister);
 }
 
 function observeAuthState() {
@@ -196,14 +195,12 @@ async function handleRegister(event) {
     await setDoc(doc(db, "users", createdAuthUser.uid), userProfile);
 
     document.getElementById("registerForm").reset();
-    document.getElementById("emailInput").value = email;
 
     await signOut(auth);
 
     currentFirebaseUser = null;
     currentUserProfile = null;
-    showLoginScreen();
-    showAuthTab("login");
+    showLoginScreen(email);
 
     showToast("Đăng ký thành công. Tài khoản đang chờ admin phê duyệt.", "success");
   } catch (error) {
@@ -316,15 +313,30 @@ function ensureAuthorizedAccess(profile) {
   }
 }
 
-function showLoginScreen() {
-  document.getElementById("loginScreen").classList.remove("hidden");
-  document.getElementById("checklistScreen").classList.add("hidden");
-  document.getElementById("loginForm").reset();
-  document.getElementById("passwordInput").type = "password";
-  document.getElementById("togglePasswordBtn").textContent = "Hiện";
+function showLoginScreen(prefillEmail = "") {
+  document.getElementById("loginScreen")?.classList.remove("hidden");
+  document.getElementById("checklistScreen")?.classList.add("hidden");
+
+  document.getElementById("loginForm")?.reset();
+
+  const passwordInput = document.getElementById("passwordInput");
+  const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+  const emailInput = document.getElementById("emailInput");
+
+  if (passwordInput) {
+    passwordInput.type = "password";
+  }
+
+  if (togglePasswordBtn) {
+    togglePasswordBtn.textContent = "Hiện";
+  }
+
+  if (emailInput && prefillEmail) {
+    emailInput.value = prefillEmail;
+  }
+
   showAuthTab("login");
 }
-
 function showChecklistScreen(profile, firebaseUser) {
   document.getElementById("loginScreen").classList.add("hidden");
   document.getElementById("checklistScreen").classList.remove("hidden");
