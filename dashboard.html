@@ -1,0 +1,21 @@
+:::writing
+
+<!DOCTYPE html> <html lang="vi"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Dashboard ATVSV - Idemitsu</title> <script src="https://cdn.tailwindcss.com"></script> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> <script> tailwind.config = { theme:{ extend:{ colors:{ brandRed:"#ed1c24" } } } } </script> </head> <body class="bg-slate-50 text-slate-800 min-h-screen"> <div id="pageLoader" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"> <div class="bg-white rounded-xl p-6 shadow-lg flex flex-col items-center"> <div class="w-10 h-10 border-4 border-slate-200 border-t-brandRed rounded-full animate-spin"> </div> <p class="mt-4 text-sm">Đang tải Dashboard...</p> </div> </div> <header class="bg-white shadow"> <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center"> <h1 class="font-bold text-xl">
+ATVSV Dashboard
+
+</h1> <div class="flex gap-4 text-sm"> <a href="./index.html" class="hover:text-brandRed"> Checklist </a> <a href="./report.html" class="hover:text-brandRed"> Báo cáo </a> <a href="./admin.html" class="hover:text-brandRed"> Admin </a> <button id="logoutBtn" class="hover:text-brandRed"> Đăng xuất </button> </div> </div> </header> <main class="max-w-7xl mx-auto p-6 space-y-8"> <section class="grid grid-cols-2 md:grid-cols-4 gap-6"> <div class="bg-white rounded-xl p-5 shadow"> <div class="text-sm text-gray-500"> Tổng báo cáo </div> <div id="statTotalSubmissions" class="text-2xl font-bold mt-2"> 0 </div> </div> <div class="bg-white rounded-xl p-5 shadow"> <div class="text-sm text-gray-500"> Tổng OK </div> <div id="statTotalOk" class="text-2xl font-bold mt-2 text-green-600"> 0 </div> </div> <div class="bg-white rounded-xl p-5 shadow"> <div class="text-sm text-gray-500"> Tổng NG </div> <div id="statTotalNg" class="text-2xl font-bold mt-2 text-red-600"> 0 </div> </div> <div class="bg-white rounded-xl p-5 shadow"> <div class="text-sm text-gray-500"> Tổng N/A </div> <div id="statTotalNa" class="text-2xl font-bold mt-2 text-gray-600"> 0 </div> </div> </section> <section class="bg-white rounded-xl p-6 shadow"> <h2 class="font-bold mb-4">
+Xu hướng báo cáo
+
+</h2>
+<canvas id="trendChart" height="120"></canvas>
+
+</section> <section class="bg-white rounded-xl p-6 shadow"> <h2 class="font-bold mb-4">
+Danh sách lỗi NG cần xử lý
+
+</h2> <table class="w-full text-sm"> <thead> <tr class="border-b"> <th class="text-left p-2"> Phiếu </th> <th class="text-left p-2"> Người gửi </th> <th class="text-left p-2"> Câu hỏi </th> <th class="text-left p-2"> Mô tả </th> <th class="text-center p-2"> Ảnh </th> <th class="text-center p-2"> Trạng thái </th> </tr> </thead> <tbody id="ngTableBody"> <tr> <td colspan="6" class="text-center py-6 text-gray-400">
+Đang tải dữ liệu...
+
+</td> </tr> </tbody> </table> </section> </main> <div id="imageModal" class="fixed inset-0 hidden items-center justify-center bg-black/70">
+<img id="imagePreview" class="max-h-[80vh] rounded-lg">
+
+</div> <script type="module" src="./dashboard.js"></script> </body> </html> :::
