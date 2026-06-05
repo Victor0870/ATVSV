@@ -339,25 +339,33 @@ function showLoginScreen() {
 }
 
 function showChecklistScreen(profile, firebaseUser) {
-  document.getElementById("loginScreen").classList.add("hidden");
-  document.getElementById("checklistScreen").classList.remove("hidden");
+  // Mở màn hình checklist và ẩn màn hình login
+  const loginEl = document.getElementById("loginScreen");
+  const checklistEl = document.getElementById("checklistScreen");
+  
+  if (loginEl) loginEl.classList.add("hidden");
+  if (checklistEl) checklistEl.classList.remove("hidden");
 
-  document.getElementById("displayHoTen").textContent = profile.hoTen || "-";
-  document.getElementById("displayEmail").textContent = firebaseUser.email || profile.email || "-";
-  document.getElementById("displayTaiKhoan").textContent = profile.taiKhoan || "-";
-  document.getElementById("displayKhuVuc").textContent = profile.khuVuc || "-";
-  document.getElementById("displayChiNhanh").textContent = profile.chiNhanh || "-";
+  // Đổ dữ liệu an toàn ra giao diện
+  if (document.getElementById("displayHoTen")) document.getElementById("displayHoTen").textContent = profile.hoTen || "-";
+  if (document.getElementById("displayEmail")) document.getElementById("displayEmail").textContent = firebaseUser.email || profile.email || "-";
+  if (document.getElementById("displayTaiKhoan")) document.getElementById("displayTaiKhoan").textContent = profile.taiKhoan || "-";
+  if (document.getElementById("displayKhuVuc")) document.getElementById("displayKhuVuc").textContent = profile.khuVuc || "-";
+  if (document.getElementById("displayChiNhanh")) document.getElementById("displayChiNhanh").textContent = profile.chiNhanh || "-";
 
+  // Kiểm tra ẩn/hiện report link cho admin/manager
   const reportLink = document.getElementById("reportLink");
-  if (USER_ROLES_CAN_VIEW_REPORT.includes(profile.role)) {
-    reportLink.classList.remove("hidden");
-  } else {
-    reportLink.classList.add("hidden");
+  if (reportLink) {
+    if (USER_ROLES_CAN_VIEW_REPORT.includes(profile.role)) {
+      reportLink.classList.remove("hidden");
+    } else {
+      reportLink.classList.add("hidden");
+    }
   }
 
+  // Chạy render câu hỏi
   renderQuestions(profile.khuVuc);
 }
-
 function buildQuestionConfig() {
   return [
     {
@@ -447,8 +455,14 @@ function getQuestionsByArea(area) {
 
 function renderQuestions(area) {
   const container = document.getElementById("questionsContainer");
-  const groups = getQuestionsByArea(area);
+  
+  // BẢO VỆ: Nếu HTML thiếu thẻ này, hệ thống sẽ cảnh báo thay vì sập luồng đăng nhập
+  if (!container) {
+    console.error("LỖI GIAO DIỆN: Không tìm thấy thẻ id='questionsContainer' trong file HTML.");
+    return;
+  }
 
+  const groups = getQuestionsByArea(area);
   clearChecklistState();
   renderedQuestions = [];
 
