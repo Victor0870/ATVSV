@@ -21,44 +21,62 @@ service cloud.firestore {
              currentUserDoc().data.status == "active";
     }
 
+    function isAdmin() {
+      return isActiveUser() &&
+             currentUserDoc().data.role == "admin";
+    }
+
     function isAdminOrManager() {
       return isActiveUser() &&
              (currentUserDoc().data.role == "admin" ||
               currentUserDoc().data.role == "manager");
     }
 
-    function isAdmin() {
-      return isActiveUser() &&
-             currentUserDoc().data.role == "admin";
+    match /users/{userId} {
+      // User đọc hồ sơ chính mình, admin/manager đọc được tất cả
+      allow read: if signedIn() &&
+        (request.auth.uid == userId || isAdminOrManager());
+
+      // KHẮC PHỤC LỖI: Cho phép user mới tự tạo hồ sơ chính mình với quyền tối thiểu
+      allow create: if signedIn() &&
+        request.auth.uid == userId &&
+        !exists(/databases/$(database)/documents/users/$(userId)) &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.email is string &&
+        request.resource.data.taiKhoan is string &&
+        request.resource.data.hoTen is string &&
+        request.resource.data.khuVuc is string &&
+        request.resource.data.role == "user" &&
+        request.resource.data.status == "inactive";
+
+      // Chỉ admin tuyệt đối mới được cập nhật quyền/trạng thái hoặc xóa user
+      allow update, delete: if isAdmin();
     }
 
-    match /users/{userId} {
-      // Người dùng chỉ đọc được hồ sơ của chính mình
-      // Admin/manager có thể đọc hồ sơ user khác
-      allow read: if signedIn() &&
-                  (request.auth.uid == userId || isAdminOrManager());
-
-      // Chỉ admin được tạo / sửa / xóa user profile
+    match /checklistItems/{itemId} {
+      // Thành viên đã được duyệt (active) mới được đọc danh mục câu hỏi
+      allow read: if isActiveUser();
+      
+      // ĐÃ SỬA: Chỉ admin được thêm/sửa/xóa câu hỏi (đã bỏ từ khóa 'write' dư thừa)
       allow create, update, delete: if isAdmin();
     }
 
     match /submissions/{submissionId} {
-      // Admin/manager đọc được toàn bộ submissions
-      // Chủ sở hữu có thể đọc phiếu của chính mình nếu cần
+      // Admin/manager xem toàn bộ báo cáo, user chỉ xem báo cáo do mình gửi
       allow read: if isAdminOrManager() ||
-                  (signedIn() && resource.data.uid == request.auth.uid);
+        (signedIn() && resource.data.uid == request.auth.uid);
 
-      // User active chỉ được tạo phiếu của chính họ
+      // ĐÃ THẮT CHẶT: User active chỉ tạo được phiếu cho chính mình và thông tin bắt buộc phải khớp profile gốc
       allow create: if isActiveUser() &&
-                    request.resource.data.uid == request.auth.uid &&
-                    request.resource.data.email == request.auth.token.email &&
-                    request.resource.data.taiKhoan == currentUserDoc().data.taiKhoan &&
-                    request.resource.data.hoTen == currentUserDoc().data.hoTen &&
-                    request.resource.data.khuVuc == currentUserDoc().data.khuVuc;
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.taiKhoan == currentUserDoc().data.taiKhoan &&
+        request.resource.data.hoTen == currentUserDoc().data.hoTen &&
+        request.resource.data.khuVuc == currentUserDoc().data.khuVuc;
 
-      // User thường không được sửa/xóa sau khi tạo
-      // Admin/manager được phép nếu cần xử lý dữ liệu
-      allow update, delete: if isAdminOrManager();
+      // ĐÃ PHÂN CẤP: Admin và Manager được sửa dữ liệu báo cáo, nhưng CHỈ Admin được phép xóa vĩnh viễn
+      allow update: if isAdminOrManager();
+      allow delete: if isAdmin();
     }
   }
 }

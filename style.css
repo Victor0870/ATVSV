@@ -979,3 +979,46 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+/* ==========================================================================
+   ADMIN PAGE STYLES (NEW COMPLEMENT)
+   ========================================================================== */
+.admin-section {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.admin-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid #eef2f6;
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 14px;
+}
+.admin-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+}
+.admin-table tr:hover td {
+  background: #fcfcfd;
+}
+.empty-table {
+  text-align: center;
+  color: var(--muted);
+  padding: 20px !important;
+}
+.role-select {
+  min-width: 110px;
+}

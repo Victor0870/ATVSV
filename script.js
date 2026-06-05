@@ -16,7 +16,9 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
-  deleteObject
+  deleteObject,
+  collection,
+  getDocs
 } from "./firebase-config.js";
 
 const AREAS = {
@@ -25,6 +27,7 @@ const AREAS = {
 };
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
+const USER_ROLES_CAN_VIEW_ADMIN = ["admin"];
 
 let currentFirebaseUser = null;
 let currentUserProfile = null;
@@ -65,6 +68,7 @@ function bindEvents() {
 
   window.addEventListener("beforeunload", revokeAllPreviewUrls);
 }
+
 function showAuthTab(tabName) {
   const loginBtn = document.getElementById("showLoginTabBtn");
   const registerBtn = document.getElementById("showRegisterTabBtn");
@@ -79,7 +83,6 @@ function showAuthTab(tabName) {
   loginPanel?.classList.toggle("active", !isRegister);
   registerPanel?.classList.toggle("active", isRegister);
 
-  /* Thêm dòng này để chắc chắn panel bị ẩn/hiện đúng */
   loginPanel?.classList.toggle("hidden", isRegister);
   registerPanel?.classList.toggle("hidden", !isRegister);
 }
@@ -206,7 +209,6 @@ async function handleRegister(event) {
   } catch (error) {
     console.error(error);
 
-    // Nếu tạo Auth thành công nhưng lưu Firestore lỗi, xóa user Auth để tránh tài khoản mồ côi
     if (createdAuthUser) {
       try {
         await deleteUser(createdAuthUser);
@@ -337,6 +339,7 @@ function showLoginScreen(prefillEmail = "") {
 
   showAuthTab("login");
 }
+
 function showChecklistScreen(profile, firebaseUser) {
   document.getElementById("loginScreen").classList.add("hidden");
   document.getElementById("checklistScreen").classList.remove("hidden");
@@ -347,189 +350,142 @@ function showChecklistScreen(profile, firebaseUser) {
   document.getElementById("displayKhuVuc").textContent = profile.khuVuc || "-";
 
   const reportLink = document.getElementById("reportLink");
+  const adminLink = document.getElementById("adminLink");
+
   if (USER_ROLES_CAN_VIEW_REPORT.includes(profile.role)) {
-    reportLink.classList.remove("hidden");
+    reportLink?.classList.remove("hidden");
   } else {
-    reportLink.classList.add("hidden");
+    reportLink?.classList.add("hidden");
+  }
+
+  if (USER_ROLES_CAN_VIEW_ADMIN.includes(profile.role)) {
+    adminLink?.classList.remove("hidden");
+  } else {
+    adminLink?.classList.add("hidden");
   }
 
   renderQuestions(profile.khuVuc);
 }
 
-function buildQuestionConfig() {
-  return [
-    {
-      category: "Quản lý an toàn và tình huống khẩn cấp",
-      questions: [
-        { text: "Người lao động có trang bị đủ dụng cụ bảo hộ lao động (PPE) không?", areas: "ALL" },
-        { text: "Danh bạ liên lạc trong tình huống khẩn cấp có được hiển thị ở khu vực làm việc không?", areas: "ALL" },
-        { text: "Có hộp cứu thương và được kiểm tra định kỳ không?", areas: "ALL" },
-        { text: "Các nút bấm báo động có bị che chắn hay bị vỡ, biến dạng không?", areas: "ALL" },
-        { text: "Lối thoát hiểm, cửa thoát hiểm có bị che chắn không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "Môi trường & 5S",
-      questions: [
-        { text: "Phân loại rác có thực hiện đúng theo quy định không?", areas: "ALL" },
-        { text: "Khu vực làm việc có rác bẩn hay dầu rơi vãi không?", areas: "ALL" },
-        { text: "Bóng chiếu sáng có hoạt động bình thường không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "An toàn Điện và PCCC",
-      questions: [
-        { text: "Thiết bị chữa cháy có ở đúng vị trí, áp suất vạch xanh không?", areas: "ALL" },
-        { text: "Các ổ cắm điện có bị mòn, vỡ hay có dấu hiệu cháy không?", areas: "ALL" },
-        { text: "Thiết bị tiêu thụ điện có được tắt đi sau khi sử dụng không?", areas: "ALL" },
-        { text: "Có đảm bảo khoảng cách tối thiểu từ vật tư, hàng hóa đến các bảng điện không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "Thao tác với vật tư hàng hóa",
-      questions: [
-        {
-          byArea: {
-            [AREAS.WAREHOUSE]: "Hàng hóa được vận chuyển và sắp xếp đúng theo hướng dẫn vận hành của kho không?",
-            [AREAS.PRODUCTION]: "Hàng hóa được vận chuyển và sắp xếp đúng theo hướng dẫn/SOP không?"
-          }
-        },
-        { text: "Hàng hóa có chắn lối đi hay cửa thoát hiểm không?", areas: "ALL" },
-        { text: "Hàng hóa, vật tư được xếp ngay ngắn và đúng theo layout không?", areas: "ALL" }
-      ]
-    },
-    {
-      category: "An toàn vận hành máy móc thiết bị",
-      questions: [
-        { text: "Thiết bị, máy móc có được kiểm tra định kỳ không?", areas: "ALL" },
-        { text: "Máy móc, thiết bị có hiện tượng bất thường (rò dầu, âm thanh lạ, mùi khét...) không?", areas: "ALL" },
-        { text: "Hệ thống thông gió có đầy đủ và hoạt động tốt không?", areas: [AREAS.PRODUCTION] }
-      ]
-    }
-  ];
-}
-
-function getQuestionsByArea(area) {
-  const source = buildQuestionConfig();
-  const output = [];
-
-  source.forEach((group) => {
-    const questions = [];
-
-    group.questions.forEach((item) => {
-      if (item.byArea) {
-        if (item.byArea[area]) {
-          questions.push({
-            category: group.category,
-            text: item.byArea[area]
-          });
-        }
-      } else if (item.areas === "ALL" || (Array.isArray(item.areas) && item.areas.includes(area))) {
-        questions.push({
-          category: group.category,
-          text: item.text
-        });
-      }
-    });
-
-    if (questions.length > 0) {
-      output.push({
-        category: group.category,
-        questions
-      });
-    }
-  });
-
-  return output;
-}
-
-function renderQuestions(area) {
+// ĐIỂM QUAN TRỌNG NHẤT: Hàm renderQuestions kéo dữ liệu REALTIME động từ Firestore thay vì hard-code tĩnh
+async function renderQuestions(area) {
   const container = document.getElementById("questionsContainer");
-  const groups = getQuestionsByArea(area);
+  if (!container) return;
 
   clearChecklistState();
   renderedQuestions = [];
+  container.innerHTML = `<p style="text-align:center; color:var(--muted); padding: 20px;">Đang đồng bộ danh mục kiểm tra an toàn...</p>`;
 
-  let html = "";
-  let questionIndex = 0;
+  try {
+    // 1. Kéo dữ liệu từ Cloud collection 'checklistItems'
+    const snap = await getDocs(collection(db, "checklistItems"));
+    const rawItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  groups.forEach((group) => {
-    html += `
-      <section class="category-card">
-        <div class="category-header">${escapeHtml(group.category)}</div>
-        <div class="question-list">
-    `;
+    // 2. Lọc các câu hỏi đang mở (active: true), khớp theo Phân xưởng/Khu vực áp dụng hoặc cho phép ALL
+    const activeItems = rawItems
+      .filter(item => item.active === true && (item.area === "ALL" || item.area === area))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-    group.questions.forEach((question) => {
-      questionIndex += 1;
-      const questionId = `q${questionIndex}`;
+    if (activeItems.length === 0) {
+      container.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 20px;">Hiện tại phân xưởng ${area} chưa có danh mục kiểm tra nào được bật.</p>`;
+      return;
+    }
 
-      renderedQuestions.push({
-        id: questionId,
-        category: group.category,
-        question: question.text
+    // 3. Gom nhóm câu hỏi tự động theo Hạng mục cha (Category)
+    const groupsMap = {};
+    activeItems.forEach(item => {
+      const cat = item.category || "Hạng mục kiểm tra khác";
+      if (!groupsMap[cat]) groupsMap[cat] = [];
+      groupsMap[cat].push(item);
+    });
+
+    let html = "";
+    let questionIndex = 0;
+
+    // 4. Sinh mã giao diện HTML động từ Cloud
+    Object.keys(groupsMap).forEach((categoryName) => {
+      html += `
+        <section class="category-card">
+          <div class="category-header">${escapeHtml(categoryName)}</div>
+          <div class="question-list">
+      `;
+
+      groupsMap[categoryName].forEach((questionItem) => {
+        questionIndex += 1;
+        const questionId = `q${questionIndex}`;
+
+        renderedQuestions.push({
+          id: questionId,
+          category: categoryName,
+          question: questionItem.text
+        });
+
+        html += `
+          <article class="question-item" id="item_${questionId}">
+            <div class="question-text">${questionIndex}. ${escapeHtml(questionItem.text)}</div>
+
+            <div class="options-row">
+              <label class="option-chip ok">
+                <input type="radio" name="answer_${questionId}" value="OK" data-question-id="${questionId}">
+                <span>OK</span>
+              </label>
+
+              <label class="option-chip ng">
+                <input type="radio" name="answer_${questionId}" value="NG" data-question-id="${questionId}">
+                <span>NG</span>
+              </label>
+
+              <label class="option-chip na">
+                <input type="radio" name="answer_${questionId}" value="N/A" data-question-id="${questionId}">
+                <span>N/A</span>
+              </label>
+            </div>
+
+            <div class="extra-fields hidden" id="extra_${questionId}">
+              <div class="form-group">
+                <label for="note_${questionId}">Mô tả lỗi phát hiện</label>
+                <textarea id="note_${questionId}" placeholder="Mô tả chi tiết lỗi phát hiện..."></textarea>
+                <div class="helper-text">Bắt buộc phải nhập mô tả chi tiết khi lựa chọn lỗi không đạt (NG).</div>
+              </div>
+
+              <div class="image-upload-box">
+                <label>Ảnh minh chứng lỗi (tối đa 2 ảnh)</label>
+                <div class="image-upload-actions">
+                  <input
+                    type="file"
+                    class="image-input"
+                    id="imageInput_${questionId}"
+                    data-question-id="${questionId}"
+                    accept="image/*"
+                    capture="environment"
+                    multiple
+                  >
+                  <div class="helper-text">
+                    Ảnh chụp sẽ được hệ thống nén JPEG và resize tự động trước khi lưu trữ Cloud.
+                  </div>
+                </div>
+                <div id="preview_${questionId}" class="image-preview-grid"></div>
+              </div>
+            </div>
+
+            <div class="error-text hidden" id="error_${questionId}"></div>
+          </article>
+        `;
       });
 
       html += `
-        <article class="question-item" id="item_${questionId}">
-          <div class="question-text">${questionIndex}. ${escapeHtml(question.text)}</div>
-
-          <div class="options-row">
-            <label class="option-chip ok">
-              <input type="radio" name="answer_${questionId}" value="OK" data-question-id="${questionId}">
-              <span>OK</span>
-            </label>
-
-            <label class="option-chip ng">
-              <input type="radio" name="answer_${questionId}" value="NG" data-question-id="${questionId}">
-              <span>NG</span>
-            </label>
-
-            <label class="option-chip na">
-              <input type="radio" name="answer_${questionId}" value="N/A" data-question-id="${questionId}">
-              <span>N/A</span>
-            </label>
           </div>
-
-          <div class="extra-fields hidden" id="extra_${questionId}">
-            <div class="form-group">
-              <label for="note_${questionId}">Mô tả lỗi phát hiện</label>
-              <textarea id="note_${questionId}" placeholder="Mô tả lỗi phát hiện..."></textarea>
-              <div class="helper-text">Bắt buộc nhập mô tả khi chọn NG.</div>
-            </div>
-
-            <div class="image-upload-box">
-              <label>Ảnh minh chứng lỗi (tối đa 2 ảnh)</label>
-              <div class="image-upload-actions">
-                <input
-                  type="file"
-                  class="image-input"
-                  id="imageInput_${questionId}"
-                  data-question-id="${questionId}"
-                  accept="image/*"
-                  capture="environment"
-                  multiple
-                >
-                <div class="helper-text">
-                  Ảnh sẽ được tự động resize tối đa 1280px và nén JPEG trước khi upload.
-                </div>
-              </div>
-              <div id="preview_${questionId}" class="image-preview-grid"></div>
-            </div>
-          </div>
-
-          <div class="error-text hidden" id="error_${questionId}"></div>
-        </article>
+        </section>
       `;
     });
 
-    html += `
-        </div>
-      </section>
-    `;
-  });
+    container.innerHTML = html;
 
-  container.innerHTML = html;
+  } catch (error) {
+    console.error("Lỗi đồng bộ danh mục câu hỏi:", error);
+    container.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 20px;">Lỗi đồng bộ cơ sở dữ liệu. Vui lòng kiểm tra đường truyền mạng.</p>`;
+    showToast("Không thể tải danh sách hạng mục kiểm tra động từ máy chủ", "error");
+  }
 }
 
 function handleQuestionContainerChange(event) {
