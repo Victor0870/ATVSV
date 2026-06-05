@@ -844,37 +844,46 @@ textarea {
     grid-column: span 2;
   }
 }
-/* 1. Class ẩn thẻ ngay lập tức khi không thuộc tab được chọn */
-.hidden {
+/* ==========================================================================
+   BỔ SUNG CSS QUẢN LÝ TAB ĐĂNG NHẬP / ĐĂNG KÝ (DÁN VÀO CUỐI FILE STYLE.CSS)
+   ========================================================================== */
+
+/* 1. Mặc định ẩn tất cả các auth-panel đi */
+.auth-panel {
   display: none !important;
 }
 
-/* 2. Style cho bộ nút Tab nhìn chuyên nghiệp hơn (Tùy chọn) */
-.auth-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 8px;
+/* 2. Chỉ hiển thị panel nào có kèm class .active (Do script.js tự động cấp khi click) */
+.auth-panel.active {
+  display: block !important;
 }
 
-.tab-btn {
-  background: none;
+/* 3. Làm đẹp bộ nút bấm chuyển Tab trông chuyên nghiệp hơn thay vì nút thô mặc định */
+.auth-switch {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: #f4f6f9;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.switch-btn {
+  flex: 1;
+  background: transparent;
   border: none;
-  padding: 8px 16px;
-  font-weight: 600;
-  color: #666;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #6b7280;
   cursor: pointer;
+  border-radius: 10px;
   transition: all 0.2s ease;
 }
 
-/* Khi tab được click chọn (Active) -> Đổi sang màu đỏ thương hiệu Idemitsu */
-.tab-btn.active {
-  color: #e31a22; /* Màu đỏ */
-  border-bottom: 2px solid #e31a22;
-  margin-bottom: -10px;
-}
-
-.auth-panel {
-  width: 100%;
+/* Style khi nút Tab được chọn (Đổi sang màu chữ đen, nền trắng phẳng chỉn chu) */
+.switch-btn.active {
+  background: #ffffff;
+  color: #333333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
