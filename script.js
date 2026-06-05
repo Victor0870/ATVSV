@@ -26,6 +26,10 @@ const AREAS = {
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
 
+function isAdminRole(role) {
+  return String(role || "").trim().toLowerCase() === "admin";
+}
+
 let currentFirebaseUser = null;
 let currentUserProfile = null;
 let renderedQuestions = [];
@@ -187,7 +191,7 @@ async function handleRegister(event) {
       hoTen,
       khuVuc,
       role: "user",
-      status: "inactive",
+      status: "pending",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
@@ -292,7 +296,7 @@ async function loadCurrentUserProfile(uid) {
     hoTen: profile.hoTen || "",
     khuVuc: profile.khuVuc || "",
     role: profile.role || "user",
-    status: profile.status || "inactive"
+    status: profile.status || "pending"
   };
 }
 
@@ -304,8 +308,18 @@ function ensureAuthorizedAccess(profile) {
   const khuVuc = String(profile.khuVuc || "").trim();
   profile.khuVuc = khuVuc;
 
-  if (profile.status !== "active") {
+  const status = profile.status === "inactive" ? "pending" : profile.status;
+
+  if (status === "pending") {
     throw new Error("Tài khoản của bạn đang chờ quản trị viên phê duyệt.");
+  }
+
+  if (status === "locked") {
+    throw new Error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+  }
+
+  if (status !== "active") {
+    throw new Error("Tài khoản chưa được kích hoạt. Vui lòng liên hệ quản trị viên.");
   }
 
   if (![AREAS.PRODUCTION, AREAS.WAREHOUSE].includes(khuVuc)) {
@@ -351,6 +365,13 @@ function showChecklistScreen(profile, firebaseUser) {
     reportLink.classList.remove("hidden");
   } else {
     reportLink.classList.add("hidden");
+  }
+
+  const adminLink = document.getElementById("adminLink");
+  if (isAdminRole(profile.role)) {
+    adminLink?.classList.remove("hidden");
+  } else {
+    adminLink?.classList.add("hidden");
   }
 
   renderQuestions(profile.khuVuc);

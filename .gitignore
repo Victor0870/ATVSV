@@ -13,3 +13,6 @@ desktop.ini
 # Env / secrets
 .env
 .env.local
+firebase-debug.log
+firebase-debug.*.log
+*.log.json

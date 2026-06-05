@@ -1,3 +1,83 @@
-:::writing
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản trị hệ thống - Idemitsu</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div id="pageLoader" class="page-loader hidden">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <p id="pageLoaderText">Đang tải dữ liệu...</p>
+    </div>
+  </div>
 
-<!DOCTYPE html> <html lang="vi"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Quản trị hệ thống - Idemitsu</title> <link rel="stylesheet" href="./style.css"> </head> <body> <div id="pageLoader" class="page-loader hidden"> <div class="loader-card"> <div class="spinner"></div> <p id="pageLoaderText">Đang tải dữ liệu...</p> </div> </div> <main class="app-shell"> <div class="topbar"> <div class="topbar-left"> <span class="topbar-tag">Quản trị hệ thống</span> </div> <div class="topbar-right"> <a href="./index.html" class="ghost-btn">Checklist</a> <a href="./report.html" class="ghost-btn">Báo cáo</a> <button id="adminLogoutBtn" class="ghost-btn">Đăng xuất</button> </div> </div> <header class="hero-card"> <h1>QUẢN TRỊ HỆ THỐNG ATVSV</h1> <p>Idemitsu Lubricants Vietnam</p> </header> <section class="admin-section"> <div class="panel-header"> <h2>Quản lý người dùng</h2> </div> <div class="admin-table-container"> <table class="admin-table"> <thead> <tr> <th>Email</th> <th>Họ tên</th> <th>Tài khoản</th> <th>Khu vực</th> <th>Chi nhánh</th> <th>Vai trò</th> <th>Trạng thái</th> <th>Hành động</th> </tr> </thead> <tbody id="userTableBody"> <tr> <td colspan="8" class="empty-table"> Đang tải danh sách người dùng... </td> </tr> </tbody> </table> </div> </section> <section class="admin-section"> <div class="panel-header"> <h2>Quản lý checklist</h2> </div> <div class="admin-actions"> <button id="addChecklistBtn" class="primary-btn"> Thêm câu hỏi </button> <button id="reloadChecklistBtn" class="ghost-btn"> Tải lại checklist </button> </div> <div class="admin-table-container"> <table class="admin-table"> <thead> <tr> <th>Danh mục</th> <th>Nội dung câu hỏi</th> <th>Khu vực áp dụng</th> <th>Thứ tự</th> <th>Trạng thái</th> <th>Hành động</th> </tr> </thead> <tbody id="checklistTableBody"> <tr> <td colspan="6" class="empty-table"> Đang tải checklist... </td> </tr> </tbody> </table> </div> </section> </main> <div id="checklistModal" class="modal hidden"> <div class="modal-backdrop" id="checklistModalBackdrop"></div> <div class="modal-content"> <h3>Thêm / chỉnh sửa câu hỏi</h3> <div class="form-group"> <label>Danh mục</label> <input type="text" id="checkCategory"> </div> <div class="form-group"> <label>Nội dung câu hỏi</label> <textarea id="checkText"></textarea> </div> <div class="form-group"> <label>Khu vực áp dụng</label> <select id="checkArea"> <option value="ALL">Tất cả</option> <option value="Nhà máy">Nhà máy</option> <option value="Chi nhánh">Chi nhánh</option> </select> </div> <div class="form-group"> <label>Thứ tự hiển thị</label> <input type="number" id="checkOrder"> </div> <div class="modal-actions"> <button id="saveChecklistBtn" class="primary-btn"> Lưu </button> <button id="cancelChecklistBtn" class="ghost-btn"> Hủy </button> </div> </div> </div> <div id="toast" class="toast hidden"></div> <script type="module" src="./admin.js"></script> </body> </html> :::
+  <main class="app-shell">
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-tag">Quản trị hệ thống</span>
+      </div>
+      <div class="topbar-right">
+        <a href="./index.html" class="ghost-btn">Checklist</a>
+        <a href="./report.html" class="ghost-btn">Báo cáo</a>
+        <button id="adminLogoutBtn" class="ghost-btn">Đăng xuất</button>
+      </div>
+    </div>
+
+    <header class="hero-card">
+      <h1>QUẢN TRỊ HỆ THỐNG ATVSV</h1>
+      <p>Idemitsu Lubricants Vietnam</p>
+    </header>
+
+    <!-- Bước 1: Phê duyệt tài khoản -->
+    <section class="admin-section">
+      <div class="panel-header">
+        <h2>Quản lý người dùng</h2>
+        <p class="panel-desc">Phê duyệt tài khoản đăng ký từ web — không cần vào Firebase Console.</p>
+      </div>
+
+      <div class="admin-filter-bar">
+        <button type="button" id="filterAllBtn" class="filter-chip active">Tất cả</button>
+        <button type="button" id="filterPendingBtn" class="filter-chip">
+          Chờ duyệt <span id="pendingCountBadge" class="count-badge hidden">0</span>
+        </button>
+      </div>
+
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Họ tên</th>
+              <th>Tài khoản</th>
+              <th>Khu vực</th>
+              <th>Vai trò</th>
+              <th>Trạng thái</th>
+              <th>Ngày đăng ký</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <tr>
+              <td colspan="8" class="empty-table">Đang tải danh sách người dùng...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Bước 2: Quản lý checklist (sẽ triển khai tiếp) -->
+    <section class="admin-section admin-section-muted">
+      <div class="panel-header">
+        <h2>Quản lý checklist</h2>
+        <p class="panel-desc">Chức năng thêm/sửa câu hỏi checklist sẽ được cập nhật ở Bước 2.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="./admin.js"></script>
+</body>
+</html>

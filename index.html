@@ -71,7 +71,7 @@
     </div>
 
     <!-- Form đăng ký -->
-    <div id="registerPanel" class="auth-panel">
+    <div id="registerPanel" class="auth-panel hidden">
       <form id="registerForm" class="form-stack">
         <div class="form-group">
           <label for="registerEmailInput">Email</label>
@@ -144,11 +144,12 @@
         <strong>Lưu ý:</strong>
         <span>
           Sau khi đăng ký, tài khoản sẽ ở trạng thái
-          <b>chờ admin phê duyệt</b>. Bạn chỉ đăng nhập được sau khi admin đổi
-          trạng thái sang <b>active</b>.
+          <b>chờ admin phê duyệt</b>. Bạn chỉ đăng nhập được sau khi admin phê duyệt trên trang Quản trị.
         </span>
       </div>
     </div>
+
+    <a href="./admin.html" class="auth-admin-link">Quản trị hệ thống (Admin)</a>
   </div>
 </section>
 
@@ -159,6 +160,7 @@
           <span class="topbar-tag">E-Checksheet nội bộ</span>
         </div>
         <div class="topbar-right">
+          <a id="adminLink" href="./admin.html" class="admin-nav-btn hidden">Quản trị hệ thống</a>
           <a id="reportLink" href="./report.html" class="ghost-btn hidden">Xem báo cáo</a>
           <button type="button" id="logoutBtn" class="ghost-btn">Đăng xuất</button>
         </div>

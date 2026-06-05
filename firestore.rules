@@ -32,23 +32,29 @@ service cloud.firestore {
              currentUserDoc().data.role == "admin";
     }
 
+    function isSelfRegistration(userId) {
+      return signedIn() &&
+             request.auth.uid == userId &&
+             request.resource.data.uid == userId &&
+             request.resource.data.role == "user" &&
+             request.resource.data.status in ["pending", "inactive"];
+    }
+
     match /users/{userId} {
-      // Người dùng chỉ đọc được hồ sơ của chính mình
-      // Admin/manager có thể đọc hồ sơ user khác
       allow read: if signedIn() &&
                   (request.auth.uid == userId || isAdminOrManager());
 
-      // Chỉ admin được tạo / sửa / xóa user profile
-      allow create, update, delete: if isAdmin();
+      // User tự tạo hồ sơ khi đăng ký (chờ admin phê duyệt)
+      allow create: if isSelfRegistration(userId) || isAdmin();
+
+      // Chỉ admin được cập nhật / xóa hồ sơ user
+      allow update, delete: if isAdmin();
     }
 
     match /submissions/{submissionId} {
-      // Admin/manager đọc được toàn bộ submissions
-      // Chủ sở hữu có thể đọc phiếu của chính mình nếu cần
       allow read: if isAdminOrManager() ||
                   (signedIn() && resource.data.uid == request.auth.uid);
 
-      // User active chỉ được tạo phiếu của chính họ
       allow create: if isActiveUser() &&
                     request.resource.data.uid == request.auth.uid &&
                     request.resource.data.email == request.auth.token.email &&
@@ -56,9 +62,12 @@ service cloud.firestore {
                     request.resource.data.hoTen == currentUserDoc().data.hoTen &&
                     request.resource.data.khuVuc == currentUserDoc().data.khuVuc;
 
-      // User thường không được sửa/xóa sau khi tạo
-      // Admin/manager được phép nếu cần xử lý dữ liệu
       allow update, delete: if isAdminOrManager();
+    }
+
+    match /checklistItems/{itemId} {
+      allow read: if isActiveUser();
+      allow create, update, delete: if isAdmin();
     }
   }
 }
