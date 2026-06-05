@@ -16,3 +16,7 @@ desktop.ini
 firebase-debug.log
 firebase-debug.*.log
 *.log.json
+
+# Firebase service account (local seed only)
+tools/service-account.json
+node_modules/

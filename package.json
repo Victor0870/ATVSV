@@ -1,0 +1,11 @@
+{
+  "name": "atvsv-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed:checklist": "node tools/seed-checklist-rest.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2"
+  }
+}
