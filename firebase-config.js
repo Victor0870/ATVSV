@@ -1,5 +1,4 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import {
   getAuth,
   setPersistence,
@@ -17,7 +16,6 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  deleteDoc,
   serverTimestamp,
   collection,
   query,
@@ -35,23 +33,19 @@ import {
   deleteObject
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-/* 
-DÁN CẤU HÌNH FIREBASE CỦA BẠN TẠI ĐÂY
-Lấy tại:
-Firebase Console → Project Settings → Your Apps → Web App
-*/
-
+/**
+ * Điền cấu hình Firebase của bạn tại đây
+ */
 const firebaseConfig = {
-   apiKey: "AIzaSyArUb1e4FUhIvvTUe9c_ul1falHvheeybc",
-  authDomain: "e-checksheet-atvsv-c1d45.firebaseapp.com",
-  projectId: "e-checksheet-atvsv-c1d45",
-  storageBucket: "e-checksheet-atvsv-c1d45.firebasestorage.app",
-  messagingSenderId: "958269031699",
-  appId: "1:958269031699:web:905782a636a0fed47a46e6"
+  apiKey: "DIEN_API_KEY_TAI_DAY",
+  authDomain: "DIEN_AUTH_DOMAIN_TAI_DAY",
+  projectId: "DIEN_PROJECT_ID_TAI_DAY",
+  storageBucket: "DIEN_STORAGE_BUCKET_TAI_DAY",
+  messagingSenderId: "DIEN_MESSAGING_SENDER_ID_TAI_DAY",
+  appId: "DIEN_APP_ID_TAI_DAY"
 };
 
 const app = initializeApp(firebaseConfig);
-
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -61,30 +55,24 @@ export {
   auth,
   db,
   storage,
-
   setPersistence,
   browserLocalPersistence,
-
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
   deleteUser,
-
   doc,
   getDoc,
   setDoc,
   updateDoc,
-  deleteDoc,
   serverTimestamp,
-
   collection,
   query,
   where,
   orderBy,
   limit,
   getDocs,
-
   ref,
   uploadBytes,
   getDownloadURL,

@@ -100,7 +100,6 @@ async function loadCurrentUserProfile(uid) {
     taiKhoan: data.taiKhoan || "",
     hoTen: data.hoTen || "",
     khuVuc: data.khuVuc || "",
-    chiNhanh: data.chiNhanh || "",
     role: data.role || "user",
     status: data.status || "inactive"
   };
@@ -140,7 +139,6 @@ function getCurrentFilters() {
     dateFrom: document.getElementById("filterDateFrom").value,
     dateTo: document.getElementById("filterDateTo").value,
     area: document.getElementById("filterArea").value,
-    branch: document.getElementById("filterBranch").value,
     result: document.getElementById("filterResult").value,
     keyword: document.getElementById("filterKeyword").value.trim().toLowerCase()
   };
@@ -161,7 +159,6 @@ async function resetFilters() {
   document.getElementById("filterDateFrom").value = "";
   document.getElementById("filterDateTo").value = "";
   document.getElementById("filterArea").value = "ALL";
-  document.getElementById("filterBranch").value = "ALL";
   document.getElementById("filterResult").value = "ALL";
   document.getElementById("filterKeyword").value = "";
 
@@ -237,11 +234,9 @@ async function loadReportData(filters) {
 
 function applyClientSideFilters(data, filters) {
   return data.filter((item) => {
-    const searchTarget = ${item.hoTen || ""} ${item.taiKhoan || ""} ${item.email || ""} ${item.chiNhanh || ""}.toLowerCase();
+    const searchTarget = `${item.hoTen || ""} ${item.taiKhoan || ""} ${item.email || ""}`.toLowerCase();
 
     const matchKeyword = !filters.keyword || searchTarget.includes(filters.keyword);
-
-    const matchBranch = filters.branch === "ALL" || item.chiNhanh === filters.branch;
 
     let matchResult = true;
     if (filters.result !== "ALL") {
@@ -249,7 +244,7 @@ function applyClientSideFilters(data, filters) {
       matchResult = answers.some((answer) => answer.result === filters.result);
     }
 
-    return matchKeyword && matchBranch && matchResult;
+    return matchKeyword && matchResult;
   });
 }
 
@@ -298,7 +293,6 @@ function renderReportList() {
             <div><strong>Tài khoản:</strong> ${escapeHtml(item.taiKhoan || "-")}</div>
             <div><strong>Email:</strong> ${escapeHtml(item.email || "-")}</div>
             <div><strong>Khu vực:</strong> ${escapeHtml(item.khuVuc || "-")}</div>
-            <div><strong>Chi nhánh:</strong> ${escapeHtml(item.chiNhanh || "-")}</div>
           </div>
           <div class="badge-row">
             <span class="badge ok">OK: ${summary.okCount || 0}</span>
@@ -379,7 +373,6 @@ function renderReportDetail(submissionId) {
         <div><strong>Email:</strong> ${escapeHtml(submission.email || "-")}</div>
         <div><strong>Tài khoản:</strong> ${escapeHtml(submission.taiKhoan || "-")}</div>
         <div><strong>Khu vực:</strong> ${escapeHtml(submission.khuVuc || "-")}</div>
-        <div><strong>Chi nhánh:</strong> ${escapeHtml(submission.chiNhanh || "-")}</div>
       </div>
       <div class="badge-row">
         <span class="badge ok">OK: ${submission.summary?.okCount || 0}</span>
@@ -416,7 +409,6 @@ function exportCsv() {
       "HoTen",
       "Email",
       "KhuVuc",
-      "ChiNhanh",
       "HangMuc",
       "NoiDungKiemTra",
       "KetQua",
@@ -438,7 +430,6 @@ function exportCsv() {
         submission.hoTen || "",
         submission.email || "",
         submission.khuVuc || "",
-        submission.chiNhanh || "",
         answer.category || "",
         answer.question || "",
         answer.result || "",

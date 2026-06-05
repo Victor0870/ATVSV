@@ -844,35 +844,3 @@ textarea {
     grid-column: span 2;
   }
 }
-.auth-switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.switch-btn {
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--brand-black);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.switch-btn.active {
-  background: var(--brand-red);
-  color: #fff;
-  border-color: var(--brand-red);
-  box-shadow: 0 10px 18px rgba(237, 28, 36, 0.18);
-}
-
-.auth-panel {
-  display: none;
-}
-
-.auth-panel.active {
-  display: block;
-}

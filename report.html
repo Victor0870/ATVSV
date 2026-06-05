@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-
   <div id="pageLoader" class="page-loader hidden">
     <div class="loader-card">
       <div class="spinner"></div>
@@ -16,7 +15,6 @@
   </div>
 
   <main class="app-shell report-shell">
-    
     <div class="topbar">
       <div class="topbar-left">
         <span class="topbar-tag">Báo cáo quản lý</span>
@@ -34,7 +32,6 @@
     </section>
 
     <section id="reportScreen" class="hidden">
-      
       <header class="hero-card">
         <h1>BÁO CÁO CHECKLIST ATVSV</h1>
         <p>Idemitsu Lubricants Vietnam</p>
@@ -61,10 +58,12 @@
             <label for="filterDateFrom">Từ ngày</label>
             <input type="date" id="filterDateFrom">
           </div>
+
           <div class="form-group">
             <label for="filterDateTo">Đến ngày</label>
             <input type="date" id="filterDateTo">
           </div>
+
           <div class="form-group">
             <label for="filterArea">Khu vực</label>
             <select id="filterArea">
@@ -73,22 +72,24 @@
               <option value="Chi nhánh">Chi nhánh</option>
             </select>
           </div>
+
           <div class="form-group">
-            <label for="filterBranch">Chi nhánh</label>
-            <select id="filterBranch">
-              <option value="ALL">Tất cả chi nhánh</option>
-              <option value="Chi nhánh Hà Nội">Chi nhánh Hà Nội</option>
-              <option value="Chi nhánh Hà Tĩnh">Chi nhánh Hà Tĩnh</option>
-              <option value="Chi nhánh Đà Nẵng">Chi nhánh Đà Nẵng</option>
-              <option value="Chi nhánh Hồ Chí Minh">Chi nhánh Hồ Chí Minh</option>
-              <option value="Chi nhánh Cần Thơ">Chi nhánh Cần Thơ</option>
+            <label for="filterResult">Kết quả</label>
+            <select id="filterResult">
+              <option value="ALL">Tất cả</option>
+              <option value="NG">Chỉ lỗi NG</option>
+              <option value="OK">Chỉ OK</option>
+              <option value="N/A">Chỉ N/A</option>
             </select>
           </div>
+
           <div class="form-group search-group">
             <label for="filterKeyword">Tìm kiếm</label>
             <input type="text" id="filterKeyword" placeholder="Tìm theo họ tên / tài khoản / email">
           </div>
-        </div> <div class="filter-actions">
+        </div>
+
+        <div class="filter-actions">
           <button type="button" id="applyFilterBtn" class="primary-btn">Lọc dữ liệu</button>
           <button type="button" id="resetFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
           <button type="button" id="exportCsvBtn" class="ghost-btn">Xuất CSV</button>
@@ -115,7 +116,6 @@
       </section>
 
       <section class="report-layout">
-        
         <div class="report-list-panel">
           <div class="panel-header">
             <h2>Danh sách phiếu</h2>
@@ -132,7 +132,6 @@
             Chọn một phiếu bên trái để xem chi tiết.
           </div>
         </div>
-
       </section>
     </section>
   </main>
@@ -140,7 +139,7 @@
   <div id="imageModal" class="image-modal hidden">
     <div class="image-modal-backdrop" id="imageModalBackdrop"></div>
     <div class="image-modal-content">
-      <button type="button" id="closeImageModalBtn" class="image-modal-close">&times;</button>
+      <button type="button" id="closeImageModalBtn" class="image-modal-close">×</button>
       <img id="imageModalPreview" src="" alt="Ảnh minh chứng">
     </div>
   </div>

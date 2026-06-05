@@ -24,14 +24,6 @@ const AREAS = {
   WAREHOUSE: "Chi nhánh"
 };
 
-const BRANCHES = [
-"Chi nhánh Hà Nội",
-"Chi nhánh Hà Tĩnh",
-"Chi nhánh Đà Nẵng",
-"Chi nhánh Hồ Chí Minh",
-"Chi nhánh Cần Thơ"
-];
-
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
 
 let currentFirebaseUser = null;
@@ -164,9 +156,6 @@ async function handleRegister(event) {
   const taiKhoan = document.getElementById("registerTaiKhoanInput").value.trim();
   const hoTen = document.getElementById("registerHoTenInput").value.trim();
   const khuVuc = document.getElementById("registerKhuVucInput").value;
-  const chiNhanh = document.getElementById("registerChiNhanhInput")?.value || "";
-
-
 
   const validationMessage = validateRegisterForm({
     email,
@@ -198,7 +187,6 @@ async function handleRegister(event) {
       taiKhoan,
       hoTen,
       khuVuc,
-      chiNhanh: khuVuc === AREAS.WAREHOUSE ? chiNhanh : "",
       role: "user",
       status: "inactive",
       createdAt: serverTimestamp(),
@@ -306,7 +294,6 @@ async function loadCurrentUserProfile(uid) {
     taiKhoan: profile.taiKhoan || "",
     hoTen: profile.hoTen || "",
     khuVuc: profile.khuVuc || "",
-    chiNhanh: profile.chiNhanh || "",
     role: profile.role || "user",
     status: profile.status || "inactive"
   };
@@ -317,7 +304,6 @@ function ensureAuthorizedAccess(profile) {
     throw new Error("Hồ sơ người dùng không hợp lệ");
   }
 
-  // Chuẩn hóa chuỗi, loại bỏ khoảng trắng
   const khuVuc = String(profile.khuVuc || "").trim();
   profile.khuVuc = khuVuc;
 
@@ -325,9 +311,8 @@ function ensureAuthorizedAccess(profile) {
     throw new Error("Tài khoản của bạn đang chờ quản trị viên phê duyệt.");
   }
 
-  // Thay vì so sánh mảng strict, hãy kiểm tra trực tiếp chuỗi:
-  if (khuVuc !== "Nhà máy" && khuVuc !== "Chi nhánh") {
-    throw new Error("Khu vực của tài khoản không hợp lệ: " + khuVuc);
+  if (![AREAS.PRODUCTION, AREAS.WAREHOUSE].includes(khuVuc)) {
+    throw new Error("Khu vực của tài khoản không hợp lệ");
   }
 }
 
@@ -341,33 +326,24 @@ function showLoginScreen() {
 }
 
 function showChecklistScreen(profile, firebaseUser) {
-  // Mở màn hình checklist và ẩn màn hình login
-  const loginEl = document.getElementById("loginScreen");
-  const checklistEl = document.getElementById("checklistScreen");
-  
-  if (loginEl) loginEl.classList.add("hidden");
-  if (checklistEl) checklistEl.classList.remove("hidden");
+  document.getElementById("loginScreen").classList.add("hidden");
+  document.getElementById("checklistScreen").classList.remove("hidden");
 
-  // Đổ dữ liệu an toàn ra giao diện
-  if (document.getElementById("displayHoTen")) document.getElementById("displayHoTen").textContent = profile.hoTen || "-";
-  if (document.getElementById("displayEmail")) document.getElementById("displayEmail").textContent = firebaseUser.email || profile.email || "-";
-  if (document.getElementById("displayTaiKhoan")) document.getElementById("displayTaiKhoan").textContent = profile.taiKhoan || "-";
-  if (document.getElementById("displayKhuVuc")) document.getElementById("displayKhuVuc").textContent = profile.khuVuc || "-";
-  if (document.getElementById("displayChiNhanh")) document.getElementById("displayChiNhanh").textContent = profile.chiNhanh || "-";
+  document.getElementById("displayHoTen").textContent = profile.hoTen || "-";
+  document.getElementById("displayEmail").textContent = firebaseUser.email || profile.email || "-";
+  document.getElementById("displayTaiKhoan").textContent = profile.taiKhoan || "-";
+  document.getElementById("displayKhuVuc").textContent = profile.khuVuc || "-";
 
-  // Kiểm tra ẩn/hiện report link cho admin/manager
   const reportLink = document.getElementById("reportLink");
-  if (reportLink) {
-    if (USER_ROLES_CAN_VIEW_REPORT.includes(profile.role)) {
-      reportLink.classList.remove("hidden");
-    } else {
-      reportLink.classList.add("hidden");
-    }
+  if (USER_ROLES_CAN_VIEW_REPORT.includes(profile.role)) {
+    reportLink.classList.remove("hidden");
+  } else {
+    reportLink.classList.add("hidden");
   }
 
-  // Chạy render câu hỏi
   renderQuestions(profile.khuVuc);
 }
+
 function buildQuestionConfig() {
   return [
     {
@@ -457,14 +433,8 @@ function getQuestionsByArea(area) {
 
 function renderQuestions(area) {
   const container = document.getElementById("questionsContainer");
-  
-  // BẢO VỆ: Nếu HTML thiếu thẻ này, hệ thống sẽ cảnh báo thay vì sập luồng đăng nhập
-  if (!container) {
-    console.error("LỖI GIAO DIỆN: Không tìm thấy thẻ id='questionsContainer' trong file HTML.");
-    return;
-  }
-
   const groups = getQuestionsByArea(area);
+
   clearChecklistState();
   renderedQuestions = [];
 
@@ -986,7 +956,6 @@ async function submitChecklist(event) {
       taiKhoan: currentUserProfile.taiKhoan,
       hoTen: currentUserProfile.hoTen,
       khuVuc: currentUserProfile.khuVuc,
-      chiNhanh: currentUserProfile.chiNhanh || "",
       createdAt: serverTimestamp(),
       createdAtText: getCurrentDateTimeText(),
       summary,
