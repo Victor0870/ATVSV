@@ -1,4 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import {
   getAuth,
   setPersistence,
@@ -16,6 +17,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
   collection,
   query,
@@ -33,9 +35,12 @@ import {
   deleteObject
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-/**
- * Điền cấu hình Firebase của bạn tại đây
- */
+/* 
+DÁN CẤU HÌNH FIREBASE CỦA BẠN TẠI ĐÂY
+Lấy tại:
+Firebase Console → Project Settings → Your Apps → Web App
+*/
+
 const firebaseConfig = {
    apiKey: "AIzaSyArUb1e4FUhIvvTUe9c_ul1falHvheeybc",
   authDomain: "e-checksheet-atvsv-c1d45.firebaseapp.com",
@@ -46,6 +51,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -55,24 +61,30 @@ export {
   auth,
   db,
   storage,
+
   setPersistence,
   browserLocalPersistence,
+
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
   deleteUser,
+
   doc,
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
+
   collection,
   query,
   where,
   orderBy,
   limit,
   getDocs,
+
   ref,
   uploadBytes,
   getDownloadURL,
