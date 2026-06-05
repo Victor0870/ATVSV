@@ -88,15 +88,55 @@ renderUserTable();
 
 }
 
-function renderUserTable(){
+function renderUserTable(users) {
+    const tbody = document.getElementById('userTableBody');
+    if (!tbody) return;
 
-const tbody = document.getElementById("userTableBody");
+    if (users.length === 0) {
+        // ĐÃ SỬA: Thêm dấu backtick bọc chuỗi HTML để tránh lỗi cú pháp
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-table">Không có người dùng nào đang chờ duyệt hoặc quản lý.</td></tr>`;
+        return;
+    }
 
-if(!users.length){
+    let html = '';
+    users.forEach((u, index) => {
+        const dateStr = u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString('vi-VN') : '-';
+        
+        // ĐÃ SỬA: Loại bỏ onchange/onclick trực tiếp nối chuỗi. 
+        // Thay vào đó dùng thuộc tính data-* để truyền ID an toàn.
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${escapeHtml(u.hoTen)}</td>
+                <td>${escapeHtml(u.email)}</td>
+                <td>${escapeHtml(u.khuVuc)}</td>
+                <td>
+                    <select class="role-select" data-id="${u.id}">
+                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+                        <option value="manager" ${u.role === 'manager' ? 'selected' : ''}>Manager</option>
+                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                    </select>
+                </td>
+                <td>
+                    <span class="status-badge status-${u.status}">
+                        ${u.status === 'active' ? 'Hoạt động' : u.status === 'pending' ? 'Chờ duyệt' : 'Bị khóa'}
+                    </span>
+                </td>
+                <td>${dateStr}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-action btn-toggle-status" data-id="${u.id}" data-status="${u.status}">
+                            ${u.status === 'active' ? 'Khóa' : 'Duyệt'}
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
 
-tbody.innerHTML=<tr><td colspan="8" class="empty-table">Không có user</td></tr>;
-return;
-
+    // Gắn bộ lắng nghe sự kiện (Event Listeners) một cách an toàn
+    setupUserTableEvents();
 }
 
 tbody.innerHTML = users.map(u=>{
@@ -146,7 +186,25 @@ checklistItems = snap.docs.map(d=>({id:d.id,...d.data()}));
 renderChecklistTable();
 
 }
+function setupUserTableEvents() {
+    // Sự kiện thay đổi quyền (Role)
+    document.querySelectorAll('.role-select').forEach(select => {
+        select.addEventListener('change', (e) => {
+            const userId = e.target.getAttribute('data-id');
+            const newRole = e.target.value;
+            changeRole(userId, newRole); // Gọi hàm xử lý Firebase của bạn
+        });
+    });
 
+    // Sự kiện Duyệt / Khóa User
+    document.querySelectorAll('.btn-toggle-status').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const userId = e.target.getAttribute('data-id');
+            const currentStatus = e.target.getAttribute('data-status');
+            toggleUserStatus(userId, currentStatus); // Gọi hàm xử lý Firebase của bạn
+        });
+    });
+}
 function renderChecklistTable(){
 
 const tbody = document.getElementById("checklistTableBody");
