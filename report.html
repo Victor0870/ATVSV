@@ -1,11 +1,152 @@
-:::writing
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Báo cáo E-Checksheet - Idemitsu</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
 
-<!DOCTYPE html> <html lang="vi"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Báo cáo E-Checksheet - Idemitsu</title> <link rel="stylesheet" href="./style.css"> </head> <body> <div id="pageLoader" class="page-loader hidden"> <div class="loader-card"> <div class="spinner"></div> <p id="pageLoaderText">Đang tải báo cáo...</p> </div> </div> <main class="app-shell report-shell"> <div class="topbar"> <div class="topbar-left"> <span class="topbar-tag">Báo cáo quản lý</span> </div> <div class="topbar-right"> <a href="./index.html" class="ghost-btn">Về checklist</a> <button type="button" id="reportLogoutBtn" class="ghost-btn">Đăng xuất</button> </div> </div> <section id="reportAccessDenied" class="empty-card hidden"> <h2>Không thể truy cập</h2> <p id="reportAccessMessage">Bạn không có quyền xem trang báo cáo.</p> <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a> </section> <section id="reportScreen" class="hidden"> <header class="hero-card"> <h1>BÁO CÁO CHECKLIST ATVSV</h1> <p>Idemitsu Lubricants Vietnam</p> </header> <section class="user-info-grid compact"> <div class="info-card"> <span class="info-label">Người đăng nhập</span> <strong id="reportUserName">-</strong> </div> <div class="info-card"> <span class="info-label">Email</span> <strong id="reportUserEmail">-</strong> </div> <div class="info-card"> <span class="info-label">Vai trò</span> <strong id="reportUserRole">-</strong> </div> </section> <section class="filter-card"> <div class="filter-grid"> <div class="form-group"> <label for="filterDateFrom">Từ ngày</label> <input type="date" id="filterDateFrom"> </div> <div class="form-group"> <label for="filterDateTo">Đến ngày</label> <input type="date" id="filterDateTo"> </div> <div class="form-group"> <label for="filterArea">Khu vực</label> <select id="filterArea"> <option value="ALL">Tất cả khu vực</option> <option value="Nhà máy">Nhà máy</option> <option value="Chi nhánh">Chi nhánh</option> </select> </div> <div class="form-group"> <label for="filterBranch">Chi nhánh</label> <select id="filterBranch"> <option value="ALL">Tất cả chi nhánh</option> <option value="Chi nhánh Hà Nội">Chi nhánh Hà Nội</option> <option value="Chi nhánh Hà Tĩnh">Chi nhánh Hà Tĩnh</option> <option value="Chi nhánh Đà Nẵng">Chi nhánh Đà Nẵng</option> <option value="Chi nhánh Hồ Chí Minh">Chi nhánh Hồ Chí Minh</option> <option value="Chi nhánh Cần Thơ">Chi nhánh Cần Thơ</option> </select> </div> <div class="form-group"> <label for="filterResult">Kết quả</label> <select id="filterResult"> <option value="ALL">Tất cả</option> <option value="NG">Chỉ lỗi NG</option> <option value="OK">Chỉ OK</option> <option value="N/A">Chỉ N/A</option> </select> </div> <div class="form-group search-group"> <label for="filterKeyword">Tìm kiếm</label>
-<input type="text" id="filterKeyword" placeholder="Tìm theo họ tên / tài khoản / email">
+  <div id="pageLoader" class="page-loader hidden">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <p id="pageLoaderText">Đang tải báo cáo...</p>
+    </div>
+  </div>
 
-</div> </div> <div class="filter-actions"> <button type="button" id="applyFilterBtn" class="primary-btn"> Lọc dữ liệu </button> <button type="button" id="resetFilterBtn" class="ghost-btn"> Xóa bộ lọc </button> <button type="button" id="exportCsvBtn" class="ghost-btn"> Xuất CSV </button> </div> </section> <section class="stats-grid"> <div class="stat-card"> <span class="stat-label">Tổng số phiếu</span> <strong id="statTotalSubmissions">0</strong> </div> <div class="stat-card"> <span class="stat-label">Tổng câu OK</span> <strong id="statTotalOk">0</strong> </div> <div class="stat-card"> <span class="stat-label">Tổng câu NG</span> <strong id="statTotalNg">0</strong> </div> <div class="stat-card"> <span class="stat-label">Tổng câu N/A</span> <strong id="statTotalNa">0</strong> </div> </section> <section class="report-layout"> <div class="report-list-panel"> <div class="panel-header"> <h2>Danh sách phiếu</h2> <span id="reportCountText">0 kết quả</span> </div> <div id="reportList" class="report-list"></div> </div> <div class="report-detail-panel"> <div class="panel-header"> <h2>Chi tiết phiếu</h2> </div> <div id="reportDetail" class="report-detail empty-detail"> Chọn một phiếu bên trái để xem chi tiết. </div> </div> </section> </section> </main> <div id="imageModal" class="image-modal hidden"> <div class="image-modal-backdrop" id="imageModalBackdrop"></div> <div class="image-modal-content">
-<button type="button" id="closeImageModalBtn" class="image-modal-close">
+  <main class="app-shell report-shell">
+    
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-tag">Báo cáo quản lý</span>
+      </div>
+      <div class="topbar-right">
+        <a href="./index.html" class="ghost-btn">Về checklist</a>
+        <button type="button" id="reportLogoutBtn" class="ghost-btn">Đăng xuất</button>
+      </div>
+    </div>
 
-×
+    <section id="reportAccessDenied" class="empty-card hidden">
+      <h2>Không thể truy cập</h2>
+      <p id="reportAccessMessage">Bạn không có quyền xem trang báo cáo.</p>
+      <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
+    </section>
 
-</button> <img id="imageModalPreview" src="" alt="Ảnh minh chứng"> </div> </div> <div id="toast" class="toast hidden"></div> <script type="module" src="./report.js"></script> </body> </html> :::
+    <section id="reportScreen" class="hidden">
+      
+      <header class="hero-card">
+        <h1>BÁO CÁO CHECKLIST ATVSV</h1>
+        <p>Idemitsu Lubricants Vietnam</p>
+      </header>
+
+      <section class="user-info-grid compact">
+        <div class="info-card">
+          <span class="info-label">Người đăng nhập</span>
+          <strong id="reportUserName">-</strong>
+        </div>
+        <div class="info-card">
+          <span class="info-label">Email</span>
+          <strong id="reportUserEmail">-</strong>
+        </div>
+        <div class="info-card">
+          <span class="info-label">Vai trò</span>
+          <strong id="reportUserRole">-</strong>
+        </div>
+      </section>
+
+      <section class="filter-card">
+        <div class="filter-grid">
+          <div class="form-group">
+            <label for="filterDateFrom">Từ ngày</label>
+            <input type="date" id="filterDateFrom">
+          </div>
+          <div class="form-group">
+            <label for="filterDateTo">Đến ngày</label>
+            <input type="date" id="filterDateTo">
+          </div>
+          <div class="form-group">
+            <label for="filterArea">Khu vực</label>
+            <select id="filterArea">
+              <option value="ALL">Tất cả khu vực</option>
+              <option value="Nhà máy">Nhà máy</option>
+              <option value="Chi nhánh">Chi nhánh</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filterBranch">Chi nhánh</label>
+            <select id="filterBranch">
+              <option value="ALL">Tất cả chi nhánh</option>
+              <option value="Chi nhánh Hà Nội">Chi nhánh Hà Nội</option>
+              <option value="Chi nhánh Hà Tĩnh">Chi nhánh Hà Tĩnh</option>
+              <option value="Chi nhánh Đà Nẵng">Chi nhánh Đà Nẵng</option>
+              <option value="Chi nhánh Hồ Chí Minh">Chi nhánh Hồ Chí Minh</option>
+              <option value="Chi nhánh Cần Thơ">Chi nhánh Cần Thơ</option>
+            </select>
+          </div>
+          <div class="form-group search-group">
+            <label for="filterKeyword">Tìm kiếm</label>
+            <input type="text" id="filterKeyword" placeholder="Tìm theo họ tên / tài khoản / email">
+          </div>
+        </div> <div class="filter-actions">
+          <button type="button" id="applyFilterBtn" class="primary-btn">Lọc dữ liệu</button>
+          <button type="button" id="resetFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
+          <button type="button" id="exportCsvBtn" class="ghost-btn">Xuất CSV</button>
+        </div>
+      </section>
+
+      <section class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Tổng số phiếu</span>
+          <strong id="statTotalSubmissions">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Tổng câu OK</span>
+          <strong id="statTotalOk">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Tổng câu NG</span>
+          <strong id="statTotalNg">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Tổng câu N/A</span>
+          <strong id="statTotalNa">0</strong>
+        </div>
+      </section>
+
+      <section class="report-layout">
+        
+        <div class="report-list-panel">
+          <div class="panel-header">
+            <h2>Danh sách phiếu</h2>
+            <span id="reportCountText">0 kết quả</span>
+          </div>
+          <div id="reportList" class="report-list"></div>
+        </div>
+
+        <div class="report-detail-panel">
+          <div class="panel-header">
+            <h2>Chi tiết phiếu</h2>
+          </div>
+          <div id="reportDetail" class="report-detail empty-detail">
+            Chọn một phiếu bên trái để xem chi tiết.
+          </div>
+        </div>
+
+      </section>
+    </section>
+  </main>
+
+  <div id="imageModal" class="image-modal hidden">
+    <div class="image-modal-backdrop" id="imageModalBackdrop"></div>
+    <div class="image-modal-content">
+      <button type="button" id="closeImageModalBtn" class="image-modal-close">&times;</button>
+      <img id="imageModalPreview" src="" alt="Ảnh minh chứng">
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="./report.js"></script>
+</body>
+</html>
