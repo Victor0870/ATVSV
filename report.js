@@ -161,6 +161,7 @@ async function resetFilters() {
   document.getElementById("filterDateFrom").value = "";
   document.getElementById("filterDateTo").value = "";
   document.getElementById("filterArea").value = "ALL";
+  document.getElementById("filterBranch").value = "ALL";
   document.getElementById("filterResult").value = "ALL";
   document.getElementById("filterKeyword").value = "";
 
