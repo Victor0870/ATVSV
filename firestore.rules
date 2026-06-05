@@ -21,44 +21,72 @@ service cloud.firestore {
              currentUserDoc().data.status == "active";
     }
 
-    function isAdminOrManager() {
-      return isActiveUser() &&
-             (currentUserDoc().data.role == "admin" ||
-              currentUserDoc().data.role == "manager");
-    }
-
     function isAdmin() {
       return isActiveUser() &&
              currentUserDoc().data.role == "admin";
     }
 
+    function isManager() {
+      return isActiveUser() &&
+             currentUserDoc().data.role == "manager";
+    }
+
+    function isAdminOrManager() {
+      return isAdmin() || isManager();
+    }
+
+    function isValidArea(area) {
+      return area == "Nhà máy" || area == "Chi nhánh";
+    }
+
+    function isValidBranch(branch) {
+      return branch == "" ||
+             branch == "Chi nhánh Hà Nội" ||
+             branch == "Chi nhánh Hà Tĩnh" ||
+             branch == "Chi nhánh Đà Nẵng" ||
+             branch == "Chi nhánh Hồ Chí Minh" ||
+             branch == "Chi nhánh Cần Thơ";
+    }
+
     match /users/{userId} {
-      // Người dùng chỉ đọc được hồ sơ của chính mình
-      // Admin/manager có thể đọc hồ sơ user khác
+
       allow read: if signedIn() &&
                   (request.auth.uid == userId || isAdminOrManager());
 
-      // Chỉ admin được tạo / sửa / xóa user profile
-      allow create, update, delete: if isAdmin();
+      allow create: if signedIn() &&
+                    request.auth.uid == userId &&
+                    !exists(/databases/$(database)/documents/users/$(userId)) &&
+                    request.resource.data.uid == request.auth.uid &&
+                    request.resource.data.email == request.auth.token.email &&
+                    request.resource.data.role == "user" &&
+                    request.resource.data.status == "inactive" &&
+                    request.resource.data.taiKhoan is string &&
+                    request.resource.data.hoTen is string &&
+                    isValidArea(request.resource.data.khuVuc) &&
+                    isValidBranch(request.resource.data.chiNhanh);
+
+      allow update, delete: if isAdmin();
     }
 
     match /submissions/{submissionId} {
-      // Admin/manager đọc được toàn bộ submissions
-      // Chủ sở hữu có thể đọc phiếu của chính mình nếu cần
+
       allow read: if isAdminOrManager() ||
                   (signedIn() && resource.data.uid == request.auth.uid);
 
-      // User active chỉ được tạo phiếu của chính họ
       allow create: if isActiveUser() &&
-                    request.resource.data.uid == request.auth.uid &&
-                    request.resource.data.email == request.auth.token.email &&
-                    request.resource.data.taiKhoan == currentUserDoc().data.taiKhoan &&
-                    request.resource.data.hoTen == currentUserDoc().data.hoTen &&
-                    request.resource.data.khuVuc == currentUserDoc().data.khuVuc;
+                    request.resource.data.uid == request.auth.uid;
 
-      // User thường không được sửa/xóa sau khi tạo
-      // Admin/manager được phép nếu cần xử lý dữ liệu
-      allow update, delete: if isAdminOrManager();
+      allow update: if isAdminOrManager();
+
+      allow delete: if isAdmin();
     }
+
+    match /checklistItems/{itemId} {
+
+      allow read: if signedIn();
+
+      allow create, update, delete: if isAdmin();
+    }
+
   }
 }
