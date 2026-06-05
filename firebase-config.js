@@ -37,12 +37,12 @@ import {
  * Điền cấu hình Firebase của bạn tại đây
  */
 const firebaseConfig = {
-  apiKey: "DIEN_API_KEY_TAI_DAY",
-  authDomain: "DIEN_AUTH_DOMAIN_TAI_DAY",
-  projectId: "DIEN_PROJECT_ID_TAI_DAY",
-  storageBucket: "DIEN_STORAGE_BUCKET_TAI_DAY",
-  messagingSenderId: "DIEN_MESSAGING_SENDER_ID_TAI_DAY",
-  appId: "DIEN_APP_ID_TAI_DAY"
+   apiKey: "AIzaSyArUb1e4FUhIvvTUe9c_ul1falHvheeybc",
+  authDomain: "e-checksheet-atvsv-c1d45.firebaseapp.com",
+  projectId: "e-checksheet-atvsv-c1d45",
+  storageBucket: "e-checksheet-atvsv-c1d45.firebasestorage.app",
+  messagingSenderId: "958269031699",
+  appId: "1:958269031699:web:905782a636a0fed47a46e6"
 };
 
 const app = initializeApp(firebaseConfig);
