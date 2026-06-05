@@ -24,6 +24,14 @@ const AREAS = {
   WAREHOUSE: "Chi nhánh"
 };
 
+const BRANCHES = [
+"Chi nhánh Hà Nội",
+"Chi nhánh Hà Tĩnh",
+"Chi nhánh Đà Nẵng",
+"Chi nhánh Hồ Chí Minh",
+"Chi nhánh Cần Thơ"
+];
+
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
 
 let currentFirebaseUser = null;
@@ -156,6 +164,9 @@ async function handleRegister(event) {
   const taiKhoan = document.getElementById("registerTaiKhoanInput").value.trim();
   const hoTen = document.getElementById("registerHoTenInput").value.trim();
   const khuVuc = document.getElementById("registerKhuVucInput").value;
+  const chiNhanh = document.getElementById("registerChiNhanhInput")?.value || "";
+
+
 
   const validationMessage = validateRegisterForm({
     email,
@@ -187,6 +198,7 @@ async function handleRegister(event) {
       taiKhoan,
       hoTen,
       khuVuc,
+      chiNhanh: khuVuc === AREAS.WAREHOUSE ? chiNhanh : "",
       role: "user",
       status: "inactive",
       createdAt: serverTimestamp(),
@@ -294,6 +306,7 @@ async function loadCurrentUserProfile(uid) {
     taiKhoan: profile.taiKhoan || "",
     hoTen: profile.hoTen || "",
     khuVuc: profile.khuVuc || "",
+    chiNhanh: profile.chiNhanh || "",
     role: profile.role || "user",
     status: profile.status || "inactive"
   };
@@ -333,6 +346,7 @@ function showChecklistScreen(profile, firebaseUser) {
   document.getElementById("displayEmail").textContent = firebaseUser.email || profile.email || "-";
   document.getElementById("displayTaiKhoan").textContent = profile.taiKhoan || "-";
   document.getElementById("displayKhuVuc").textContent = profile.khuVuc || "-";
+  document.getElementById("displayChiNhanh").textContent = profile.chiNhanh || "-";
 
   const reportLink = document.getElementById("reportLink");
   if (USER_ROLES_CAN_VIEW_REPORT.includes(profile.role)) {
@@ -956,6 +970,7 @@ async function submitChecklist(event) {
       taiKhoan: currentUserProfile.taiKhoan,
       hoTen: currentUserProfile.hoTen,
       khuVuc: currentUserProfile.khuVuc,
+      chiNhanh: currentUserProfile.chiNhanh || "",
       createdAt: serverTimestamp(),
       createdAtText: getCurrentDateTimeText(),
       summary,
