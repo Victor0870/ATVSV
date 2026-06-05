@@ -1,4 +1,4 @@
-:::writing
+
 import {
 auth,
 db,
@@ -149,7 +149,7 @@ ${u.status==="active"?"Khóa":"Duyệt"}
 </button> </td> </tr> `;
 }).join("");
 
-}
+
 
 window.changeRole = async function(uid,newRole){
 
@@ -336,4 +336,4 @@ div.textContent=value==null?"":String(value);
 return div.innerHTML;
 
 }
-:::
+
