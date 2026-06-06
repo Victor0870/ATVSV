@@ -2162,8 +2162,8 @@ textarea {
 
 .dashboard-split-chart {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
   height: 100%;
 }
 
