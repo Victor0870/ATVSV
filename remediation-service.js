@@ -125,6 +125,12 @@ export function formatDurationVi(ms) {
   return "Dưới 1 phút";
 }
 
+export function getIssueDurationLabel(status) {
+  return status === "done"
+    ? "Thời gian xử lý"
+    : "Thời gian từ lúc phát hiện đến hiện tại";
+}
+
 export function getIssueElapsedMs(issue, issuesById = new Map(), nowMs = Date.now()) {
   const discovery = getEffectiveDiscovery(issue, issuesById);
   if (!discovery.discoveredMillis) return null;

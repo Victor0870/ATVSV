@@ -19,7 +19,7 @@ import {
   buildReportFilterOptions,
   matchesReportAreaFilter
 } from "./areas-service.js";
-import { buildIssueId, getRemediationStatusMeta, formatDurationVi, getIssueElapsedMs } from "./remediation-service.js";
+import { buildIssueId, getRemediationStatusMeta, formatDurationVi, getIssueElapsedMs, getIssueDurationLabel } from "./remediation-service.js";
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
 const DEFAULT_QUERY_LIMIT = 300;
@@ -533,7 +533,7 @@ function renderRemediationStatusBlock(issue, issueId) {
         </a>
       </div>
       <div><strong>Thời gian phát hiện:</strong> ${escapeHtml(discoveryText)}</div>
-      <div><strong>Thời gian xử lý:</strong> ${escapeHtml(formatDurationVi(elapsedMs))}</div>
+      <div><strong>${escapeHtml(getIssueDurationLabel(issue.status))}:</strong> ${escapeHtml(formatDurationVi(elapsedMs))}</div>
       ${carryoverNote}
       ${responsible}
       ${plan}

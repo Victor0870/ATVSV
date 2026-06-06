@@ -28,6 +28,7 @@ import {
   getEffectiveDiscovery,
   getIssueElapsedMs,
   formatDurationVi,
+  getIssueDurationLabel,
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
@@ -292,7 +293,7 @@ function renderIssueTable() {
           <td class="checklist-text-cell">
             <div>${escapeHtml(issue.question || "-")}</div>
             ${issue.note ? `<div class="issue-subtext">${escapeHtml(issue.note)}</div>` : ""}
-            <div class="issue-subtext">Xử lý: ${escapeHtml(formatDurationVi(elapsedMs))}</div>
+            <div class="issue-subtext">${escapeHtml(getIssueDurationLabel(issue.status))}: ${escapeHtml(formatDurationVi(elapsedMs))}</div>
           </td>
           <td>${escapeHtml(issue.responsible || "-")}</td>
           <td>
@@ -340,6 +341,7 @@ function renderIssueDiscoveryInfo(issue) {
     },
     issuesById
   );
+  const currentStatus = document.getElementById("issueStatus")?.value || issue.status;
 
   const linkedNote = editingIssueContext.isUnresolvedCarryover
     ? `<div><strong>Liên kết lỗi cũ:</strong> ${escapeHtml(editingIssueContext.linkedFromIssueId || "-")}</div>`
@@ -348,7 +350,7 @@ function renderIssueDiscoveryInfo(issue) {
   container.innerHTML = `
     <div class="issue-discovery-grid">
       <div><strong>Thời gian phát hiện:</strong> ${escapeHtml(editingIssueContext.discoveredAtText || "-")}</div>
-      <div><strong>Thời gian xử lý:</strong> ${escapeHtml(formatDurationVi(elapsedMs))}</div>
+      <div><strong>${escapeHtml(getIssueDurationLabel(currentStatus))}:</strong> ${escapeHtml(formatDurationVi(elapsedMs))}</div>
       ${linkedNote}
     </div>
   `;
