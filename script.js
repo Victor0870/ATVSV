@@ -27,7 +27,7 @@ import {
   buildRegistrationBranchOptions
 } from "./areas-service.js";
 import { buildIssueId, buildRemediationIssuePayload } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250610";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
 const USER_ROLES_CAN_MANAGE_REMEDIATION = ["admin", "manager"];

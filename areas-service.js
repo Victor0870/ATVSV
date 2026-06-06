@@ -1,5 +1,5 @@
 import { db, collection, getDocs } from "./firebase-config.js";
-import { t } from "./i18n.js";
+import { t } from "./i18n.js?v=20250610";
 
 export const FACTORY_AREA = "Nhà máy";
 export const ALL_BRANCHES_AREA = "Chi nhánh";
