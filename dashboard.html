@@ -1,21 +1,172 @@
-:::writing
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard thống kê - Idemitsu</title>
+  <link rel="stylesheet" href="./style.css?v=20250607">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="admin-page">
+  <div id="pageLoader" class="page-loader">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <p id="pageLoaderText">Đang tải dashboard...</p>
+    </div>
+  </div>
 
-<!DOCTYPE html> <html lang="vi"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Dashboard ATVSV - Idemitsu</title> <script src="https://cdn.tailwindcss.com"></script> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> <script> tailwind.config = { theme:{ extend:{ colors:{ brandRed:"#ed1c24" } } } } </script> </head> <body class="bg-slate-50 text-slate-800 min-h-screen"> <div id="pageLoader" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"> <div class="bg-white rounded-xl p-6 shadow-lg flex flex-col items-center"> <div class="w-10 h-10 border-4 border-slate-200 border-t-brandRed rounded-full animate-spin"> </div> <p class="mt-4 text-sm">Đang tải Dashboard...</p> </div> </div> <header class="bg-white shadow"> <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center"> <h1 class="font-bold text-xl">
-ATVSV Dashboard
+  <main id="dashboardGuestWrap" class="app-shell auth-screen hidden">
+    <section class="empty-card">
+      <h2>Không thể truy cập</h2>
+      <p id="dashboardGuestMessage">Bạn chưa đăng nhập. Vui lòng đăng nhập trước.</p>
+      <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
+    </section>
+  </main>
 
-</h1> <div class="flex gap-4 text-sm"> <a href="./index.html" class="hover:text-brandRed"> Checklist </a> <a href="./report.html" class="hover:text-brandRed"> Báo cáo </a> <a href="./admin.html" class="hover:text-brandRed"> Admin </a> <button id="logoutBtn" class="hover:text-brandRed"> Đăng xuất </button> </div> </div> </header> <main class="max-w-7xl mx-auto p-6 space-y-8"> <section class="grid grid-cols-2 md:grid-cols-4 gap-6"> <div class="bg-white rounded-xl p-5 shadow"> <div class="text-sm text-gray-500"> Tổng báo cáo </div> <div id="statTotalSubmissions" class="text-2xl font-bold mt-2"> 0 </div> </div> <div class="bg-white rounded-xl p-5 shadow"> <div class="text-sm text-gray-500"> Tổng OK </div> <div id="statTotalOk" class="text-2xl font-bold mt-2 text-green-600"> 0 </div> </div> <div class="bg-white rounded-xl p-5 shadow"> <div class="text-sm text-gray-500"> Tổng NG </div> <div id="statTotalNg" class="text-2xl font-bold mt-2 text-red-600"> 0 </div> </div> <div class="bg-white rounded-xl p-5 shadow"> <div class="text-sm text-gray-500"> Tổng N/A </div> <div id="statTotalNa" class="text-2xl font-bold mt-2 text-gray-600"> 0 </div> </div> </section> <section class="bg-white rounded-xl p-6 shadow"> <h2 class="font-bold mb-4">
-Xu hướng báo cáo
+  <div id="dashboardLayout" class="app-page hidden">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-brand">
+          <div class="admin-brand-icon">AT</div>
+          <div>
+            <strong>IDEMITSU ILV</strong>
+            <span>E-Checksheet ATVSV</span>
+          </div>
+        </div>
 
-</h2>
-<canvas id="trendChart" height="120"></canvas>
+        <nav class="admin-sidebar-nav">
+          <p class="admin-nav-label">Chức năng</p>
+          <a href="./index.html" class="admin-nav-item">Làm Checklist</a>
+          <span class="admin-nav-item active">Dashboard thống kê</span>
 
-</section> <section class="bg-white rounded-xl p-6 shadow"> <h2 class="font-bold mb-4">
-Danh sách lỗi NG cần xử lý
+          <p id="dashboardManageNavLabel" class="admin-nav-label hidden">Quản lý</p>
+          <a id="dashboardReportLink" href="./report.html" class="admin-nav-item hidden">Báo cáo &amp; Thống kê</a>
+          <a id="dashboardRemediationLink" href="./remediation.html" class="admin-nav-item hidden">Hành động khắc phục</a>
+          <a id="dashboardAdminLink" href="./admin.html" class="admin-nav-item hidden">Quản trị hệ thống</a>
+        </nav>
 
-</h2> <table class="w-full text-sm"> <thead> <tr class="border-b"> <th class="text-left p-2"> Phiếu </th> <th class="text-left p-2"> Người gửi </th> <th class="text-left p-2"> Câu hỏi </th> <th class="text-left p-2"> Mô tả </th> <th class="text-center p-2"> Ảnh </th> <th class="text-center p-2"> Trạng thái </th> </tr> </thead> <tbody id="ngTableBody"> <tr> <td colspan="6" class="text-center py-6 text-gray-400">
-Đang tải dữ liệu...
+        <div class="admin-sidebar-footer">
+          <div class="admin-user-card">
+            <div id="dashboardUserInitials" class="admin-user-avatar">U</div>
+            <div class="admin-user-meta">
+              <strong id="sidebarDashboardUserName">-</strong>
+              <span id="sidebarDashboardUserEmail">-</span>
+            </div>
+          </div>
+          <button type="button" id="dashboardLogoutBtn" class="ghost-btn full-btn admin-logout-btn">
+            Đăng xuất
+          </button>
+        </div>
+      </aside>
 
-</td> </tr> </tbody> </table> </section> </main> <div id="imageModal" class="fixed inset-0 hidden items-center justify-center bg-black/70">
-<img id="imagePreview" class="max-h-[80vh] rounded-lg">
+      <div class="admin-main report-main">
+        <section id="dashboardScreen">
+          <header class="hero-card">
+            <h1>DASHBOARD THỐNG KÊ ATVSV</h1>
+            <p id="dashboardScopeText">Đang tải phạm vi dữ liệu...</p>
+          </header>
 
-</div> <script type="module" src="./dashboard.js"></script> </body> </html> :::
+          <section id="dashboardFilterCard" class="filter-card hidden">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label for="filterDashboardArea">Khu vực</label>
+                <select id="filterDashboardArea">
+                  <option value="ALL">Tất cả khu vực</option>
+                </select>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button type="button" id="applyDashboardFilterBtn" class="primary-btn">Áp dụng</button>
+              <button type="button" id="resetDashboardFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
+            </div>
+          </section>
+
+          <section class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">Tổng số phiếu</span>
+              <strong id="statTotalSubmissions">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Tổng câu OK</span>
+              <strong id="statTotalOk">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Tổng câu NG</span>
+              <strong id="statTotalNg">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Tổng câu N/A</span>
+              <strong id="statTotalNa">0</strong>
+            </div>
+          </section>
+
+          <section class="stats-grid remediation-stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">Issue chờ xử lý</span>
+              <strong id="statIssueOpen">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Đang khắc phục</span>
+              <strong id="statIssueProgress">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Đã hoàn thành</span>
+              <strong id="statIssueDone">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Thời gian xử lý TB</span>
+              <strong id="statAvgResolution">-</strong>
+            </div>
+          </section>
+
+          <section class="dashboard-chart-panel">
+            <div class="panel-header">
+              <h2>Xu hướng phiếu checklist (7 ngày gần nhất)</h2>
+            </div>
+            <div class="dashboard-chart-wrap">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </section>
+
+          <section class="report-list-panel">
+            <div class="panel-header">
+              <h2>Lỗi NG cần theo dõi</h2>
+              <span id="ngTableCount">0 kết quả</span>
+            </div>
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Phiếu / Thời gian</th>
+                    <th>Khu vực</th>
+                    <th>Nội dung lỗi</th>
+                    <th>Trạng thái khắc phục</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="ngTableBody">
+                  <tr>
+                    <td colspan="5" class="empty-table">Đang tải dữ liệu...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="imageModal" class="image-modal hidden">
+    <div class="image-modal-backdrop" id="imageModalBackdrop"></div>
+    <div class="image-modal-content">
+      <button type="button" id="closeImageModalBtn" class="image-modal-close">×</button>
+      <img id="imageModalPreview" src="" alt="Ảnh minh chứng">
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="./dashboard.js?v=20250607"></script>
+</body>
+</html>

@@ -56,9 +56,15 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    function isSameKhuVuc(data) {
+      return isActiveUser() &&
+             data.khuVuc == currentUserDoc().data.khuVuc;
+    }
+
     match /submissions/{submissionId} {
       allow read: if isAdminOrManager() ||
-                  (signedIn() && resource.data.uid == request.auth.uid);
+                  (signedIn() && resource.data.uid == request.auth.uid) ||
+                  isSameKhuVuc(resource.data);
 
       allow create: if isActiveUser() &&
                     request.resource.data.uid == request.auth.uid &&
@@ -86,7 +92,8 @@ service cloud.firestore {
     }
 
     match /remediationIssues/{issueId} {
-      allow read: if isAdminOrManager();
+      allow read: if isAdminOrManager() ||
+                  isSameKhuVuc(resource.data);
 
       allow create: if isActiveUser() &&
                     request.resource.data.uid == request.auth.uid &&
