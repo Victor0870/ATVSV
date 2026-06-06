@@ -74,5 +74,10 @@ service cloud.firestore {
       allow read: if isActiveUser() || isAdmin();
       allow create, update, delete: if isAdmin();
     }
+
+    match /checklistCategories/{categoryId} {
+      allow read: if isActiveUser() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

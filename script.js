@@ -18,7 +18,7 @@ import {
   getDownloadURL,
   deleteObject
 } from "./firebase-config.js";
-import { fetchChecklistItems, groupChecklistForArea } from "./checklist-service.js";
+import { fetchChecklistItems, fetchChecklistCategories, groupChecklistForArea } from "./checklist-service.js";
 
 const AREAS = {
   PRODUCTION: "Nhà máy",
@@ -385,8 +385,11 @@ async function renderQuestions(area) {
   showPageLoader(true, "Đang tải checklist...");
 
   try {
-    const { items, source } = await fetchChecklistItems();
-    const groups = groupChecklistForArea(items, area);
+    const [{ items, source }, { categories }] = await Promise.all([
+      fetchChecklistItems(),
+      fetchChecklistCategories()
+    ]);
+    const groups = groupChecklistForArea(items, area, categories);
 
     if (!groups.length) {
       container.innerHTML = `<div class="empty-card">Không có câu hỏi checklist cho khu vực này.</div>`;

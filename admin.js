@@ -14,10 +14,12 @@ import {
   collection,
   getDocs
 } from "./firebase-config.js";
-import { fetchChecklistItems } from "./checklist-service.js";
+import { fetchChecklistItems, fetchChecklistCategories, sortChecklistItems, getNextOrderInCategory, getItemsInCategory, FALLBACK_CATEGORIES } from "./checklist-service.js";
 
 let users = [];
 let checklistItems = [];
+let checklistCategories = [];
+let categoriesSource = "fallback";
 let userFilter = "all";
 let searchQuery = "";
 let editingChecklistId = null;
@@ -58,10 +60,15 @@ function bindEvents() {
   });
 
   document.getElementById("addChecklistBtn").addEventListener("click", () => openChecklistModal());
-  document.getElementById("reloadChecklistBtn").addEventListener("click", loadChecklist);
+  document.getElementById("reloadChecklistBtn").addEventListener("click", reloadChecklistData);
   document.getElementById("saveChecklistBtn").addEventListener("click", saveChecklist);
   document.getElementById("cancelChecklistBtn").addEventListener("click", closeChecklistModal);
   document.getElementById("checklistModalBackdrop").addEventListener("click", closeChecklistModal);
+
+  document.getElementById("addCategoryBtn").addEventListener("click", openCategoryModal);
+  document.getElementById("saveCategoryBtn").addEventListener("click", saveCategory);
+  document.getElementById("cancelCategoryBtn").addEventListener("click", closeCategoryModal);
+  document.getElementById("categoryModalBackdrop").addEventListener("click", closeCategoryModal);
 
   document.querySelectorAll(".admin-nav-item[data-section]").forEach((link) => {
     link.addEventListener("click", (e) => {
@@ -119,12 +126,12 @@ function observeAuth() {
 
       updateAdminSidebar(user, profile);
       await loadUsers(false);
-      await loadChecklist(false);
+      await reloadChecklistData(false);
     } catch (error) {
       console.error(error);
       const message = getFirestoreErrorMessage(error);
       showTableError("userTableBody", 7, message);
-      showTableError("checklistTableBody", 6, message);
+      showTableError("checklistTableBody", 7, message);
       showToast(message, "error");
     } finally {
       isLoadingAdminData = false;
@@ -461,16 +468,39 @@ function setActiveNav(section) {
   });
 }
 
-async function loadChecklist(showLoader = true) {
+async function reloadChecklistData(showLoader = true) {
   if (showLoader) showPageLoader(true, "Đang tải checklist...");
   try {
-    const { items } = await fetchChecklistItems({ includeInactive: true, throwOnError: true });
+    await loadCategories();
+
+    const { items } = await fetchChecklistItems({
+      includeInactive: true,
+      throwOnError: true,
+      categories: checklistCategories
+    });
     checklistItems = items;
+
+    if (categoriesSource !== "firestore") {
+      await seedInitialCategories();
+    } else {
+      await syncCategoriesFromItems();
+    }
+
+    await loadCategories();
+    const refreshed = await fetchChecklistItems({
+      includeInactive: true,
+      throwOnError: true,
+      categories: checklistCategories
+    });
+    checklistItems = refreshed.items;
+
+    renderCategoryList();
     renderChecklistTable();
+    populateCategorySelect();
   } catch (error) {
     console.error(error);
     const message = getFirestoreErrorMessage(error);
-    showTableError("checklistTableBody", 6, message);
+    showTableError("checklistTableBody", 7, message);
     showToast(message, "error");
     throw error;
   } finally {
@@ -478,24 +508,195 @@ async function loadChecklist(showLoader = true) {
   }
 }
 
+async function loadCategories() {
+  const result = await fetchChecklistCategories({ throwOnError: true });
+  checklistCategories = result.categories;
+  categoriesSource = result.source;
+  return result;
+}
+
+async function seedInitialCategories() {
+  const fallbackOrderMap = new Map(
+    FALLBACK_CATEGORIES.map((category) => [category.name, Number(category.order) || 0])
+  );
+
+  let namesToSeed = [];
+  if (checklistItems.length) {
+    const seen = new Set();
+    sortChecklistItems(checklistItems, FALLBACK_CATEGORIES).forEach((item) => {
+      if (item.category && !seen.has(item.category)) {
+        seen.add(item.category);
+        namesToSeed.push(item.category);
+      }
+    });
+  } else {
+    namesToSeed = FALLBACK_CATEGORIES.map((category) => category.name);
+  }
+
+  for (let index = 0; index < namesToSeed.length; index += 1) {
+    const name = namesToSeed[index];
+    const id = `cat_seed_${index + 1}_${Date.now()}`;
+    await setDoc(doc(db, "checklistCategories", id), {
+      name,
+      order: fallbackOrderMap.get(name) || index + 1,
+      createdAt: serverTimestamp()
+    });
+  }
+}
+
+async function syncCategoriesFromItems() {
+  const existingNames = new Set(checklistCategories.map((c) => c.name));
+  const itemNames = [...new Set(checklistItems.map((i) => i.category).filter(Boolean))];
+  let added = false;
+
+  for (const name of itemNames) {
+    if (existingNames.has(name)) continue;
+
+    const nextOrder = checklistCategories.length
+      ? Math.max(...checklistCategories.map((c) => Number(c.order) || 0)) + 1
+      : 1;
+
+    const id = `cat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    await setDoc(doc(db, "checklistCategories", id), {
+      name,
+      order: nextOrder,
+      createdAt: serverTimestamp()
+    });
+    added = true;
+  }
+
+  if (added) {
+    await loadCategories();
+  }
+}
+
+function renderCategoryList() {
+  const container = document.getElementById("categoryList");
+  if (!container) return;
+
+  if (!checklistCategories.length) {
+    container.innerHTML = `<span class="category-empty-note">Chưa có danh mục. Bấm "Tạo danh mục" để bắt đầu.</span>`;
+    return;
+  }
+
+  container.innerHTML = checklistCategories
+    .map((category) => `<span class="category-chip">${escapeHtml(category.name)}</span>`)
+    .join("");
+}
+
+function populateCategorySelect(selectedValue = "") {
+  const select = document.getElementById("checkCategory");
+  if (!select) return;
+
+  if (!checklistCategories.length) {
+    select.innerHTML = `<option value="">Chưa có danh mục — hãy tạo danh mục trước</option>`;
+    return;
+  }
+
+  select.innerHTML = [
+    `<option value="">-- Chọn danh mục --</option>`,
+    ...checklistCategories.map((category) => {
+      const selected = category.name === selectedValue ? "selected" : "";
+      return `<option value="${escapeHtml(category.name)}" ${selected}>${escapeHtml(category.name)}</option>`;
+    })
+  ].join("");
+}
+
+function openCategoryModal() {
+  document.getElementById("newCategoryName").value = "";
+  document.getElementById("categoryModal").classList.remove("hidden");
+}
+
+function closeCategoryModal() {
+  document.getElementById("categoryModal").classList.add("hidden");
+}
+
+async function saveCategory() {
+  const name = document.getElementById("newCategoryName").value.trim();
+  if (!name) {
+    showToast("Vui lòng nhập tên danh mục", "error");
+    return;
+  }
+
+  if (checklistCategories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+    showToast("Danh mục này đã tồn tại", "error");
+    return;
+  }
+
+  try {
+    showPageLoader(true, "Đang tạo danh mục...");
+    const nextOrder = checklistCategories.length
+      ? Math.max(...checklistCategories.map((c) => Number(c.order) || 0)) + 1
+      : 1;
+    const id = `cat_${Date.now()}`;
+
+    await setDoc(doc(db, "checklistCategories", id), {
+      name,
+      order: nextOrder,
+      createdAt: serverTimestamp()
+    });
+
+    closeCategoryModal();
+    showToast("Đã tạo danh mục mới", "success");
+    await reloadChecklistData(false);
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Không thể tạo danh mục", "error");
+  } finally {
+    showPageLoader(false);
+  }
+}
+
+function getChecklistRowsForRender() {
+  const rows = [];
+  const sorted = sortChecklistItems(checklistItems, checklistCategories);
+  const categoryCounters = new Map();
+
+  sorted.forEach((item) => {
+    const category = item.category || "Khác";
+    const indexInCategory = (categoryCounters.get(category) || 0) + 1;
+    categoryCounters.set(category, indexInCategory);
+
+    const siblings = getItemsInCategory(sorted, category);
+    const siblingIndex = siblings.findIndex((s) => s.id === item.id);
+
+    rows.push({
+      item,
+      indexInCategory,
+      canMoveUp: siblingIndex > 0,
+      canMoveDown: siblingIndex < siblings.length - 1
+    });
+  });
+
+  return rows;
+}
+
 function renderChecklistTable() {
   const tbody = document.getElementById("checklistTableBody");
   if (!tbody) return;
 
   if (!checklistItems.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-table">Chưa có câu hỏi checklist. Bấm "Thêm câu hỏi" để bắt đầu.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-table">Chưa có câu hỏi checklist. Tạo danh mục rồi bấm "Thêm câu hỏi".</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = checklistItems
-    .map((item) => {
+  const rows = getChecklistRowsForRender();
+
+  tbody.innerHTML = rows
+    .map(({ item, indexInCategory, canMoveUp, canMoveDown }) => {
       const isActive = item.active !== false;
       return `
         <tr>
           <td>${escapeHtml(item.category || "-")}</td>
           <td class="checklist-text-cell">${escapeHtml(item.text || "-")}</td>
           <td>${escapeHtml(item.area || "ALL")}</td>
-          <td>${Number(item.order) || 0}</td>
+          <td class="text-center">${indexInCategory}</td>
+          <td>
+            <div class="order-buttons">
+              <button type="button" class="order-btn btn-move-up" data-id="${item.id}" ${canMoveUp ? "" : "disabled"} title="Lên">▲</button>
+              <button type="button" class="order-btn btn-move-down" data-id="${item.id}" ${canMoveDown ? "" : "disabled"} title="Xuống">▼</button>
+            </div>
+          </td>
           <td>
             <span class="status-badge status-${isActive ? "active" : "locked"}">
               ${isActive ? "Đang dùng" : "Đã tắt"}
@@ -530,19 +731,67 @@ function setupChecklistTableEvents() {
   document.querySelectorAll(".btn-delete-checklist").forEach((btn) => {
     btn.addEventListener("click", () => deleteChecklist(btn.dataset.id));
   });
+
+  document.querySelectorAll(".btn-move-up").forEach((btn) => {
+    btn.addEventListener("click", () => moveChecklistItem(btn.dataset.id, "up"));
+  });
+
+  document.querySelectorAll(".btn-move-down").forEach((btn) => {
+    btn.addEventListener("click", () => moveChecklistItem(btn.dataset.id, "down"));
+  });
+}
+
+async function moveChecklistItem(id, direction) {
+  const item = checklistItems.find((i) => i.id === id);
+  if (!item) return;
+
+  const siblings = getItemsInCategory(checklistItems, item.category);
+  const currentIndex = siblings.findIndex((s) => s.id === id);
+  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+  if (targetIndex < 0 || targetIndex >= siblings.length) return;
+
+  const current = siblings[currentIndex];
+  const target = siblings[targetIndex];
+
+  try {
+    showPageLoader(true, "Đang cập nhật thứ tự...");
+    await Promise.all([
+      updateDoc(doc(db, "checklistItems", current.id), {
+        order: Number(target.order) || targetIndex + 1,
+        updatedAt: serverTimestamp()
+      }),
+      updateDoc(doc(db, "checklistItems", target.id), {
+        order: Number(current.order) || currentIndex + 1,
+        updatedAt: serverTimestamp()
+      })
+    ]);
+    await reloadChecklistData(false);
+    showToast("Đã cập nhật thứ tự câu hỏi", "success");
+  } catch (error) {
+    console.error(error);
+    showToast("Không thể đổi thứ tự câu hỏi", "error");
+  } finally {
+    showPageLoader(false);
+  }
 }
 
 function openChecklistModal(item = null) {
+  if (!checklistCategories.length) {
+    showToast("Vui lòng tạo danh mục trước khi thêm câu hỏi", "error");
+    openCategoryModal();
+    return;
+  }
+
   editingChecklistId = item?.id || null;
 
   document.getElementById("checklistModalTitle").textContent = item
     ? "Sửa câu hỏi checklist"
     : "Thêm câu hỏi checklist";
 
-  document.getElementById("checkCategory").value = item?.category || "";
+  populateCategorySelect(item?.category || "");
   document.getElementById("checkText").value = item?.text || "";
   document.getElementById("checkArea").value = item?.area || "ALL";
-  document.getElementById("checkOrder").value = item?.order || getNextChecklistOrder();
   document.getElementById("checkActive").checked = item ? item.active !== false : true;
 
   document.getElementById("checklistModal").classList.remove("hidden");
@@ -550,17 +799,11 @@ function openChecklistModal(item = null) {
 
 function closeChecklistModal() {
   editingChecklistId = null;
-  document.getElementById("checkCategory").value = "";
+  populateCategorySelect("");
   document.getElementById("checkText").value = "";
   document.getElementById("checkArea").value = "ALL";
-  document.getElementById("checkOrder").value = "";
   document.getElementById("checkActive").checked = true;
   document.getElementById("checklistModal").classList.add("hidden");
-}
-
-function getNextChecklistOrder() {
-  if (!checklistItems.length) return 1;
-  return Math.max(...checklistItems.map((i) => Number(i.order) || 0)) + 1;
 }
 
 function editChecklist(id) {
@@ -573,17 +816,22 @@ async function saveChecklist() {
   const category = document.getElementById("checkCategory").value.trim();
   const text = document.getElementById("checkText").value.trim();
   const area = document.getElementById("checkArea").value;
-  const order = Number(document.getElementById("checkOrder").value || 0);
   const active = document.getElementById("checkActive").checked;
 
   if (!category || !text) {
-    showToast("Vui lòng nhập đầy đủ danh mục và nội dung câu hỏi", "error");
+    showToast("Vui lòng chọn danh mục và nhập nội dung câu hỏi", "error");
     return;
   }
 
-  if (!order || order < 1) {
-    showToast("Thứ tự hiển thị phải lớn hơn 0", "error");
-    return;
+  const existingItem = editingChecklistId
+    ? checklistItems.find((i) => i.id === editingChecklistId)
+    : null;
+
+  let order;
+  if (existingItem && existingItem.category === category) {
+    order = Number(existingItem.order) || getNextOrderInCategory(checklistItems, category);
+  } else {
+    order = getNextOrderInCategory(checklistItems, category);
   }
 
   const data = {
@@ -607,11 +855,11 @@ async function saveChecklist() {
         ...data,
         createdAt: serverTimestamp()
       });
-      showToast("Đã thêm câu hỏi checklist mới", "success");
+      showToast("Đã thêm câu hỏi vào cuối danh mục", "success");
     }
 
     closeChecklistModal();
-    await loadChecklist(false);
+    await reloadChecklistData(false);
   } catch (error) {
     console.error(error);
     showToast(error.message || "Không thể lưu câu hỏi", "error");
@@ -627,7 +875,7 @@ async function toggleChecklistActive(id, currentlyActive) {
       updatedAt: serverTimestamp()
     });
     showToast(currentlyActive ? "Đã tắt câu hỏi" : "Đã bật câu hỏi", "success");
-    await loadChecklist(false);
+    await reloadChecklistData(false);
   } catch (error) {
     console.error(error);
     showToast("Không thể cập nhật trạng thái câu hỏi", "error");
@@ -645,7 +893,7 @@ async function deleteChecklist(id) {
     showPageLoader(true, "Đang xóa câu hỏi...");
     await deleteDoc(doc(db, "checklistItems", id));
     showToast("Đã xóa câu hỏi checklist", "success");
-    await loadChecklist(false);
+    await reloadChecklistData(false);
   } catch (error) {
     console.error(error);
     showToast("Không thể xóa câu hỏi", "error");
