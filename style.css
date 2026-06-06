@@ -2147,8 +2147,68 @@ textarea {
 }
 
 .dashboard-top-questions-chart-wrap {
-  min-height: 320px;
-  height: 320px;
+  min-height: auto;
+  height: auto;
+}
+
+.dashboard-hbar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dashboard-hbar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dashboard-hbar-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.dashboard-hbar-label {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.dashboard-hbar-bar-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-hbar-track {
+  flex: 1;
+  height: 12px;
+  background: #f1f3f5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dashboard-hbar-fill {
+  height: 100%;
+  background: rgba(237, 28, 36, 0.78);
+  border-radius: 999px;
+  min-width: 0;
+  transition: width 0.25s ease;
+}
+
+.dashboard-hbar-value {
+  flex-shrink: 0;
+  min-width: 18px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--text);
 }
 
 .dashboard-chart-empty {

@@ -64,7 +64,6 @@ let currentAreaFilter = "ALL";
 let trendChart = null;
 let unresolvedAreaChart = null;
 let ngCategoryChart = null;
-let topNgQuestionsChart = null;
 let toastTimer = null;
 
 document.addEventListener("DOMContentLoaded", initDashboardPage);
@@ -780,59 +779,6 @@ function destroyChartInstance(chartInstance) {
   return null;
 }
 
-function truncateChartLabel(text, maxLength = 56) {
-  const value = String(text || "").trim();
-  if (value.length <= maxLength) return value;
-  return `${value.slice(0, maxLength - 1)}…`;
-}
-
-function wrapChartLabel(text, maxLineLength = 34) {
-  const value = String(text || "").trim();
-  if (!value) return "";
-  if (value.length <= maxLineLength) return value;
-
-  const words = value.split(/\s+/);
-  const lines = [];
-  let current = "";
-
-  const pushLine = (line) => {
-    if (line) lines.push(line);
-  };
-
-  words.forEach((word) => {
-    if (word.length > maxLineLength) {
-      if (current) {
-        pushLine(current);
-        current = "";
-      }
-
-      for (let index = 0; index < word.length; index += maxLineLength) {
-        pushLine(word.slice(index, index + maxLineLength));
-      }
-      return;
-    }
-
-    const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length <= maxLineLength) {
-      current = candidate;
-    } else {
-      pushLine(current);
-      current = word;
-    }
-  });
-
-  pushLine(current);
-  return lines.join("\n");
-}
-
-function getTopQuestionsChartHeight(ranked) {
-  const wrappedLabels = ranked.map((item) => wrapChartLabel(item.question));
-  const totalLines = wrappedLabels.reduce((sum, label) => sum + label.split("\n").length, 0);
-  const extraLines = Math.max(0, totalLines - ranked.length);
-
-  return Math.max(320, 56 + ranked.length * 34 + extraLines * 15);
-}
-
 function renderNgByCategoryChart(submissions) {
   const canvas = document.getElementById("ngCategoryChart");
   const emptyEl = document.getElementById("ngCategoryChartEmpty");
@@ -951,15 +897,17 @@ function buildTopNgQuestionRows(submissions) {
 }
 
 function renderTopNgQuestionsChart(submissions) {
-  const canvas = document.getElementById("topNgQuestionsChart");
+  const container = document.getElementById("topNgQuestionsChart");
   const emptyEl = document.getElementById("topNgQuestionsChartEmpty");
-  if (!canvas) return;
+  const chartWrap = container?.closest(".dashboard-top-questions-chart-wrap");
+  if (!container) return;
 
   const ranked = buildTopNgQuestionRows(submissions);
 
   if (!ranked.length) {
-    topNgQuestionsChart = destroyChartInstance(topNgQuestionsChart);
-    canvas.classList.add("hidden");
+    container.innerHTML = "";
+    container.classList.add("hidden");
+    if (chartWrap) chartWrap.style.height = "";
     if (emptyEl) {
       emptyEl.textContent = t("common.noData");
       emptyEl.classList.remove("hidden");
@@ -967,72 +915,29 @@ function renderTopNgQuestionsChart(submissions) {
     return;
   }
 
-  canvas.classList.remove("hidden");
+  container.classList.remove("hidden");
   emptyEl?.classList.add("hidden");
-  topNgQuestionsChart = destroyChartInstance(topNgQuestionsChart);
+  if (chartWrap) chartWrap.style.height = "auto";
 
-  const labels = ranked.map((item) => wrapChartLabel(item.question));
-  const data = ranked.map((item) => item.count);
-  const chartWrap = canvas.closest(".dashboard-top-questions-chart-wrap");
+  const maxCount = Math.max(...ranked.map((item) => item.count), 1);
 
-  if (chartWrap) {
-    chartWrap.style.height = `${getTopQuestionsChartHeight(ranked)}px`;
-  }
+  container.innerHTML = ranked
+    .map((item) => {
+      const widthPercent = item.count ? (item.count / maxCount) * 100 : 0;
 
-  topNgQuestionsChart = new Chart(canvas, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: t("dashboard.chart.ngCount"),
-          data,
-          backgroundColor: "rgba(237, 28, 36, 0.78)",
-          borderColor: "#ed1c24",
-          borderWidth: 1,
-          borderRadius: 6
-        }
-      ]
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      layout: {
-        padding: {
-          left: 4,
-          right: 8
-        }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title: (items) => {
-              const index = items[0]?.dataIndex;
-              return ranked[index]?.question || items[0]?.label || "";
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          beginAtZero: true,
-          ticks: { precision: 0 }
-        },
-        y: {
-          ticks: {
-            autoSkip: false,
-            font: { size: 10, lineHeight: 1.35 },
-            padding: 6
-          },
-          grid: {
-            display: false
-          }
-        }
-      }
-    }
-  });
+      return `
+        <div class="dashboard-hbar-row">
+          <p class="dashboard-hbar-label">${escapeHtml(item.question || "-")}</p>
+          <div class="dashboard-hbar-bar-area">
+            <div class="dashboard-hbar-track" aria-hidden="true">
+              <div class="dashboard-hbar-fill" style="width: ${widthPercent}%"></div>
+            </div>
+            <span class="dashboard-hbar-value">${item.count}</span>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 function renderNgTable(issues) {
