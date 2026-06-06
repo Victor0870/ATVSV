@@ -135,24 +135,45 @@ function ensureReportAccess(profile) {
     throw new Error("Tài khoản của bạn đang ở trạng thái không hoạt động.");
   }
 
-  if (!ALLOWED_REPORT_ROLES.includes(profile.role)) {
+  const role = String(profile.role || "").trim().toLowerCase();
+  if (!ALLOWED_REPORT_ROLES.includes(role)) {
     throw new Error("Bạn không có quyền xem trang báo cáo.");
   }
 }
 
+function getUserInitials(name) {
+  const parts = String(name || "U")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
+  return String(name || "U").slice(0, 2).toUpperCase();
+}
+
 function showAccessDenied(message) {
-  document.getElementById("reportScreen").classList.add("hidden");
-  document.getElementById("reportAccessDenied").classList.remove("hidden");
+  document.getElementById("reportLayout")?.classList.add("hidden");
+  document.getElementById("reportAccessWrap")?.classList.remove("hidden");
   document.getElementById("reportAccessMessage").textContent = message;
 }
 
 function showReportScreen(profile, firebaseUser) {
-  document.getElementById("reportAccessDenied").classList.add("hidden");
-  document.getElementById("reportScreen").classList.remove("hidden");
+  document.getElementById("reportAccessWrap")?.classList.add("hidden");
+  document.getElementById("reportLayout")?.classList.remove("hidden");
 
   document.getElementById("reportUserName").textContent = profile.hoTen || "-";
   document.getElementById("reportUserEmail").textContent = firebaseUser.email || profile.email || "-";
   document.getElementById("reportUserRole").textContent = profile.role || "-";
+
+  document.getElementById("sidebarReportUserName").textContent = profile.hoTen || "-";
+  document.getElementById("sidebarReportUserEmail").textContent = firebaseUser.email || profile.email || "-";
+  document.getElementById("reportUserInitials").textContent = getUserInitials(profile.hoTen);
+
+  const isAdmin = String(profile.role || "").trim().toLowerCase() === "admin";
+  document.getElementById("reportAdminLink")?.classList.toggle("hidden", !isAdmin);
 }
 
 function getCurrentFilters() {

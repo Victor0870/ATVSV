@@ -14,132 +14,165 @@
     </div>
   </div>
 
-  <main class="app-shell report-shell">
-    <div class="topbar">
-      <div class="topbar-left">
-        <span class="topbar-tag">Báo cáo quản lý</span>
-      </div>
-      <div class="topbar-right">
-        <a href="./remediation.html" class="ghost-btn">Hành động khắc phục</a>
-        <a href="./admin.html" class="admin-nav-btn">Quản trị hệ thống</a>
-        <a href="./index.html" class="ghost-btn">Về checklist</a>
-        <button type="button" id="reportLogoutBtn" class="ghost-btn">Đăng xuất</button>
-      </div>
-    </div>
-
-    <section id="reportAccessDenied" class="empty-card hidden">
+  <main id="reportAccessWrap" class="app-shell auth-screen hidden">
+    <section id="reportAccessDenied" class="empty-card">
       <h2>Không thể truy cập</h2>
       <p id="reportAccessMessage">Bạn không có quyền xem trang báo cáo.</p>
       <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
     </section>
-
-    <section id="reportScreen" class="hidden">
-      <header class="hero-card">
-        <h1>BÁO CÁO CHECKLIST ATVSV</h1>
-        <p>Idemitsu Lubricants Vietnam</p>
-      </header>
-
-      <section class="user-info-grid compact">
-        <div class="info-card">
-          <span class="info-label">Người đăng nhập</span>
-          <strong id="reportUserName">-</strong>
-        </div>
-        <div class="info-card">
-          <span class="info-label">Email</span>
-          <strong id="reportUserEmail">-</strong>
-        </div>
-        <div class="info-card">
-          <span class="info-label">Vai trò</span>
-          <strong id="reportUserRole">-</strong>
-        </div>
-      </section>
-
-      <section class="filter-card">
-        <div class="filter-grid">
-          <div class="form-group">
-            <label for="filterDateFrom">Từ ngày</label>
-            <input type="date" id="filterDateFrom">
-          </div>
-
-          <div class="form-group">
-            <label for="filterDateTo">Đến ngày</label>
-            <input type="date" id="filterDateTo">
-          </div>
-
-          <div class="form-group">
-            <label for="filterArea">Khu vực</label>
-            <select id="filterArea">
-              <option value="ALL">Tất cả khu vực</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="filterResult">Kết quả</label>
-            <select id="filterResult">
-              <option value="ALL">Tất cả</option>
-              <option value="NG">Chỉ lỗi NG</option>
-              <option value="OK">Chỉ OK</option>
-              <option value="N/A">Chỉ N/A</option>
-            </select>
-          </div>
-
-          <div class="form-group search-group">
-            <label for="filterKeyword">Tìm kiếm</label>
-            <input type="text" id="filterKeyword" placeholder="Tìm theo họ tên / tài khoản / email">
-          </div>
-        </div>
-
-        <div class="filter-actions">
-          <button type="button" id="applyFilterBtn" class="primary-btn">Lọc dữ liệu</button>
-          <button type="button" id="resetFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
-          <button type="button" id="exportCsvBtn" class="ghost-btn">Xuất CSV</button>
-        </div>
-      </section>
-
-      <section class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-label">Tổng số phiếu</span>
-          <strong id="statTotalSubmissions">0</strong>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Tổng câu OK</span>
-          <strong id="statTotalOk">0</strong>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Tổng câu NG</span>
-          <strong id="statTotalNg">0</strong>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Tổng câu N/A</span>
-          <strong id="statTotalNa">0</strong>
-        </div>
-      </section>
-
-      <section class="report-layout">
-        <div class="report-list-panel">
-          <div class="panel-header">
-            <h2>Danh sách phiếu</h2>
-            <span id="reportCountText">0 kết quả</span>
-          </div>
-          <div id="reportList" class="report-list"></div>
-          <div id="reportPagination" class="report-pagination hidden">
-            <button type="button" id="reportPrevPageBtn" class="ghost-btn">← Trang trước</button>
-            <span id="reportPageInfo" class="report-page-info">Trang 1 / 1</span>
-            <button type="button" id="reportNextPageBtn" class="ghost-btn">Trang sau →</button>
-          </div>
-        </div>
-
-        <div class="report-detail-panel">
-          <div class="panel-header">
-            <h2>Chi tiết phiếu</h2>
-          </div>
-          <div id="reportDetail" class="report-detail empty-detail">
-            Chọn một phiếu bên trái để xem chi tiết.
-          </div>
-        </div>
-      </section>
-    </section>
   </main>
+
+  <div id="reportLayout" class="app-page hidden">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-brand">
+          <div class="admin-brand-icon">AT</div>
+          <div>
+            <strong>IDEMITSU ILV</strong>
+            <span>E-Checksheet ATVSV</span>
+          </div>
+        </div>
+
+        <nav class="admin-sidebar-nav">
+          <p class="admin-nav-label">Chức năng</p>
+          <a href="./index.html" class="admin-nav-item">Làm Checklist</a>
+
+          <p class="admin-nav-label">Quản lý</p>
+          <span class="admin-nav-item active">Báo cáo &amp; Thống kê</span>
+          <a href="./remediation.html" class="admin-nav-item">Hành động khắc phục</a>
+          <a id="reportAdminLink" href="./admin.html" class="admin-nav-item hidden">Quản trị hệ thống</a>
+        </nav>
+
+        <div class="admin-sidebar-footer">
+          <div class="admin-user-card">
+            <div id="reportUserInitials" class="admin-user-avatar">U</div>
+            <div class="admin-user-meta">
+              <strong id="sidebarReportUserName">-</strong>
+              <span id="sidebarReportUserEmail">-</span>
+            </div>
+          </div>
+          <button type="button" id="reportLogoutBtn" class="ghost-btn full-btn admin-logout-btn">
+            Đăng xuất
+          </button>
+        </div>
+      </aside>
+
+      <div class="admin-main report-main">
+        <div class="topbar admin-topbar">
+          <div class="topbar-left">
+            <span class="topbar-tag">Báo cáo &amp; Thống kê</span>
+          </div>
+        </div>
+
+        <section id="reportScreen">
+          <header class="hero-card">
+            <h1>BÁO CÁO CHECKLIST ATVSV</h1>
+            <p>Idemitsu Lubricants Vietnam</p>
+          </header>
+
+          <section class="user-info-grid compact">
+            <div class="info-card">
+              <span class="info-label">Người đăng nhập</span>
+              <strong id="reportUserName">-</strong>
+            </div>
+            <div class="info-card">
+              <span class="info-label">Email</span>
+              <strong id="reportUserEmail">-</strong>
+            </div>
+            <div class="info-card">
+              <span class="info-label">Vai trò</span>
+              <strong id="reportUserRole">-</strong>
+            </div>
+          </section>
+
+          <section class="filter-card">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label for="filterDateFrom">Từ ngày</label>
+                <input type="date" id="filterDateFrom">
+              </div>
+
+              <div class="form-group">
+                <label for="filterDateTo">Đến ngày</label>
+                <input type="date" id="filterDateTo">
+              </div>
+
+              <div class="form-group">
+                <label for="filterArea">Khu vực</label>
+                <select id="filterArea">
+                  <option value="ALL">Tất cả khu vực</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="filterResult">Kết quả</label>
+                <select id="filterResult">
+                  <option value="ALL">Tất cả</option>
+                  <option value="NG">Chỉ lỗi NG</option>
+                  <option value="OK">Chỉ OK</option>
+                  <option value="N/A">Chỉ N/A</option>
+                </select>
+              </div>
+
+              <div class="form-group search-group">
+                <label for="filterKeyword">Tìm kiếm</label>
+                <input type="text" id="filterKeyword" placeholder="Tìm theo họ tên / tài khoản / email">
+              </div>
+            </div>
+
+            <div class="filter-actions">
+              <button type="button" id="applyFilterBtn" class="primary-btn">Lọc dữ liệu</button>
+              <button type="button" id="resetFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
+              <button type="button" id="exportCsvBtn" class="ghost-btn">Xuất CSV</button>
+            </div>
+          </section>
+
+          <section class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">Tổng số phiếu</span>
+              <strong id="statTotalSubmissions">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Tổng câu OK</span>
+              <strong id="statTotalOk">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Tổng câu NG</span>
+              <strong id="statTotalNg">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Tổng câu N/A</span>
+              <strong id="statTotalNa">0</strong>
+            </div>
+          </section>
+
+          <section class="report-layout">
+            <div class="report-list-panel">
+              <div class="panel-header">
+                <h2>Danh sách phiếu</h2>
+                <span id="reportCountText">0 kết quả</span>
+              </div>
+              <div id="reportList" class="report-list"></div>
+              <div id="reportPagination" class="report-pagination hidden">
+                <button type="button" id="reportPrevPageBtn" class="ghost-btn">← Trang trước</button>
+                <span id="reportPageInfo" class="report-page-info">Trang 1 / 1</span>
+                <button type="button" id="reportNextPageBtn" class="ghost-btn">Trang sau →</button>
+              </div>
+            </div>
+
+            <div class="report-detail-panel">
+              <div class="panel-header">
+                <h2>Chi tiết phiếu</h2>
+              </div>
+              <div id="reportDetail" class="report-detail empty-detail">
+                Chọn một phiếu bên trái để xem chi tiết.
+              </div>
+            </div>
+          </section>
+        </section>
+      </div>
+    </div>
+  </div>
 
   <div id="imageModal" class="image-modal hidden">
     <div class="image-modal-backdrop" id="imageModalBackdrop"></div>

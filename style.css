@@ -1141,6 +1141,10 @@ textarea {
   max-width: 1100px;
 }
 
+.app-page .admin-main.report-main {
+  max-width: 1320px;
+}
+
 .admin-nav-item.active:not(a) {
   cursor: default;
 }
