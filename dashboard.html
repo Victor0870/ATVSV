@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard thống kê - Idemitsu</title>
-  <link rel="stylesheet" href="./style.css?v=20250613">
+  <link rel="stylesheet" href="./style.css?v=20250614">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="admin-page" data-page-title-key="page.dashboard">
@@ -197,7 +197,12 @@
                 <h2 data-i18n="dashboard.chart.topNgQuestions">Top 5 câu hỏi có nhiều NG nhất</h2>
               </div>
               <div class="dashboard-chart-wrap dashboard-insights-chart-wrap dashboard-top-questions-chart-wrap">
-                <div id="topNgQuestionsChart" class="dashboard-hbar-chart"></div>
+                <div id="topNgQuestionsChartLayout" class="dashboard-split-chart hidden">
+                  <div id="topNgQuestionsLabels" class="dashboard-question-labels"></div>
+                  <div class="dashboard-question-chart-area">
+                    <canvas id="topNgQuestionsChart"></canvas>
+                  </div>
+                </div>
                 <p id="topNgQuestionsChartEmpty" class="dashboard-chart-empty hidden" data-i18n="common.noData">Không có dữ liệu</p>
               </div>
             </section>
@@ -242,6 +247,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="./dashboard.js?v=20250613"></script>
+  <script type="module" src="./dashboard.js?v=20250614"></script>
 </body>
 </html>
