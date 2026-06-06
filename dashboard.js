@@ -28,21 +28,43 @@ import {
   timestampToMillis
 } from "./remediation-service.js";
 import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js";
+import {
+  fetchChecklistItems,
+  fetchChecklistCategories,
+  groupChecklistForArea,
+  sortChecklistItems
+} from "./checklist-service.js";
 
 const PRIVILEGED_ROLES = ["admin", "manager"];
 const QUERY_LIMIT = 500;
 const NG_TABLE_LIMIT = 25;
 const TOP_DISCOVERERS_LIMIT = 5;
+const TOP_NG_QUESTIONS_LIMIT = 5;
+const CHART_COLORS = [
+  "#ed1c24",
+  "#f59e0b",
+  "#2563eb",
+  "#16a34a",
+  "#9333ea",
+  "#0891b2",
+  "#ea580c",
+  "#4f46e5",
+  "#be123c",
+  "#059669"
+];
 
 let currentFirebaseUser = null;
 let currentUserProfile = null;
 let branchNames = [];
 let rawSubmissions = [];
 let rawIssues = [];
+let cachedChecklistQuestions = [];
 let currentPeriod = "week";
 let currentAreaFilter = "ALL";
 let trendChart = null;
 let unresolvedAreaChart = null;
+let ngCategoryChart = null;
+let topNgQuestionsChart = null;
 let toastTimer = null;
 
 document.addEventListener("DOMContentLoaded", initDashboardPage);
@@ -239,6 +261,55 @@ async function loadDashboardFilters(profile) {
   }
 
   document.getElementById("dashboardScopeText").textContent = getDashboardScopeLabel(profile, "ALL");
+  await loadChecklistReference("ALL");
+}
+
+async function loadChecklistReference(areaFilter = currentAreaFilter) {
+  try {
+    const [{ items }, { categories }] = await Promise.all([
+      fetchChecklistItems(),
+      fetchChecklistCategories()
+    ]);
+
+    cachedChecklistQuestions = buildChecklistReferenceQuestions(items, categories, areaFilter);
+  } catch (error) {
+    console.warn("Không thể tải checklist tham chiếu:", error);
+    cachedChecklistQuestions = [];
+  }
+}
+
+function buildChecklistReferenceQuestions(items, categories, areaFilter) {
+  const activeItems = items.filter((item) => item.active !== false);
+
+  if (areaFilter && areaFilter !== "ALL") {
+    return flattenChecklistGroups(groupChecklistForArea(activeItems, areaFilter, categories, branchNames));
+  }
+
+  if (!canViewAllAreas()) {
+    const userArea = currentUserProfile?.khuVuc;
+    if (!userArea) return [];
+    return flattenChecklistGroups(groupChecklistForArea(activeItems, userArea, categories, branchNames));
+  }
+
+  return sortChecklistItems(activeItems, categories).map((item) => ({
+    id: item.id,
+    category: item.category || "",
+    text: item.text || ""
+  }));
+}
+
+function flattenChecklistGroups(groups) {
+  const questions = [];
+  groups.forEach((group) => {
+    group.questions.forEach((question) => {
+      questions.push({
+        id: question.id,
+        category: group.category,
+        text: question.text || ""
+      });
+    });
+  });
+  return questions;
 }
 
 async function applyDashboardFilter() {
@@ -258,6 +329,7 @@ async function loadDashboardData(areaFilter) {
 
   try {
     currentAreaFilter = areaFilter;
+    await loadChecklistReference(areaFilter);
     const submissions = await loadScopedSubmissions(areaFilter);
     const issues = await loadScopedIssues(areaFilter, submissions);
 
@@ -275,6 +347,8 @@ async function loadDashboardData(areaFilter) {
     showToast(t("dashboard.loadFailed"), "error");
     renderEmptyNgTable(t("dashboard.loadDataRetry"));
     renderTopDiscoverersTable([]);
+    renderNgByCategoryChart([]);
+    renderTopNgQuestionsChart([]);
   } finally {
     showPageLoader(false);
   }
@@ -290,6 +364,8 @@ function renderDashboardViews() {
   renderTrendChart(submissions);
   renderUnresolvedAreaChart(issues);
   renderTopDiscoverersTable(submissions);
+  renderNgByCategoryChart(submissions);
+  renderTopNgQuestionsChart(submissions);
   renderNgTable(issues);
 }
 
@@ -695,6 +771,206 @@ function renderTopDiscoverersTable(submissions) {
       </tr>
     `;
   }).join("");
+}
+
+function destroyChartInstance(chartInstance) {
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+  return null;
+}
+
+function truncateChartLabel(text, maxLength = 56) {
+  const value = String(text || "").trim();
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 1)}…`;
+}
+
+function renderNgByCategoryChart(submissions) {
+  const canvas = document.getElementById("ngCategoryChart");
+  const emptyEl = document.getElementById("ngCategoryChartEmpty");
+  if (!canvas) return;
+
+  const categoryCounts = new Map();
+
+  submissions.forEach((submission) => {
+    (submission.answers || []).forEach((answer) => {
+      if (answer.result !== "NG") return;
+      const category = String(answer.category || "").trim() || "—";
+      categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
+    });
+  });
+
+  const labels = [...categoryCounts.keys()];
+  const data = labels.map((label) => categoryCounts.get(label));
+  const total = data.reduce((sum, value) => sum + value, 0);
+
+  if (!total) {
+    ngCategoryChart = destroyChartInstance(ngCategoryChart);
+    canvas.classList.add("hidden");
+    if (emptyEl) {
+      emptyEl.textContent = t("common.noData");
+      emptyEl.classList.remove("hidden");
+    }
+    return;
+  }
+
+  canvas.classList.remove("hidden");
+  emptyEl?.classList.add("hidden");
+  ngCategoryChart = destroyChartInstance(ngCategoryChart);
+
+  ngCategoryChart = new Chart(canvas, {
+    type: "pie",
+    data: {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: labels.map((_, index) => CHART_COLORS[index % CHART_COLORS.length]),
+          borderColor: "#fff",
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            boxWidth: 12,
+            font: { size: 11 }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const value = Number(context.raw) || 0;
+              const percent = total ? ((value / total) * 100).toFixed(1) : "0";
+              return `${context.label}: ${value} (${percent}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function buildTopNgQuestionRows(submissions) {
+  const questionCounts = new Map();
+
+  submissions.forEach((submission) => {
+    (submission.answers || []).forEach((answer) => {
+      if (answer.result !== "NG") return;
+
+      const key = answer.questionId || answer.question || "unknown";
+      const existing = questionCounts.get(key) || {
+        key,
+        question: answer.question || "",
+        count: 0
+      };
+
+      existing.count += 1;
+      if (answer.question) {
+        existing.question = answer.question;
+      }
+
+      questionCounts.set(key, existing);
+    });
+  });
+
+  let ranked = [...questionCounts.values()].sort((a, b) => b.count - a.count);
+
+  if (ranked.length < TOP_NG_QUESTIONS_LIMIT && cachedChecklistQuestions.length) {
+    const usedKeys = new Set(ranked.map((item) => item.key));
+
+    cachedChecklistQuestions.forEach((referenceQuestion) => {
+      if (ranked.length >= TOP_NG_QUESTIONS_LIMIT) return;
+
+      const key = referenceQuestion.id || referenceQuestion.text;
+      if (usedKeys.has(key)) return;
+
+      ranked.push({
+        key,
+        question: referenceQuestion.text || "",
+        count: 0
+      });
+      usedKeys.add(key);
+    });
+  }
+
+  return ranked.slice(0, TOP_NG_QUESTIONS_LIMIT).sort((a, b) => b.count - a.count);
+}
+
+function renderTopNgQuestionsChart(submissions) {
+  const canvas = document.getElementById("topNgQuestionsChart");
+  const emptyEl = document.getElementById("topNgQuestionsChartEmpty");
+  if (!canvas) return;
+
+  const ranked = buildTopNgQuestionRows(submissions);
+
+  if (!ranked.length) {
+    topNgQuestionsChart = destroyChartInstance(topNgQuestionsChart);
+    canvas.classList.add("hidden");
+    if (emptyEl) {
+      emptyEl.textContent = t("common.noData");
+      emptyEl.classList.remove("hidden");
+    }
+    return;
+  }
+
+  canvas.classList.remove("hidden");
+  emptyEl?.classList.add("hidden");
+  topNgQuestionsChart = destroyChartInstance(topNgQuestionsChart);
+
+  const labels = ranked.map((item) => truncateChartLabel(item.question));
+  const data = ranked.map((item) => item.count);
+
+  topNgQuestionsChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: t("dashboard.chart.ngCount"),
+          data,
+          backgroundColor: "rgba(237, 28, 36, 0.78)",
+          borderColor: "#ed1c24",
+          borderWidth: 1,
+          borderRadius: 6
+        }
+      ]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const index = items[0]?.dataIndex;
+              return ranked[index]?.question || items[0]?.label || "";
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { precision: 0 }
+        },
+        y: {
+          ticks: {
+            autoSkip: false,
+            font: { size: 11 }
+          }
+        }
+      }
+    }
+  });
 }
 
 function renderNgTable(issues) {

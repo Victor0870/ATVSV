@@ -156,29 +156,51 @@
             </section>
           </section>
 
-          <section class="report-list-panel">
-            <div class="panel-header">
-              <h2 data-i18n="dashboard.rank.title">Top 5 người phát hiện nhiều lỗi nhất</h2>
-              <span id="topDiscoverersPeriodLabel">Tuần</span>
-            </div>
-            <div class="admin-table-container">
-              <table class="admin-table dashboard-rank-table">
-                <thead>
-                  <tr>
-                    <th data-i18n="common.rank">STT</th>
-                    <th data-i18n="common.fullName">Họ tên</th>
-                    <th data-i18n="dashboard.rank.errorsFound">Số lỗi phát hiện</th>
-                  </tr>
-                </thead>
-                <tbody id="topDiscoverersBody">
-                  <tr><td>1</td><td></td><td></td></tr>
-                  <tr><td>2</td><td></td><td></td></tr>
-                  <tr><td>3</td><td></td><td></td></tr>
-                  <tr><td>4</td><td></td><td></td></tr>
-                  <tr><td>5</td><td></td><td></td></tr>
-                </tbody>
-              </table>
-            </div>
+          <section class="dashboard-insights-grid">
+            <section class="dashboard-insights-panel dashboard-insights-col-rank">
+              <div class="panel-header">
+                <h2 data-i18n="dashboard.rank.title">Top 5 người phát hiện nhiều lỗi nhất</h2>
+                <span id="topDiscoverersPeriodLabel">Tuần</span>
+              </div>
+              <div class="admin-table-container">
+                <table class="admin-table dashboard-rank-table">
+                  <thead>
+                    <tr>
+                      <th data-i18n="common.rank">STT</th>
+                      <th data-i18n="common.fullName">Họ tên</th>
+                      <th data-i18n="dashboard.rank.errorsFound">Số lỗi phát hiện</th>
+                    </tr>
+                  </thead>
+                  <tbody id="topDiscoverersBody">
+                    <tr><td>1</td><td></td><td></td></tr>
+                    <tr><td>2</td><td></td><td></td></tr>
+                    <tr><td>3</td><td></td><td></td></tr>
+                    <tr><td>4</td><td></td><td></td></tr>
+                    <tr><td>5</td><td></td><td></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="dashboard-insights-panel">
+              <div class="panel-header">
+                <h2 data-i18n="dashboard.chart.ngByCategory">Phân bổ NG theo danh mục</h2>
+              </div>
+              <div class="dashboard-chart-wrap dashboard-insights-chart-wrap">
+                <canvas id="ngCategoryChart"></canvas>
+                <p id="ngCategoryChartEmpty" class="dashboard-chart-empty hidden" data-i18n="common.noData">Không có dữ liệu</p>
+              </div>
+            </section>
+
+            <section class="dashboard-insights-panel">
+              <div class="panel-header">
+                <h2 data-i18n="dashboard.chart.topNgQuestions">Top 5 câu hỏi có nhiều NG nhất</h2>
+              </div>
+              <div class="dashboard-chart-wrap dashboard-insights-chart-wrap">
+                <canvas id="topNgQuestionsChart"></canvas>
+                <p id="topNgQuestionsChartEmpty" class="dashboard-chart-empty hidden" data-i18n="common.noData">Không có dữ liệu</p>
+              </div>
+            </section>
           </section>
 
           <section class="report-list-panel">
@@ -220,6 +242,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="./dashboard.js?v=20250608"></script>
+  <script type="module" src="./dashboard.js?v=20250609"></script>
 </body>
 </html>

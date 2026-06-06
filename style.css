@@ -2102,6 +2102,63 @@ textarea {
   font-weight: 700;
 }
 
+.dashboard-insights-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.dashboard-insights-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  min-width: 0;
+}
+
+.dashboard-insights-panel .panel-header {
+  margin-bottom: 12px;
+}
+
+.dashboard-insights-chart-wrap {
+  height: 300px;
+}
+
+.dashboard-chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+@media (min-width: 1200px) {
+  .dashboard-insights-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: stretch;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .dashboard-insights-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-insights-col-rank {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-insights-chart-wrap {
+    height: 260px;
+  }
+}
+
 @media (min-width: 1100px) {
   .dashboard-charts-grid {
     grid-template-columns: 1fr 1fr;
