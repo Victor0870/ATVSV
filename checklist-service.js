@@ -22,7 +22,7 @@ const FALLBACK_CHECKLIST = [
   { id: "fallback_019", category: "An toàn vận hành máy móc thiết bị", text: "Hệ thống thông gió có đầy đủ và hoạt động tốt không?", area: "Nhà máy", order: 19, active: true }
 ];
 
-export async function fetchChecklistItems({ includeInactive = false } = {}) {
+export async function fetchChecklistItems({ includeInactive = false, throwOnError = false } = {}) {
   try {
     const snap = await getDocs(collection(db, "checklistItems"));
     let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -42,6 +42,7 @@ export async function fetchChecklistItems({ includeInactive = false } = {}) {
     }
   } catch (error) {
     console.warn("Không thể tải checklist từ Firestore:", error);
+    if (throwOnError) throw error;
   }
 
   const fallback = includeInactive

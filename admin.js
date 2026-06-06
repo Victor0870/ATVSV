@@ -1,6 +1,8 @@
 import {
   auth,
   db,
+  setPersistence,
+  browserLocalPersistence,
   onAuthStateChanged,
   signOut,
   doc,
@@ -20,12 +22,21 @@ let userFilter = "all";
 let searchQuery = "";
 let editingChecklistId = null;
 let toastTimer = null;
+let authReady = false;
+let isLoadingAdminData = false;
 
 document.addEventListener("DOMContentLoaded", initAdminPage);
 
-function initAdminPage() {
+async function initAdminPage() {
   setCurrentDate();
   bindEvents();
+
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch (error) {
+    console.warn("Không thể thiết lập persistence:", error);
+  }
+
   observeAuth();
 }
 
@@ -66,43 +77,76 @@ function observeAuth() {
   showPageLoader(true, "Đang kiểm tra quyền truy cập...");
 
   onAuthStateChanged(auth, async (user) => {
+    if (isLoadingAdminData) return;
+
     try {
       if (!user) {
-        location.href = "./index.html";
+        if (authReady) {
+          location.href = "./index.html";
+        }
         return;
       }
+
+      authReady = true;
+      isLoadingAdminData = true;
 
       const userDoc = await getDoc(doc(db, "users", user.uid));
 
       if (!userDoc.exists()) {
+        showTableError("userTableBody", 7, "Không tìm thấy hồ sơ người dùng.");
         showToast("Không tìm thấy hồ sơ người dùng", "error");
-        setTimeout(() => { location.href = "./index.html"; }, 1500);
+        setTimeout(() => { location.href = "./index.html"; }, 2000);
         return;
       }
 
       const profile = userDoc.data();
+      const role = String(profile.role || "").trim().toLowerCase();
+      const status = String(profile.status || "").trim().toLowerCase();
 
-      if (String(profile.role || "").trim().toLowerCase() !== "admin") {
+      if (role !== "admin") {
+        showTableError("userTableBody", 7, "Tài khoản này không có quyền admin.");
         showToast("Bạn không có quyền truy cập trang quản trị", "error");
-        setTimeout(() => { location.href = "./index.html"; }, 1500);
+        setTimeout(() => { location.href = "./index.html"; }, 2000);
         return;
       }
 
-      if (profile.status !== "active") {
+      if (status !== "active") {
+        showTableError("userTableBody", 7, "Tài khoản admin chưa được kích hoạt.");
         showToast("Tài khoản admin chưa được kích hoạt", "error");
-        setTimeout(() => { location.href = "./index.html"; }, 1500);
+        setTimeout(() => { location.href = "./index.html"; }, 2000);
         return;
       }
 
       updateAdminSidebar(user, profile);
-      await Promise.all([loadUsers(false), loadChecklist(false)]);
+      await loadUsers(false);
+      await loadChecklist(false);
     } catch (error) {
       console.error(error);
-      showToast(error.message || "Không thể tải trang quản trị", "error");
+      const message = getFirestoreErrorMessage(error);
+      showTableError("userTableBody", 7, message);
+      showTableError("checklistTableBody", 6, message);
+      showToast(message, "error");
     } finally {
+      isLoadingAdminData = false;
       showPageLoader(false);
     }
   });
+}
+
+function showTableError(tbodyId, colspan, message) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-table">${escapeHtml(message)}</td></tr>`;
+}
+
+function getFirestoreErrorMessage(error) {
+  const code = error?.code || "";
+
+  if (code === "permission-denied") {
+    return "Không đủ quyền đọc dữ liệu. Kiểm tra role=admin và status=active trong Firestore.";
+  }
+
+  return error?.message || "Không thể tải dữ liệu từ Firebase.";
 }
 
 function updateAdminSidebar(firebaseUser, profile) {
@@ -128,6 +172,12 @@ async function loadUsers(showLoader = true) {
     users = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     updateStats();
     renderUserTable();
+  } catch (error) {
+    console.error(error);
+    const message = getFirestoreErrorMessage(error);
+    showTableError("userTableBody", 7, message);
+    showToast(message, "error");
+    throw error;
   } finally {
     if (showLoader) showPageLoader(false);
   }
@@ -414,15 +464,15 @@ function setActiveNav(section) {
 async function loadChecklist(showLoader = true) {
   if (showLoader) showPageLoader(true, "Đang tải checklist...");
   try {
-    const { items } = await fetchChecklistItems({ includeInactive: true });
+    const { items } = await fetchChecklistItems({ includeInactive: true, throwOnError: true });
     checklistItems = items;
-    document.getElementById("statChecklist")?.textContent = String(
-      checklistItems.filter((i) => i.active !== false).length
-    );
     renderChecklistTable();
   } catch (error) {
     console.error(error);
-    showToast("Không thể tải checklist", "error");
+    const message = getFirestoreErrorMessage(error);
+    showTableError("checklistTableBody", 6, message);
+    showToast(message, "error");
+    throw error;
   } finally {
     if (showLoader) showPageLoader(false);
   }

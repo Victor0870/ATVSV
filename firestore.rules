@@ -16,20 +16,27 @@ service cloud.firestore {
              exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function userRole() {
+      return currentUserDoc().data.role.lower();
+    }
+
+    function userStatus() {
+      return currentUserDoc().data.status.lower();
+    }
+
     function isActiveUser() {
       return currentUserExists() &&
-             currentUserDoc().data.status == "active";
+             userStatus() == "active";
     }
 
     function isAdminOrManager() {
       return isActiveUser() &&
-             (currentUserDoc().data.role == "admin" ||
-              currentUserDoc().data.role == "manager");
+             (userRole() == "admin" || userRole() == "manager");
     }
 
     function isAdmin() {
       return isActiveUser() &&
-             currentUserDoc().data.role == "admin";
+             userRole() == "admin";
     }
 
     function isSelfRegistration(userId) {
@@ -44,10 +51,8 @@ service cloud.firestore {
       allow read: if signedIn() &&
                   (request.auth.uid == userId || isAdminOrManager());
 
-      // User tự tạo hồ sơ khi đăng ký (chờ admin phê duyệt)
       allow create: if isSelfRegistration(userId) || isAdmin();
 
-      // Chỉ admin được cập nhật / xóa hồ sơ user
       allow update, delete: if isAdmin();
     }
 
@@ -66,7 +71,7 @@ service cloud.firestore {
     }
 
     match /checklistItems/{itemId} {
-      allow read: if isActiveUser();
+      allow read: if isActiveUser() || isAdmin();
       allow create, update, delete: if isAdmin();
     }
   }
