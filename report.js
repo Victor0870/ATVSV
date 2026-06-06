@@ -12,6 +12,13 @@ import {
   limit,
   getDocs
 } from "./firebase-config.js";
+import {
+  ALL_BRANCHES_AREA,
+  fetchBranches,
+  getActiveBranchNames,
+  buildReportFilterOptions,
+  matchesReportAreaFilter
+} from "./areas-service.js";
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
 const DEFAULT_QUERY_LIMIT = 300;
@@ -21,6 +28,8 @@ let currentFirebaseUser = null;
 let currentUserProfile = null;
 let allSubmissions = [];
 let filteredSubmissions = [];
+let reportBranches = [];
+let reportBranchNames = [];
 let selectedSubmissionId = null;
 let currentReportPage = 1;
 let toastTimer = null;
@@ -84,6 +93,7 @@ function observeReportAuthState() {
       ensureReportAccess(profile);
       showReportScreen(profile, user);
 
+      await loadReportBranches();
       await loadReportData(getCurrentFilters());
     } catch (error) {
       console.error(error);
@@ -175,6 +185,18 @@ async function resetFilters() {
   await loadReportData(getCurrentFilters());
 }
 
+async function loadReportBranches() {
+  const selected = document.getElementById("filterArea")?.value || "ALL";
+  const { branches } = await fetchBranches();
+  reportBranches = branches;
+  reportBranchNames = getActiveBranchNames(branches);
+
+  const filterArea = document.getElementById("filterArea");
+  if (filterArea) {
+    filterArea.innerHTML = buildReportFilterOptions(branches, selected);
+  }
+}
+
 async function loadReportData(filters) {
   showPageLoader(true, "Đang tải dữ liệu báo cáo...");
 
@@ -182,7 +204,7 @@ async function loadReportData(filters) {
     const submissionsRef = collection(db, "submissions");
     const constraints = [];
 
-    if (filters.area && filters.area !== "ALL") {
+    if (filters.area && filters.area !== "ALL" && filters.area !== ALL_BRANCHES_AREA) {
       constraints.push(where("khuVuc", "==", filters.area));
     }
 
@@ -248,6 +270,7 @@ function applyClientSideFilters(data, filters) {
     const searchTarget = `${item.hoTen || ""} ${item.taiKhoan || ""} ${item.email || ""}`.toLowerCase();
 
     const matchKeyword = !filters.keyword || searchTarget.includes(filters.keyword);
+    const matchArea = matchesReportAreaFilter(item.khuVuc, filters.area, reportBranchNames);
 
     let matchResult = true;
     if (filters.result !== "ALL") {
@@ -255,7 +278,7 @@ function applyClientSideFilters(data, filters) {
       matchResult = answers.some((answer) => answer.result === filters.result);
     }
 
-    return matchKeyword && matchResult;
+    return matchKeyword && matchArea && matchResult;
   });
 }
 

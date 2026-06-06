@@ -1486,6 +1486,21 @@ textarea {
   flex-wrap: wrap;
 }
 
+.branch-admin-note {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.branch-admin-note strong {
+  color: var(--brand-black);
+}
+
 .category-drag-hint {
   margin: 0 0 8px;
   font-size: 12px;

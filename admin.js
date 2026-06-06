@@ -15,11 +15,18 @@ import {
   getDocs
 } from "./firebase-config.js";
 import { fetchChecklistItems, fetchChecklistCategories, sortChecklistItems, getNextOrderInCategory, getItemsInCategory, FALLBACK_CATEGORIES } from "./checklist-service.js";
+import {
+  fetchBranches,
+  FALLBACK_BRANCHES,
+  buildChecklistAreaOptions
+} from "./areas-service.js";
 
 let users = [];
 let checklistItems = [];
 let checklistCategories = [];
 let categoriesSource = "fallback";
+let branchList = [];
+let branchesSource = "fallback";
 let userFilter = "all";
 let searchQuery = "";
 let editingChecklistId = null;
@@ -70,12 +77,22 @@ function bindEvents() {
   document.getElementById("cancelCategoryBtn").addEventListener("click", closeCategoryModal);
   document.getElementById("categoryModalBackdrop").addEventListener("click", closeCategoryModal);
 
+  document.getElementById("addBranchBtn").addEventListener("click", openBranchModal);
+  document.getElementById("reloadBranchesBtn").addEventListener("click", () => reloadBranchData());
+  document.getElementById("saveBranchBtn").addEventListener("click", saveBranch);
+  document.getElementById("cancelBranchBtn").addEventListener("click", closeBranchModal);
+  document.getElementById("branchModalBackdrop").addEventListener("click", closeBranchModal);
+
   document.querySelectorAll(".admin-nav-item[data-section]").forEach((link) => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
       setActiveNav(link.dataset.section);
-      document.getElementById(link.dataset.section === "checklist" ? "checklistSection" : "usersSection")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const sectionId = {
+        users: "usersSection",
+        checklist: "checklistSection",
+        branches: "branchesSection"
+      }[link.dataset.section] || "usersSection";
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 }
@@ -126,6 +143,7 @@ function observeAuth() {
 
       updateAdminSidebar(user, profile);
       await loadUsers(false);
+      await reloadBranchData(false);
       await reloadChecklistData(false);
     } catch (error) {
       console.error(error);
@@ -497,6 +515,7 @@ async function reloadChecklistData(showLoader = true) {
     renderCategoryList();
     renderChecklistTable();
     populateCategorySelect();
+    populateCheckAreaSelect();
   } catch (error) {
     console.error(error);
     const message = getFirestoreErrorMessage(error);
@@ -889,8 +908,8 @@ function openChecklistModal(item = null) {
     : "Thêm câu hỏi checklist";
 
   populateCategorySelect(item?.category || "");
+  populateCheckAreaSelect(item?.area || "ALL");
   document.getElementById("checkText").value = item?.text || "";
-  document.getElementById("checkArea").value = item?.area || "ALL";
   document.getElementById("checkActive").checked = item ? item.active !== false : true;
 
   document.getElementById("checklistModal").classList.remove("hidden");
@@ -899,8 +918,8 @@ function openChecklistModal(item = null) {
 function closeChecklistModal() {
   editingChecklistId = null;
   populateCategorySelect("");
+  populateCheckAreaSelect("ALL");
   document.getElementById("checkText").value = "";
-  document.getElementById("checkArea").value = "ALL";
   document.getElementById("checkActive").checked = true;
   document.getElementById("checklistModal").classList.add("hidden");
 }
@@ -996,6 +1015,186 @@ async function deleteChecklist(id) {
   } catch (error) {
     console.error(error);
     showToast("Không thể xóa câu hỏi", "error");
+  } finally {
+    showPageLoader(false);
+  }
+}
+
+function populateCheckAreaSelect(selectedValue = "ALL") {
+  const select = document.getElementById("checkArea");
+  if (!select) return;
+  select.innerHTML = buildChecklistAreaOptions(branchList, selectedValue);
+}
+
+async function reloadBranchData(showLoader = true) {
+  if (showLoader) showPageLoader(true, "Đang tải chi nhánh...");
+  try {
+    await loadBranches();
+
+    if (branchesSource !== "firestore") {
+      await seedInitialBranches();
+      await loadBranches();
+    }
+
+    renderBranchTable();
+    populateCheckAreaSelect(document.getElementById("checkArea")?.value || "ALL");
+  } catch (error) {
+    console.error(error);
+    const message = getFirestoreErrorMessage(error);
+    showTableError("branchTableBody", 4, message);
+    showToast(message, "error");
+    throw error;
+  } finally {
+    if (showLoader) showPageLoader(false);
+  }
+}
+
+async function loadBranches() {
+  const result = await fetchBranches({ includeInactive: true, throwOnError: true });
+  branchList = result.branches;
+  branchesSource = result.source;
+  return result;
+}
+
+async function seedInitialBranches() {
+  for (let index = 0; index < FALLBACK_BRANCHES.length; index += 1) {
+    const branch = FALLBACK_BRANCHES[index];
+    const id = `branch_seed_${index + 1}_${Date.now()}`;
+    await setDoc(doc(db, "branches", id), {
+      name: branch.name,
+      order: Number(branch.order) || index + 1,
+      active: true,
+      createdAt: serverTimestamp()
+    });
+  }
+}
+
+function renderBranchTable() {
+  const tbody = document.getElementById("branchTableBody");
+  if (!tbody) return;
+
+  if (!branchList.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-table">Chưa có chi nhánh. Bấm "Thêm chi nhánh" để bắt đầu.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = branchList
+    .map((branch) => {
+      const isActive = branch.active !== false;
+      return `
+        <tr>
+          <td>${escapeHtml(branch.name || "-")}</td>
+          <td class="text-center">${Number(branch.order) || 0}</td>
+          <td>
+            <span class="status-badge status-${isActive ? "active" : "locked"}">
+              ${isActive ? "Đang dùng" : "Đã tắt"}
+            </span>
+          </td>
+          <td class="checklist-actions-cell">
+            <div class="action-buttons checklist-action-buttons">
+              <button type="button" class="btn-action reject btn-toggle-branch" data-id="${branch.id}" data-active="${isActive}">
+                ${isActive ? "Tắt" : "Bật"}
+              </button>
+              <button type="button" class="btn-action reject btn-delete-branch" data-id="${branch.id}">Xóa</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  setupBranchTableEvents();
+}
+
+function setupBranchTableEvents() {
+  document.querySelectorAll(".btn-toggle-branch").forEach((btn) => {
+    btn.addEventListener("click", () => toggleBranchActive(btn.dataset.id, btn.dataset.active === "true"));
+  });
+
+  document.querySelectorAll(".btn-delete-branch").forEach((btn) => {
+    btn.addEventListener("click", () => deleteBranch(btn.dataset.id));
+  });
+}
+
+function openBranchModal() {
+  document.getElementById("newBranchName").value = "";
+  document.getElementById("branchModal").classList.remove("hidden");
+}
+
+function closeBranchModal() {
+  document.getElementById("branchModal").classList.add("hidden");
+}
+
+async function saveBranch() {
+  const name = document.getElementById("newBranchName").value.trim();
+  if (!name) {
+    showToast("Vui lòng nhập tên chi nhánh", "error");
+    return;
+  }
+
+  if (branchList.some((branch) => branch.name.toLowerCase() === name.toLowerCase())) {
+    showToast("Chi nhánh này đã tồn tại", "error");
+    return;
+  }
+
+  try {
+    showPageLoader(true, "Đang thêm chi nhánh...");
+    const nextOrder = branchList.length
+      ? Math.max(...branchList.map((branch) => Number(branch.order) || 0)) + 1
+      : 1;
+
+    await setDoc(doc(db, "branches", `branch_${Date.now()}`), {
+      name,
+      order: nextOrder,
+      active: true,
+      createdAt: serverTimestamp()
+    });
+
+    closeBranchModal();
+    showToast("Đã thêm chi nhánh mới", "success");
+    await reloadBranchData(false);
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Không thể thêm chi nhánh", "error");
+  } finally {
+    showPageLoader(false);
+  }
+}
+
+async function toggleBranchActive(id, currentlyActive) {
+  try {
+    await updateDoc(doc(db, "branches", id), {
+      active: !currentlyActive,
+      updatedAt: serverTimestamp()
+    });
+    showToast(currentlyActive ? "Đã tắt chi nhánh" : "Đã bật chi nhánh", "success");
+    await reloadBranchData(false);
+  } catch (error) {
+    console.error(error);
+    showToast("Không thể cập nhật trạng thái chi nhánh", "error");
+  }
+}
+
+async function deleteBranch(id) {
+  const branch = branchList.find((item) => item.id === id);
+  if (!branch) return;
+
+  const usersInBranch = users.filter((user) => user.khuVuc === branch.name).length;
+  const warning = usersInBranch
+    ? `\n\nCó ${usersInBranch} tài khoản đang gắn chi nhánh này.`
+    : "";
+
+  const confirmed = confirm(`Xóa chi nhánh "${branch.name}"?${warning}\n\nThao tác này không thể hoàn tác.`);
+  if (!confirmed) return;
+
+  try {
+    showPageLoader(true, "Đang xóa chi nhánh...");
+    await deleteDoc(doc(db, "branches", id));
+    showToast("Đã xóa chi nhánh", "success");
+    await reloadBranchData(false);
+  } catch (error) {
+    console.error(error);
+    showToast("Không thể xóa chi nhánh", "error");
   } finally {
     showPageLoader(false);
   }

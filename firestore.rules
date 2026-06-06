@@ -79,5 +79,10 @@ service cloud.firestore {
       allow read: if isActiveUser() || isAdmin();
       allow create, update, delete: if isAdmin();
     }
+
+    match /branches/{branchId} {
+      allow read: if isActiveUser() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

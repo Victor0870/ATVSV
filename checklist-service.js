@@ -1,4 +1,5 @@
 import { db, collection, getDocs } from "./firebase-config.js";
+import { isChecklistItemVisibleForArea } from "./areas-service.js";
 
 const FALLBACK_CHECKLIST = [
   { id: "fallback_001", category: "Quản lý an toàn và tình huống khẩn cấp", text: "Người lao động có trang bị đủ dụng cụ bảo hộ lao động (PPE) không?", area: "ALL", order: 1, active: true },
@@ -110,11 +111,10 @@ export async function fetchChecklistItems({ includeInactive = false, throwOnErro
   };
 }
 
-export function groupChecklistForArea(items, area, categories = []) {
+export function groupChecklistForArea(items, area, categories = [], branchNames = []) {
   const filtered = items.filter((item) => {
     if (item.active === false) return false;
-    const itemArea = item.area || "ALL";
-    return itemArea === "ALL" || itemArea === area;
+    return isChecklistItemVisibleForArea(item.area, area, branchNames);
   });
 
   const sortedItems = sortChecklistItems(filtered, categories);

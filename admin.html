@@ -32,6 +32,9 @@
         <a href="#checklistSection" class="admin-nav-item" data-section="checklist">
           Cấu hình Checklist
         </a>
+        <a href="#branchesSection" class="admin-nav-item" data-section="branches">
+          Quản lý chi nhánh
+        </a>
 
         <p class="admin-nav-label">Liên kết nhanh</p>
         <a href="./index.html" class="admin-nav-item">Làm Checklist ATVSV</a>
@@ -123,6 +126,40 @@
         </div>
       </section>
 
+      <section id="branchesSection" class="admin-section">
+        <div class="admin-section-header">
+          <div class="panel-header">
+            <h2>Quản lý chi nhánh</h2>
+          </div>
+          <div class="admin-checklist-actions">
+            <button type="button" id="addBranchBtn" class="primary-btn">Thêm chi nhánh</button>
+            <button type="button" id="reloadBranchesBtn" class="ghost-btn">Tải lại</button>
+          </div>
+        </div>
+
+        <p class="branch-admin-note">
+          <strong>Nhà máy</strong> là khu vực cố định. Danh sách bên dưới dùng khi đăng ký tài khoản, lọc báo cáo và gán câu hỏi checklist.
+        </p>
+
+        <div class="admin-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Tên chi nhánh</th>
+                <th>Thứ tự</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="branchTableBody">
+              <tr>
+                <td colspan="4" class="empty-table">Đang tải chi nhánh...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="checklistSection" class="admin-section">
         <div class="admin-section-header">
           <div class="panel-header">
@@ -178,9 +215,7 @@
       <div class="form-group">
         <label for="checkArea">Khu vực áp dụng</label>
         <select id="checkArea">
-          <option value="ALL">Tất cả</option>
-          <option value="Nhà máy">Nhà máy</option>
-          <option value="Chi nhánh">Chi nhánh</option>
+          <option value="ALL">Tất cả khu vực</option>
         </select>
       </div>
       <div class="form-group checkbox-row">
@@ -192,6 +227,21 @@
       <div class="modal-actions">
         <button type="button" id="saveChecklistBtn" class="primary-btn">Lưu</button>
         <button type="button" id="cancelChecklistBtn" class="ghost-btn">Hủy</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="branchModal" class="modal hidden">
+    <div class="modal-backdrop" id="branchModalBackdrop"></div>
+    <div class="modal-content">
+      <h3>Thêm chi nhánh</h3>
+      <div class="form-group">
+        <label for="newBranchName">Tên chi nhánh</label>
+        <input type="text" id="newBranchName" placeholder="Ví dụ: Hải Phòng">
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="saveBranchBtn" class="primary-btn">Lưu chi nhánh</button>
+        <button type="button" id="cancelBranchBtn" class="ghost-btn">Hủy</button>
       </div>
     </div>
   </div>

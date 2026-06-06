@@ -19,11 +19,14 @@ import {
   deleteObject
 } from "./firebase-config.js";
 import { fetchChecklistItems, fetchChecklistCategories, groupChecklistForArea } from "./checklist-service.js";
-
-const AREAS = {
-  PRODUCTION: "Nhà máy",
-  WAREHOUSE: "Chi nhánh"
-};
+import {
+  FACTORY_AREA,
+  ALL_BRANCHES_AREA,
+  fetchBranches,
+  getActiveBranchNames,
+  isValidUserArea,
+  buildRegistrationBranchOptions
+} from "./areas-service.js";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
 
@@ -33,6 +36,7 @@ function isAdminRole(role) {
 
 let currentFirebaseUser = null;
 let currentUserProfile = null;
+let cachedBranches = [];
 let renderedQuestions = [];
 let tempImagesByQuestion = {};
 let isSubmitting = false;
@@ -50,6 +54,7 @@ async function initApp() {
     console.warn("Không thể thiết lập persistence:", error);
   }
 
+  await loadRegistrationBranches();
   showAuthTab("login");
   observeAuthState();
 }
@@ -60,6 +65,7 @@ function bindEvents() {
 
   document.getElementById("loginForm")?.addEventListener("submit", handleLogin);
   document.getElementById("registerForm")?.addEventListener("submit", handleRegister);
+  document.getElementById("registerAreaTypeInput")?.addEventListener("change", handleRegisterAreaTypeChange);
   document.getElementById("logoutBtn")?.addEventListener("click", handleLogout);
   document.getElementById("togglePasswordBtn")?.addEventListener("click", togglePasswordVisibility);
   document.getElementById("checklistForm")?.addEventListener("submit", submitChecklist);
@@ -87,6 +93,10 @@ function showAuthTab(tabName) {
   /* Thêm dòng này để chắc chắn panel bị ẩn/hiện đúng */
   loginPanel?.classList.toggle("hidden", isRegister);
   registerPanel?.classList.toggle("hidden", !isRegister);
+
+  if (isRegister) {
+    loadRegistrationBranches();
+  }
 }
 
 function observeAuthState() {
@@ -107,8 +117,9 @@ function observeAuthState() {
       }
 
       currentFirebaseUser = user;
+      cachedBranches = (await fetchBranches()).branches;
       const profile = await loadCurrentUserProfile(user.uid);
-      ensureAuthorizedAccess(profile);
+      ensureAuthorizedAccess(profile, cachedBranches);
 
       currentUserProfile = profile;
       await showChecklistScreen(profile, user);
@@ -159,7 +170,7 @@ async function handleRegister(event) {
   const confirmPassword = document.getElementById("registerConfirmPasswordInput").value;
   const taiKhoan = document.getElementById("registerTaiKhoanInput").value.trim();
   const hoTen = document.getElementById("registerHoTenInput").value.trim();
-  const khuVuc = document.getElementById("registerKhuVucInput").value;
+  const khuVuc = getRegistrationKhuVuc();
 
   const validationMessage = validateRegisterForm({
     email,
@@ -168,7 +179,7 @@ async function handleRegister(event) {
     taiKhoan,
     hoTen,
     khuVuc
-  });
+  }, cachedBranches);
 
   if (validationMessage) {
     showToast(validationMessage, "error");
@@ -200,6 +211,7 @@ async function handleRegister(event) {
     await setDoc(doc(db, "users", createdAuthUser.uid), userProfile);
 
     document.getElementById("registerForm").reset();
+    handleRegisterAreaTypeChange();
 
     await signOut(auth);
 
@@ -228,7 +240,7 @@ async function handleRegister(event) {
   }
 }
 
-function validateRegisterForm({ email, password, confirmPassword, taiKhoan, hoTen, khuVuc }) {
+function validateRegisterForm({ email, password, confirmPassword, taiKhoan, hoTen, khuVuc }, branches = []) {
   if (!email || !password || !confirmPassword || !taiKhoan || !hoTen || !khuVuc) {
     return "Vui lòng nhập đầy đủ thông tin đăng ký.";
   }
@@ -241,8 +253,55 @@ function validateRegisterForm({ email, password, confirmPassword, taiKhoan, hoTe
     return "Mật khẩu xác nhận không khớp.";
   }
 
-  if (![AREAS.PRODUCTION, AREAS.WAREHOUSE].includes(String(khuVuc).trim())) {
+  if (!isValidUserArea(khuVuc, branches)) {
     return "Khu vực đăng ký không hợp lệ.";
+  }
+
+  return "";
+}
+
+async function loadRegistrationBranches() {
+  try {
+    const { branches } = await fetchBranches();
+    cachedBranches = branches;
+    setupRegistrationAreaSelect(branches);
+  } catch (error) {
+    console.warn("Không thể tải danh sách chi nhánh:", error);
+  }
+}
+
+function setupRegistrationAreaSelect(branches = []) {
+  const branchSelect = document.getElementById("registerBranchInput");
+  if (!branchSelect) return;
+
+  const activeOptions = buildRegistrationBranchOptions(branches);
+  branchSelect.innerHTML = `<option value="">-- Chọn chi nhánh --</option>${activeOptions}`;
+}
+
+function handleRegisterAreaTypeChange() {
+  const areaType = document.getElementById("registerAreaTypeInput")?.value || "";
+  const branchGroup = document.getElementById("registerBranchGroup");
+  const branchSelect = document.getElementById("registerBranchInput");
+
+  const isBranch = areaType === ALL_BRANCHES_AREA;
+  branchGroup?.classList.toggle("hidden", !isBranch);
+
+  if (branchSelect) {
+    branchSelect.required = isBranch;
+    if (!isBranch) {
+      branchSelect.value = "";
+    }
+  }
+}
+
+function getRegistrationKhuVuc() {
+  const areaType = document.getElementById("registerAreaTypeInput")?.value || "";
+  if (areaType === FACTORY_AREA) {
+    return FACTORY_AREA;
+  }
+
+  if (areaType === ALL_BRANCHES_AREA) {
+    return document.getElementById("registerBranchInput")?.value.trim() || "";
   }
 
   return "";
@@ -301,7 +360,7 @@ async function loadCurrentUserProfile(uid) {
   };
 }
 
-function ensureAuthorizedAccess(profile) {
+function ensureAuthorizedAccess(profile, branches = cachedBranches) {
   if (!profile) {
     throw new Error("Hồ sơ người dùng không hợp lệ");
   }
@@ -323,7 +382,7 @@ function ensureAuthorizedAccess(profile) {
     throw new Error("Tài khoản chưa được kích hoạt. Vui lòng liên hệ quản trị viên.");
   }
 
-  if (![AREAS.PRODUCTION, AREAS.WAREHOUSE].includes(khuVuc)) {
+  if (!isValidUserArea(khuVuc, branches)) {
     throw new Error("Khu vực của tài khoản không hợp lệ");
   }
 }
@@ -385,11 +444,14 @@ async function renderQuestions(area) {
   showPageLoader(true, "Đang tải checklist...");
 
   try {
-    const [{ items, source }, { categories }] = await Promise.all([
+    const [{ items, source }, { categories }, { branches }] = await Promise.all([
       fetchChecklistItems(),
-      fetchChecklistCategories()
+      fetchChecklistCategories(),
+      fetchBranches()
     ]);
-    const groups = groupChecklistForArea(items, area, categories);
+    cachedBranches = branches;
+    const branchNames = getActiveBranchNames(branches);
+    const groups = groupChecklistForArea(items, area, categories, branchNames);
 
     if (!groups.length) {
       container.innerHTML = `<div class="empty-card">Không có câu hỏi checklist cho khu vực này.</div>`;
