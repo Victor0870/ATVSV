@@ -1,6 +1,7 @@
 import {
   auth,
   db,
+  authPersistenceReady,
   onAuthStateChanged,
   signOut,
   doc,
@@ -40,7 +41,7 @@ document.addEventListener("DOMContentLoaded", initReportPage);
 function initReportPage() {
   try {
     bindReportEvents();
-    observeReportAuthState();
+    authPersistenceReady.then(() => observeReportAuthState());
   } catch (error) {
     console.error(error);
     showAccessDenied("Không thể khởi tạo trang báo cáo. Vui lòng tải lại hoặc liên hệ quản trị viên.");

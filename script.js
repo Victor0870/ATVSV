@@ -2,8 +2,7 @@ import {
   auth,
   db,
   storage,
-  setPersistence,
-  browserLocalPersistence,
+  authPersistenceReady,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -50,14 +49,8 @@ document.addEventListener("DOMContentLoaded", initApp);
 async function initApp() {
   bindEvents();
 
-  try {
-    await setPersistence(auth, browserLocalPersistence);
-  } catch (error) {
-    console.warn("Không thể thiết lập persistence:", error);
-  }
-
+  await authPersistenceReady;
   await loadRegistrationBranches();
-  showAuthTab("login");
   observeAuthState();
 }
 
@@ -127,9 +120,18 @@ function observeAuthState() {
       await showChecklistScreen(profile, user);
     } catch (error) {
       console.error(error);
-      await safeSignOut();
-      showLoginScreen();
-      showToast(error.message || "Không thể tải hồ sơ người dùng", "error");
+      const message = error.message || "Không thể tải hồ sơ người dùng";
+
+      if (shouldSignOutOnAccessError(message)) {
+        await safeSignOut();
+        showLoginScreen();
+      } else if (currentFirebaseUser) {
+        showRetryScreen(message);
+      } else {
+        showLoginScreen();
+      }
+
+      showToast(message, "error");
     } finally {
       showPageLoader(false);
     }
@@ -367,7 +369,14 @@ function ensureAuthorizedAccess(profile, branches = cachedBranches) {
     throw new Error("Hồ sơ người dùng không hợp lệ");
   }
 
-  const khuVuc = String(profile.khuVuc || "").trim();
+  const role = String(profile.role || "").trim().toLowerCase();
+  const isPrivileged = role === "admin" || role === "manager";
+  let khuVuc = String(profile.khuVuc || "").trim();
+
+  if (!khuVuc && isPrivileged) {
+    khuVuc = FACTORY_AREA;
+  }
+
   profile.khuVuc = khuVuc;
 
   const status = profile.status === "inactive" ? "pending" : profile.status;
@@ -385,13 +394,47 @@ function ensureAuthorizedAccess(profile, branches = cachedBranches) {
   }
 
   if (!isValidUserArea(khuVuc, branches)) {
+    if (isPrivileged) {
+      profile.khuVuc = FACTORY_AREA;
+      return;
+    }
+
     throw new Error("Khu vực của tài khoản không hợp lệ");
+  }
+}
+
+function shouldSignOutOnAccessError(message) {
+  const normalized = String(message || "").toLowerCase();
+
+  return [
+    "chờ quản trị",
+    "bị khóa",
+    "chưa được kích hoạt",
+    "không tìm thấy hồ sơ",
+    "khu vực của tài khoản không hợp lệ",
+    "hồ sơ người dùng không hợp lệ"
+  ].some((phrase) => normalized.includes(phrase));
+}
+
+function showRetryScreen(message) {
+  document.getElementById("loginScreen")?.classList.remove("hidden");
+  document.getElementById("checklistScreen")?.classList.add("hidden");
+  showAuthTab("login");
+
+  const subtitle = document.querySelector("#loginScreen .auth-subtitle");
+  if (subtitle) {
+    subtitle.textContent = message || "Không thể tải dữ liệu. Vui lòng tải lại trang.";
   }
 }
 
 function showLoginScreen(prefillEmail = "") {
   document.getElementById("loginScreen")?.classList.remove("hidden");
   document.getElementById("checklistScreen")?.classList.add("hidden");
+
+  const subtitle = document.querySelector("#loginScreen .auth-subtitle");
+  if (subtitle) {
+    subtitle.textContent = "Idemitsu Lubricants Vietnam";
+  }
 
   document.getElementById("loginForm")?.reset();
 

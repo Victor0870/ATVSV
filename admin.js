@@ -1,8 +1,7 @@
 import {
   auth,
   db,
-  setPersistence,
-  browserLocalPersistence,
+  authPersistenceReady,
   onAuthStateChanged,
   signOut,
   doc,
@@ -40,12 +39,7 @@ async function initAdminPage() {
   setCurrentDate();
   bindEvents();
 
-  try {
-    await setPersistence(auth, browserLocalPersistence);
-  } catch (error) {
-    console.warn("Không thể thiết lập persistence:", error);
-  }
-
+  await authPersistenceReady;
   observeAuth();
 }
 

@@ -1,6 +1,7 @@
 import {
   auth,
   db,
+  authPersistenceReady,
   onAuthStateChanged,
   signOut,
   doc,
@@ -49,7 +50,7 @@ document.addEventListener("DOMContentLoaded", initRemediationPage);
 function initRemediationPage() {
   try {
     bindRemediationEvents();
-    observeRemediationAuth();
+    authPersistenceReady.then(() => observeRemediationAuth());
   } catch (error) {
     console.error(error);
     showGuestAccessDenied("Không thể khởi tạo trang. Vui lòng tải lại hoặc liên hệ quản trị viên.");

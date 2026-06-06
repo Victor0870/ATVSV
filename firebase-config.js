@@ -52,11 +52,16 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+const authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.warn("Không thể thiết lập Firebase auth persistence:", error);
+});
+
 export {
   app,
   auth,
   db,
   storage,
+  authPersistenceReady,
   setPersistence,
   browserLocalPersistence,
   onAuthStateChanged,
