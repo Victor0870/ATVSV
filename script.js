@@ -417,6 +417,7 @@ function shouldSignOutOnAccessError(message) {
 }
 
 function showRetryScreen(message) {
+  document.getElementById("authShell")?.classList.remove("hidden");
   document.getElementById("loginScreen")?.classList.remove("hidden");
   document.getElementById("checklistScreen")?.classList.add("hidden");
   showAuthTab("login");
@@ -428,6 +429,7 @@ function showRetryScreen(message) {
 }
 
 function showLoginScreen(prefillEmail = "") {
+  document.getElementById("authShell")?.classList.remove("hidden");
   document.getElementById("loginScreen")?.classList.remove("hidden");
   document.getElementById("checklistScreen")?.classList.add("hidden");
 
@@ -457,6 +459,7 @@ function showLoginScreen(prefillEmail = "") {
   showAuthTab("login");
 }
 async function showChecklistScreen(profile, firebaseUser) {
+  document.getElementById("authShell")?.classList.add("hidden");
   document.getElementById("loginScreen").classList.add("hidden");
   document.getElementById("checklistScreen").classList.remove("hidden");
 
