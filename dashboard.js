@@ -600,7 +600,7 @@ function renderUnresolvedAreaChart(issues) {
       labels,
       datasets: [
         {
-          label: "Lỗi chưa hoàn thành",
+          label: "Lỗi chưa hoàn thành khắc phục",
           data,
           backgroundColor: "rgba(237, 28, 36, 0.78)",
           borderColor: "#ed1c24",
