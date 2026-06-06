@@ -786,6 +786,53 @@ function truncateChartLabel(text, maxLength = 56) {
   return `${value.slice(0, maxLength - 1)}…`;
 }
 
+function wrapChartLabel(text, maxLineLength = 34) {
+  const value = String(text || "").trim();
+  if (!value) return "";
+  if (value.length <= maxLineLength) return value;
+
+  const words = value.split(/\s+/);
+  const lines = [];
+  let current = "";
+
+  const pushLine = (line) => {
+    if (line) lines.push(line);
+  };
+
+  words.forEach((word) => {
+    if (word.length > maxLineLength) {
+      if (current) {
+        pushLine(current);
+        current = "";
+      }
+
+      for (let index = 0; index < word.length; index += maxLineLength) {
+        pushLine(word.slice(index, index + maxLineLength));
+      }
+      return;
+    }
+
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= maxLineLength) {
+      current = candidate;
+    } else {
+      pushLine(current);
+      current = word;
+    }
+  });
+
+  pushLine(current);
+  return lines.join("\n");
+}
+
+function getTopQuestionsChartHeight(ranked) {
+  const wrappedLabels = ranked.map((item) => wrapChartLabel(item.question));
+  const totalLines = wrappedLabels.reduce((sum, label) => sum + label.split("\n").length, 0);
+  const extraLines = Math.max(0, totalLines - ranked.length);
+
+  return Math.max(320, 56 + ranked.length * 34 + extraLines * 15);
+}
+
 function renderNgByCategoryChart(submissions) {
   const canvas = document.getElementById("ngCategoryChart");
   const emptyEl = document.getElementById("ngCategoryChartEmpty");
@@ -924,8 +971,13 @@ function renderTopNgQuestionsChart(submissions) {
   emptyEl?.classList.add("hidden");
   topNgQuestionsChart = destroyChartInstance(topNgQuestionsChart);
 
-  const labels = ranked.map((item) => truncateChartLabel(item.question));
+  const labels = ranked.map((item) => wrapChartLabel(item.question));
   const data = ranked.map((item) => item.count);
+  const chartWrap = canvas.closest(".dashboard-top-questions-chart-wrap");
+
+  if (chartWrap) {
+    chartWrap.style.height = `${getTopQuestionsChartHeight(ranked)}px`;
+  }
 
   topNgQuestionsChart = new Chart(canvas, {
     type: "bar",
@@ -946,6 +998,12 @@ function renderTopNgQuestionsChart(submissions) {
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: {
+          left: 4,
+          right: 8
+        }
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -965,7 +1023,11 @@ function renderTopNgQuestionsChart(submissions) {
         y: {
           ticks: {
             autoSkip: false,
-            font: { size: 11 }
+            font: { size: 10, lineHeight: 1.35 },
+            padding: 6
+          },
+          grid: {
+            display: false
           }
         }
       }

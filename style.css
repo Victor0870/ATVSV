@@ -2146,6 +2146,11 @@ textarea {
   height: 300px;
 }
 
+.dashboard-top-questions-chart-wrap {
+  min-height: 320px;
+  height: 320px;
+}
+
 .dashboard-chart-empty {
   position: absolute;
   inset: 0;
