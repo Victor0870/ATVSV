@@ -105,7 +105,7 @@ function observeRemediationAuth() {
       const profile = await loadCurrentUserProfile(user.uid);
       currentUserProfile = profile;
       ensureRemediationAccess(profile);
-      showRemediationScreen();
+      showRemediationScreen(profile, user);
 
       await loadFilterOptions();
       await loadIssues();
@@ -152,14 +152,35 @@ function ensureRemediationAccess(profile) {
 }
 
 function showAccessDenied(message) {
-  document.getElementById("remediationScreen").classList.add("hidden");
-  document.getElementById("remediationAccessDenied").classList.remove("hidden");
+  document.getElementById("remediationLayout")?.classList.add("hidden");
+  document.getElementById("remediationAccessWrap")?.classList.remove("hidden");
   document.getElementById("remediationAccessMessage").textContent = message;
 }
 
-function showRemediationScreen() {
-  document.getElementById("remediationAccessDenied").classList.add("hidden");
-  document.getElementById("remediationScreen").classList.remove("hidden");
+function getUserInitials(name) {
+  const parts = String(name || "U")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
+  return String(name || "U").slice(0, 2).toUpperCase();
+}
+
+function showRemediationScreen(profile, firebaseUser) {
+  document.getElementById("remediationAccessWrap")?.classList.add("hidden");
+  document.getElementById("remediationLayout")?.classList.remove("hidden");
+
+  document.getElementById("sidebarRemediationUserName").textContent = profile.hoTen || "-";
+  document.getElementById("sidebarRemediationUserEmail").textContent =
+    firebaseUser?.email || profile.email || "-";
+  document.getElementById("remediationUserInitials").textContent = getUserInitials(profile.hoTen);
+
+  const isAdmin = String(profile.role || "").trim().toLowerCase() === "admin";
+  document.getElementById("remediationAdminLink")?.classList.toggle("hidden", !isAdmin);
 }
 
 async function loadFilterOptions() {

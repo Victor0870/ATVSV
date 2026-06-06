@@ -7,111 +7,144 @@
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <div id="pageLoader" class="page-loader hidden">
+  <div id="pageLoader" class="page-loader">
     <div class="loader-card">
       <div class="spinner"></div>
       <p id="pageLoaderText">Đang tải dữ liệu...</p>
     </div>
   </div>
 
-  <main class="app-shell report-shell">
-    <div class="topbar">
-      <div class="topbar-left">
-        <span class="topbar-tag">Hành động khắc phục</span>
-      </div>
-      <div class="topbar-right">
-        <a href="./report.html" class="ghost-btn">Báo cáo</a>
-        <a href="./admin.html" class="admin-nav-btn">Quản trị</a>
-        <a href="./index.html" class="ghost-btn">Về checklist</a>
-        <button type="button" id="remediationLogoutBtn" class="ghost-btn">Đăng xuất</button>
-      </div>
-    </div>
-
-    <section id="remediationAccessDenied" class="empty-card hidden">
+  <main id="remediationAccessWrap" class="app-shell auth-screen hidden">
+    <section id="remediationAccessDenied" class="empty-card">
       <h2>Không thể truy cập</h2>
       <p id="remediationAccessMessage">Bạn không có quyền quản lý hành động khắc phục.</p>
       <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
     </section>
-
-    <section id="remediationScreen" class="hidden">
-      <header class="hero-card">
-        <h1>HÀNH ĐỘNG KHẮC PHỤC</h1>
-        <p>Theo dõi và phân công xử lý các lỗi NG phát sinh từ checklist kiểm tra</p>
-      </header>
-
-      <section class="filter-card">
-        <div class="filter-grid">
-          <div class="form-group">
-            <label for="filterIssueStatus">Trạng thái</label>
-            <select id="filterIssueStatus"></select>
-          </div>
-
-          <div class="form-group">
-            <label for="filterIssueArea">Khu vực</label>
-            <select id="filterIssueArea">
-              <option value="ALL">Tất cả khu vực</option>
-            </select>
-          </div>
-
-          <div class="form-group search-group">
-            <label for="filterIssueKeyword">Tìm kiếm</label>
-            <input type="text" id="filterIssueKeyword" placeholder="Phiếu / họ tên / câu hỏi / người phụ trách">
-          </div>
-        </div>
-
-        <div class="filter-actions">
-          <button type="button" id="applyIssueFilterBtn" class="primary-btn">Lọc dữ liệu</button>
-          <button type="button" id="resetIssueFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
-        </div>
-      </section>
-
-      <section class="stats-grid remediation-stats-grid">
-        <div class="stat-card">
-          <span class="stat-label">Chờ xử lý</span>
-          <strong id="statIssueOpen">0</strong>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Đang khắc phục</span>
-          <strong id="statIssueProgress">0</strong>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Hoàn thành</span>
-          <strong id="statIssueDone">0</strong>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Tổng issue</span>
-          <strong id="statIssueTotal">0</strong>
-        </div>
-      </section>
-
-      <section class="report-list-panel">
-        <div class="panel-header">
-          <h2>Danh sách issue cần khắc phục</h2>
-          <span id="issueCountText">0 kết quả</span>
-        </div>
-
-        <div class="admin-table-container">
-          <table class="admin-table remediation-table">
-            <thead>
-              <tr>
-                <th>Phiếu / Thời gian</th>
-                <th>Khu vực</th>
-                <th>Nội dung lỗi</th>
-                <th>Phụ trách</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody id="issueTableBody">
-              <tr>
-                <td colspan="6" class="empty-table">Đang tải issue...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </section>
   </main>
+
+  <div id="remediationLayout" class="app-page hidden">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-brand">
+          <div class="admin-brand-icon">AT</div>
+          <div>
+            <strong>IDEMITSU ILV</strong>
+            <span>E-Checksheet ATVSV</span>
+          </div>
+        </div>
+
+        <nav class="admin-sidebar-nav">
+          <p class="admin-nav-label">Chức năng</p>
+          <a href="./index.html" class="admin-nav-item">Làm Checklist</a>
+
+          <p class="admin-nav-label">Quản lý</p>
+          <a href="./report.html" class="admin-nav-item">Báo cáo &amp; Thống kê</a>
+          <span class="admin-nav-item active">Hành động khắc phục</span>
+          <a id="remediationAdminLink" href="./admin.html" class="admin-nav-item hidden">Quản trị hệ thống</a>
+        </nav>
+
+        <div class="admin-sidebar-footer">
+          <div class="admin-user-card">
+            <div id="remediationUserInitials" class="admin-user-avatar">U</div>
+            <div class="admin-user-meta">
+              <strong id="sidebarRemediationUserName">-</strong>
+              <span id="sidebarRemediationUserEmail">-</span>
+            </div>
+          </div>
+          <button type="button" id="remediationLogoutBtn" class="ghost-btn full-btn admin-logout-btn">
+            Đăng xuất
+          </button>
+        </div>
+      </aside>
+
+      <div class="admin-main report-main">
+        <div class="topbar admin-topbar">
+          <div class="topbar-left">
+            <span class="topbar-tag">Hành động khắc phục</span>
+          </div>
+        </div>
+
+        <section id="remediationScreen">
+          <header class="hero-card">
+            <h1>HÀNH ĐỘNG KHẮC PHỤC</h1>
+            <p>Theo dõi và phân công xử lý các lỗi NG phát sinh từ checklist kiểm tra</p>
+          </header>
+
+          <section class="filter-card">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label for="filterIssueStatus">Trạng thái</label>
+                <select id="filterIssueStatus"></select>
+              </div>
+
+              <div class="form-group">
+                <label for="filterIssueArea">Khu vực</label>
+                <select id="filterIssueArea">
+                  <option value="ALL">Tất cả khu vực</option>
+                </select>
+              </div>
+
+              <div class="form-group search-group">
+                <label for="filterIssueKeyword">Tìm kiếm</label>
+                <input type="text" id="filterIssueKeyword" placeholder="Phiếu / họ tên / câu hỏi / người phụ trách">
+              </div>
+            </div>
+
+            <div class="filter-actions">
+              <button type="button" id="applyIssueFilterBtn" class="primary-btn">Lọc dữ liệu</button>
+              <button type="button" id="resetIssueFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
+            </div>
+          </section>
+
+          <section class="stats-grid remediation-stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">Chờ xử lý</span>
+              <strong id="statIssueOpen">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Đang khắc phục</span>
+              <strong id="statIssueProgress">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Hoàn thành</span>
+              <strong id="statIssueDone">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Tổng issue</span>
+              <strong id="statIssueTotal">0</strong>
+            </div>
+          </section>
+
+          <section class="report-list-panel">
+            <div class="panel-header">
+              <h2>Danh sách issue cần khắc phục</h2>
+              <span id="issueCountText">0 kết quả</span>
+            </div>
+
+            <div class="admin-table-container">
+              <table class="admin-table remediation-table">
+                <thead>
+                  <tr>
+                    <th>Phiếu / Thời gian</th>
+                    <th>Khu vực</th>
+                    <th>Nội dung lỗi</th>
+                    <th>Phụ trách</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="issueTableBody">
+                  <tr>
+                    <td colspan="6" class="empty-table">Đang tải issue...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </div>
+    </div>
+  </div>
 
   <div id="issueModal" class="modal hidden">
     <div class="modal-backdrop" id="issueModalBackdrop"></div>

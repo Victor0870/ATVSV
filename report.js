@@ -38,8 +38,14 @@ let toastTimer = null;
 document.addEventListener("DOMContentLoaded", initReportPage);
 
 function initReportPage() {
-  bindReportEvents();
-  observeReportAuthState();
+  try {
+    bindReportEvents();
+    observeReportAuthState();
+  } catch (error) {
+    console.error(error);
+    showAccessDenied("Không thể khởi tạo trang báo cáo. Vui lòng tải lại hoặc liên hệ quản trị viên.");
+    showPageLoader(false);
+  }
 }
 
 function bindReportEvents() {
@@ -671,12 +677,7 @@ function showPageLoader(show, text = "Đang xử lý...") {
   const loaderText = document.getElementById("pageLoaderText");
 
   if (loaderText) loaderText.textContent = text;
-
-  if (show) {
-    loader.classList.remove("hidden");
-  } else {
-    loader.classList.add("hidden");
-  }
+  loader?.classList.toggle("hidden", !show);
 }
 
 function showToast(message, type = "info") {
