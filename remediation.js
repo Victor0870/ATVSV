@@ -45,8 +45,13 @@ let toastTimer = null;
 document.addEventListener("DOMContentLoaded", initRemediationPage);
 
 function initRemediationPage() {
-  bindRemediationEvents();
-  observeRemediationAuth();
+  try {
+    bindRemediationEvents();
+    observeRemediationAuth();
+  } catch (error) {
+    console.error(error);
+    showAccessDenied("Không thể khởi tạo trang. Vui lòng tải lại hoặc liên hệ quản trị viên.");
+  }
 }
 
 function bindRemediationEvents() {
@@ -139,7 +144,8 @@ function ensureRemediationAccess(profile) {
     throw new Error("Tài khoản của bạn chưa được kích hoạt.");
   }
 
-  if (!ALLOWED_REMEDIATION_ROLES.includes(profile.role)) {
+  const role = String(profile.role || "").trim().toLowerCase();
+  if (!ALLOWED_REMEDIATION_ROLES.includes(role)) {
     throw new Error("Chỉ Admin và Manager mới được quản lý hành động khắc phục.");
   }
 }

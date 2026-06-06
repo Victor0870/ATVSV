@@ -76,6 +76,7 @@ export {
   limit,
   getDocs,
   deleteDoc,
+  Timestamp,
   ref,
   uploadBytes,
   getDownloadURL,
