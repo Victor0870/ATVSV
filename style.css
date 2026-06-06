@@ -2115,12 +2115,21 @@ textarea {
 
 .dashboard-rank-table th:nth-child(3),
 .dashboard-rank-table td:nth-child(3) {
-  width: 64px;
+  width: 84px;
   font-weight: 700;
   text-align: center;
-  padding-left: 6px;
-  padding-right: 6px;
+  padding-left: 4px;
+  padding-right: 4px;
   white-space: nowrap;
+}
+
+.dashboard-insights-col-rank .admin-table-container {
+  overflow-x: hidden;
+}
+
+.dashboard-insights-col-rank .dashboard-rank-table th {
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .dashboard-insights-grid {
