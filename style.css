@@ -1128,6 +1128,23 @@ textarea {
   background: var(--bg-gradient);
 }
 
+.app-page {
+  background: var(--bg-gradient);
+  min-height: 100vh;
+}
+
+.app-page .admin-layout {
+  min-height: 100vh;
+}
+
+.app-page .admin-main {
+  max-width: 1100px;
+}
+
+.admin-nav-item.active:not(a) {
+  cursor: default;
+}
+
 .admin-layout {
   display: flex;
   flex-direction: column;

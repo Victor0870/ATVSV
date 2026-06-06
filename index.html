@@ -159,54 +159,85 @@
     <a href="./admin.html" class="auth-admin-link">Quản trị hệ thống (Admin)</a>
   </div>
 </section>
+  </main>
 
     <!-- Màn hình checklist -->
-    <section id="checklistScreen" class="screen hidden">
-      <div class="topbar">
-        <div class="topbar-left">
-          <span class="topbar-tag">E-Checksheet nội bộ</span>
-        </div>
-        <div class="topbar-right">
-          <a id="adminLink" href="./admin.html" class="admin-nav-btn hidden">Quản trị hệ thống</a>
-          <a id="reportLink" href="./report.html" class="ghost-btn hidden">Xem báo cáo</a>
-          <a id="remediationLink" href="./remediation.html" class="ghost-btn hidden">Hành động khắc phục</a>
-          <button type="button" id="logoutBtn" class="ghost-btn">Đăng xuất</button>
+    <section id="checklistScreen" class="screen hidden app-page">
+      <div class="admin-layout">
+        <aside class="admin-sidebar">
+          <div class="admin-sidebar-brand">
+            <div class="admin-brand-icon">AT</div>
+            <div>
+              <strong>IDEMITSU ILV</strong>
+              <span>E-Checksheet ATVSV</span>
+            </div>
+          </div>
+
+          <nav class="admin-sidebar-nav">
+            <p class="admin-nav-label">Chức năng</p>
+            <span class="admin-nav-item active">Làm Checklist</span>
+
+            <p id="appManageNavLabel" class="admin-nav-label hidden">Quản lý</p>
+            <a id="reportLink" href="./report.html" class="admin-nav-item hidden">Báo cáo &amp; Thống kê</a>
+            <a id="remediationLink" href="./remediation.html" class="admin-nav-item hidden">Hành động khắc phục</a>
+            <a id="adminLink" href="./admin.html" class="admin-nav-item hidden">Quản trị hệ thống</a>
+          </nav>
+
+          <div class="admin-sidebar-footer">
+            <div class="admin-user-card">
+              <div id="appUserInitials" class="admin-user-avatar">U</div>
+              <div class="admin-user-meta">
+                <strong id="sidebarUserName">-</strong>
+                <span id="sidebarUserEmail">-</span>
+              </div>
+            </div>
+            <button type="button" id="logoutBtn" class="ghost-btn full-btn admin-logout-btn">
+              Đăng xuất
+            </button>
+          </div>
+        </aside>
+
+        <div class="admin-main app-main">
+          <div class="topbar admin-topbar">
+            <div class="topbar-left">
+              <span class="topbar-tag">Checklist kiểm tra ATVSV</span>
+            </div>
+          </div>
+
+          <header class="hero-card">
+            <h1>MẠNG LƯỚI ATVSV - DANH MỤC KIỂM TRA ATVSLĐ</h1>
+            <p>Idemitsu Lubricants Vietnam</p>
+          </header>
+
+          <section class="user-info-grid">
+            <div class="info-card">
+              <span class="info-label">Họ tên</span>
+              <strong id="displayHoTen">-</strong>
+            </div>
+            <div class="info-card">
+              <span class="info-label">Email</span>
+              <strong id="displayEmail">-</strong>
+            </div>
+            <div class="info-card">
+              <span class="info-label">Tài khoản</span>
+              <strong id="displayTaiKhoan">-</strong>
+            </div>
+            <div class="info-card">
+              <span class="info-label">Khu vực / Phân xưởng</span>
+              <strong id="displayKhuVuc">-</strong>
+            </div>
+          </section>
+
+          <form id="checklistForm">
+            <div id="questionsContainer"></div>
+
+            <div class="submit-bar">
+              <button type="submit" id="submitBtn" class="primary-btn full-btn">Gửi Báo Cáo</button>
+            </div>
+          </form>
         </div>
       </div>
-
-      <header class="hero-card">
-        <h1>MẠNG LƯỚI ATVSV - DANH MỤC KIỂM TRA ATVSLĐ</h1>
-        <p>Idemitsu Lubricants Vietnam</p>
-      </header>
-
-      <section class="user-info-grid">
-        <div class="info-card">
-          <span class="info-label">Họ tên</span>
-          <strong id="displayHoTen">-</strong>
-        </div>
-        <div class="info-card">
-          <span class="info-label">Email</span>
-          <strong id="displayEmail">-</strong>
-        </div>
-        <div class="info-card">
-          <span class="info-label">Tài khoản</span>
-          <strong id="displayTaiKhoan">-</strong>
-        </div>
-        <div class="info-card">
-          <span class="info-label">Khu vực / Phân xưởng</span>
-          <strong id="displayKhuVuc">-</strong>
-        </div>
-      </section>
-
-      <form id="checklistForm">
-        <div id="questionsContainer"></div>
-
-        <div class="submit-bar">
-          <button type="submit" id="submitBtn" class="primary-btn full-btn">Gửi Báo Cáo</button>
-        </div>
-      </form>
     </section>
-  </main>
 
   <div id="toast" class="toast hidden"></div>
 

@@ -422,26 +422,41 @@ async function showChecklistScreen(profile, firebaseUser) {
   document.getElementById("displayTaiKhoan").textContent = profile.taiKhoan || "-";
   document.getElementById("displayKhuVuc").textContent = profile.khuVuc || "-";
 
-  const reportLink = document.getElementById("reportLink");
-  const remediationLink = document.getElementById("remediationLink");
-  const canManageReports = USER_ROLES_CAN_VIEW_REPORT.includes(profile.role);
-
-  if (canManageReports) {
-    reportLink?.classList.remove("hidden");
-    remediationLink?.classList.remove("hidden");
-  } else {
-    reportLink?.classList.add("hidden");
-    remediationLink?.classList.add("hidden");
-  }
-
-  const adminLink = document.getElementById("adminLink");
-  if (isAdminRole(profile.role)) {
-    adminLink?.classList.remove("hidden");
-  } else {
-    adminLink?.classList.add("hidden");
-  }
+  updateAppSidebar(profile, firebaseUser);
 
   await renderQuestions(profile.khuVuc);
+}
+
+function getUserInitials(name) {
+  const parts = String(name || "U")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
+  return String(name || "U").slice(0, 2).toUpperCase();
+}
+
+function updateAppSidebar(profile, firebaseUser) {
+  const reportLink = document.getElementById("reportLink");
+  const remediationLink = document.getElementById("remediationLink");
+  const adminLink = document.getElementById("adminLink");
+  const manageNavLabel = document.getElementById("appManageNavLabel");
+  const role = String(profile.role || "").trim().toLowerCase();
+  const canManageReports = USER_ROLES_CAN_VIEW_REPORT.includes(role);
+  const isAdmin = isAdminRole(profile.role);
+
+  reportLink?.classList.toggle("hidden", !canManageReports);
+  remediationLink?.classList.toggle("hidden", !canManageReports);
+  adminLink?.classList.toggle("hidden", !isAdmin);
+  manageNavLabel?.classList.toggle("hidden", !canManageReports && !isAdmin);
+
+  document.getElementById("sidebarUserName").textContent = profile.hoTen || "-";
+  document.getElementById("sidebarUserEmail").textContent = firebaseUser.email || profile.email || "-";
+  document.getElementById("appUserInitials").textContent = getUserInitials(profile.hoTen);
 }
 
 async function renderQuestions(area) {
