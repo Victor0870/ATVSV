@@ -11,7 +11,8 @@ import {
   query,
   orderBy,
   limit,
-  getDocs
+  getDocs,
+  Timestamp
 } from "./firebase-config.js";
 import {
   ALL_BRANCHES_AREA,
@@ -22,7 +23,13 @@ import {
 import {
   ALLOWED_REMEDIATION_ROLES,
   buildStatusFilterOptions,
-  getRemediationStatusMeta
+  getRemediationStatusMeta,
+  findRelatedUnresolvedIssues,
+  getEffectiveDiscovery,
+  getIssueElapsedMs,
+  formatDurationVi,
+  parseIssueDateText,
+  timestampToMillis
 } from "./remediation-service.js";
 
 const ISSUE_QUERY_LIMIT = 500;
@@ -32,6 +39,7 @@ let allIssues = [];
 let filteredIssues = [];
 let branchNames = [];
 let editingIssueId = null;
+let editingIssueContext = null;
 let toastTimer = null;
 
 document.addEventListener("DOMContentLoaded", initRemediationPage);
@@ -48,6 +56,19 @@ function bindRemediationEvents() {
   document.getElementById("saveIssueBtn").addEventListener("click", saveIssue);
   document.getElementById("cancelIssueBtn").addEventListener("click", closeIssueModal);
   document.getElementById("issueModalBackdrop").addEventListener("click", closeIssueModal);
+  document.getElementById("unresolvedIssueBtn").addEventListener("click", openUnresolvedPickerModal);
+  document.getElementById("clearCarryoverBtn").addEventListener("click", clearCarryoverLink);
+  document.getElementById("closeUnresolvedPickerBtn").addEventListener("click", closeUnresolvedPickerModal);
+  document.getElementById("unresolvedPickerBackdrop").addEventListener("click", closeUnresolvedPickerModal);
+  document.getElementById("unresolvedPickerBody").addEventListener("click", (event) => {
+    const btn = event.target.closest(".btn-select-unresolved");
+    if (!btn) return;
+    applyCarryoverFromIssue(btn.dataset.issueId);
+  });
+  document.getElementById("issueStatus")?.addEventListener("change", () => {
+    const issue = allIssues.find((item) => item.id === editingIssueId);
+    if (issue) renderIssueDiscoveryInfo(issue);
+  });
   document.getElementById("closeImageModalBtn").addEventListener("click", closeImageModal);
   document.getElementById("imageModalBackdrop").addEventListener("click", closeImageModal);
 
@@ -248,10 +269,16 @@ function renderIssueTable() {
   tbody.innerHTML = filteredIssues
     .map((issue) => {
       const statusMeta = getRemediationStatusMeta(issue.status);
+      const elapsedMs = getIssueElapsedMs(issue, getIssuesByIdMap());
+      const carryoverBadge = issue.isUnresolvedCarryover
+        ? `<span class="issue-carryover-tag">Lỗi cũ chưa xử lý xong</span>`
+        : "";
+
       return `
         <tr>
           <td>
             <strong>${escapeHtml(issue.submissionId || "-")}</strong>
+            ${carryoverBadge}
             <div class="issue-subtext">${escapeHtml(issue.submissionCreatedAtText || "-")}</div>
             <div class="issue-subtext">${escapeHtml(issue.hoTen || "-")}</div>
           </td>
@@ -259,6 +286,7 @@ function renderIssueTable() {
           <td class="checklist-text-cell">
             <div>${escapeHtml(issue.question || "-")}</div>
             ${issue.note ? `<div class="issue-subtext">${escapeHtml(issue.note)}</div>` : ""}
+            <div class="issue-subtext">Xử lý: ${escapeHtml(formatDurationVi(elapsedMs))}</div>
           </td>
           <td>${escapeHtml(issue.responsible || "-")}</td>
           <td>
@@ -277,6 +305,56 @@ function renderIssueTable() {
     .join("");
 }
 
+function getIssuesByIdMap() {
+  return new Map(allIssues.map((issue) => [issue.id, issue]));
+}
+
+function buildEditingContextFromIssue(issue) {
+  const issuesById = getIssuesByIdMap();
+  const discovery = getEffectiveDiscovery(issue, issuesById);
+
+  return {
+    linkedFromIssueId: issue.linkedFromIssueId || null,
+    isUnresolvedCarryover: Boolean(issue.isUnresolvedCarryover),
+    discoveredAt: discovery.discoveredAt || issue.discoveredAt || null,
+    discoveredAtText: discovery.discoveredAtText || issue.submissionCreatedAtText || ""
+  };
+}
+
+function renderIssueDiscoveryInfo(issue) {
+  const container = document.getElementById("issueDiscoveryInfo");
+  if (!container || !issue || !editingIssueContext) return;
+
+  const issuesById = getIssuesByIdMap();
+  const elapsedMs = getIssueElapsedMs(
+    {
+      ...issue,
+      ...editingIssueContext,
+      status: document.getElementById("issueStatus")?.value || issue.status
+    },
+    issuesById
+  );
+
+  const linkedNote = editingIssueContext.isUnresolvedCarryover
+    ? `<div><strong>Liên kết lỗi cũ:</strong> ${escapeHtml(editingIssueContext.linkedFromIssueId || "-")}</div>`
+    : "";
+
+  container.innerHTML = `
+    <div class="issue-discovery-grid">
+      <div><strong>Thời gian phát hiện:</strong> ${escapeHtml(editingIssueContext.discoveredAtText || "-")}</div>
+      <div><strong>Thời gian xử lý:</strong> ${escapeHtml(formatDurationVi(elapsedMs))}</div>
+      ${linkedNote}
+    </div>
+  `;
+  container.classList.remove("hidden");
+}
+
+function updateCarryoverButtons() {
+  const clearBtn = document.getElementById("clearCarryoverBtn");
+  if (!clearBtn) return;
+  clearBtn.classList.toggle("hidden", !editingIssueContext?.isUnresolvedCarryover);
+}
+
 function openIssueModal(issueId) {
   const issue = allIssues.find((item) => item.id === issueId);
   if (!issue) {
@@ -285,6 +363,7 @@ function openIssueModal(issueId) {
   }
 
   editingIssueId = issueId;
+  editingIssueContext = buildEditingContextFromIssue(issue);
   document.getElementById("issueModalTitle").textContent = `Issue: ${issue.submissionId || issueId}`;
 
   const images = Array.isArray(issue.images) ? issue.images : [];
@@ -306,7 +385,7 @@ function openIssueModal(issueId) {
 
   document.getElementById("issueModalReadonly").innerHTML = `
     <div class="issue-readonly-meta">
-      <div><strong>Phiếu:</strong> ${escapeHtml(issue.submissionId || "-")}</div>
+      <div><strong>Phiếu hiện tại:</strong> ${escapeHtml(issue.submissionId || "-")}</div>
       <div><strong>Thời gian báo cáo:</strong> ${escapeHtml(issue.submissionCreatedAtText || "-")}</div>
       <div><strong>Người báo cáo:</strong> ${escapeHtml(issue.hoTen || "-")} (${escapeHtml(issue.khuVuc || "-")})</div>
       <div><strong>Danh mục:</strong> ${escapeHtml(issue.category || "-")}</div>
@@ -321,16 +400,111 @@ function openIssueModal(issueId) {
   document.getElementById("issueResponsible").value = issue.responsible || "";
   document.getElementById("issueStatus").value = issue.status || "open";
 
+  renderIssueDiscoveryInfo(issue);
+  updateCarryoverButtons();
   document.getElementById("issueModal").classList.remove("hidden");
+}
+
+function openUnresolvedPickerModal() {
+  const currentIssue = allIssues.find((item) => item.id === editingIssueId);
+  if (!currentIssue) return;
+
+  const matches = findRelatedUnresolvedIssues(allIssues, currentIssue);
+  const tbody = document.getElementById("unresolvedPickerBody");
+
+  if (!matches.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-table">Không có lỗi NG chưa hoàn thành cùng chi nhánh và cùng câu hỏi.</td></tr>`;
+  } else {
+    tbody.innerHTML = matches
+      .map((issue) => {
+        const statusMeta = getRemediationStatusMeta(issue.status);
+        const discovery = getEffectiveDiscovery(issue, getIssuesByIdMap());
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHtml(issue.submissionId || "-")}</strong>
+              <div class="issue-subtext">${escapeHtml(discovery.discoveredAtText || issue.submissionCreatedAtText || "-")}</div>
+            </td>
+            <td>
+              <span class="remediation-status-badge ${statusMeta.badgeClass}">${escapeHtml(statusMeta.label)}</span>
+            </td>
+            <td>${escapeHtml(issue.responsible || "-")}</td>
+            <td class="checklist-text-cell">${escapeHtml(issue.plan || "-")}</td>
+            <td>
+              <button type="button" class="btn-action btn-select-unresolved" data-issue-id="${escapeHtml(issue.id)}">
+                Chọn
+              </button>
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  document.getElementById("unresolvedPickerModal").classList.remove("hidden");
+}
+
+function closeUnresolvedPickerModal() {
+  document.getElementById("unresolvedPickerModal").classList.add("hidden");
+}
+
+function applyCarryoverFromIssue(sourceIssueId) {
+  const currentIssue = allIssues.find((item) => item.id === editingIssueId);
+  const sourceIssue = allIssues.find((item) => item.id === sourceIssueId);
+
+  if (!currentIssue || !sourceIssue) {
+    showToast("Không tìm thấy issue để liên kết.", "error");
+    return;
+  }
+
+  const discovery = getEffectiveDiscovery(sourceIssue, getIssuesByIdMap());
+
+  editingIssueContext = {
+    linkedFromIssueId: sourceIssueId,
+    isUnresolvedCarryover: true,
+    discoveredAt: discovery.discoveredAt || sourceIssue.discoveredAt || null,
+    discoveredAtText: discovery.discoveredAtText || sourceIssue.submissionCreatedAtText || ""
+  };
+
+  document.getElementById("issuePlan").value = sourceIssue.plan || "";
+  document.getElementById("issueAction").value = sourceIssue.action || "";
+  document.getElementById("issueResponsible").value = sourceIssue.responsible || "";
+  document.getElementById("issueStatus").value =
+    sourceIssue.status === "done" ? "in_progress" : sourceIssue.status || "in_progress";
+
+  renderIssueDiscoveryInfo(currentIssue);
+  updateCarryoverButtons();
+  closeUnresolvedPickerModal();
+  showToast("Đã sao chép thông tin khắc phục từ lỗi trước.", "success");
+}
+
+function clearCarryoverLink() {
+  const currentIssue = allIssues.find((item) => item.id === editingIssueId);
+  if (!currentIssue) return;
+
+  const parsedDate = parseIssueDateText(currentIssue.submissionCreatedAtText);
+  editingIssueContext = {
+    linkedFromIssueId: null,
+    isUnresolvedCarryover: false,
+    discoveredAt: parsedDate ? Timestamp.fromDate(parsedDate) : currentIssue.discoveredAt || null,
+    discoveredAtText: currentIssue.submissionCreatedAtText || currentIssue.discoveredAtText || ""
+  };
+
+  renderIssueDiscoveryInfo(currentIssue);
+  updateCarryoverButtons();
+  showToast("Đã bỏ liên kết lỗi cũ. Thời gian phát hiện tính theo báo cáo hiện tại.", "info");
 }
 
 function closeIssueModal() {
   editingIssueId = null;
+  editingIssueContext = null;
+  document.getElementById("issueDiscoveryInfo").classList.add("hidden");
+  document.getElementById("clearCarryoverBtn").classList.add("hidden");
   document.getElementById("issueModal").classList.add("hidden");
 }
 
 async function saveIssue() {
-  if (!editingIssueId) return;
+  if (!editingIssueId || !editingIssueContext) return;
 
   const plan = document.getElementById("issuePlan").value.trim();
   const action = document.getElementById("issueAction").value.trim();
@@ -355,14 +529,33 @@ async function saveIssue() {
       action,
       responsible,
       status,
+      linkedFromIssueId: editingIssueContext.linkedFromIssueId,
+      isUnresolvedCarryover: editingIssueContext.isUnresolvedCarryover,
+      discoveredAtText: editingIssueContext.discoveredAtText,
       updatedAt: serverTimestamp(),
       updatedBy: currentUserProfile?.email || currentUserProfile?.uid || ""
     };
 
+    if (editingIssueContext.discoveredAt) {
+      updateData.discoveredAt = editingIssueContext.discoveredAt;
+    } else {
+      const parsedDate = parseIssueDateText(editingIssueContext.discoveredAtText);
+      if (parsedDate) {
+        updateData.discoveredAt = Timestamp.fromDate(parsedDate);
+      }
+    }
+
+    const discoveredMillis = timestampToMillis(updateData.discoveredAt) ||
+      parseIssueDateText(editingIssueContext.discoveredAtText)?.getTime();
+
     if (status === "done") {
       updateData.completedAt = serverTimestamp();
+      if (discoveredMillis) {
+        updateData.resolutionDurationMs = Date.now() - discoveredMillis;
+      }
     } else {
       updateData.completedAt = null;
+      updateData.resolutionDurationMs = null;
     }
 
     await updateDoc(doc(db, "remediationIssues", editingIssueId), updateData);

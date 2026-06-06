@@ -19,7 +19,7 @@ import {
   buildReportFilterOptions,
   matchesReportAreaFilter
 } from "./areas-service.js";
-import { buildIssueId, getRemediationStatusMeta } from "./remediation-service.js";
+import { buildIssueId, getRemediationStatusMeta, formatDurationVi, getIssueElapsedMs } from "./remediation-service.js";
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
 const DEFAULT_QUERY_LIMIT = 300;
@@ -518,6 +518,11 @@ function renderRemediationStatusBlock(issue, issueId) {
   const plan = issue.plan
     ? `<div><strong>Kế hoạch:</strong> ${escapeHtml(issue.plan)}</div>`
     : "";
+  const discoveryText = issue.discoveredAtText || issue.submissionCreatedAtText || "-";
+  const elapsedMs = getIssueElapsedMs(issue);
+  const carryoverNote = issue.isUnresolvedCarryover
+    ? `<div><strong>Loại lỗi:</strong> Lỗi chưa xử lý xong từ báo cáo trước</div>`
+    : "";
 
   return `
     <div class="remediation-inline-block">
@@ -527,6 +532,9 @@ function renderRemediationStatusBlock(issue, issueId) {
           Xem hành động khắc phục
         </a>
       </div>
+      <div><strong>Thời gian phát hiện:</strong> ${escapeHtml(discoveryText)}</div>
+      <div><strong>Thời gian xử lý:</strong> ${escapeHtml(formatDurationVi(elapsedMs))}</div>
+      ${carryoverNote}
       ${responsible}
       ${plan}
     </div>

@@ -1013,6 +1013,7 @@ async function submitChecklist(event) {
           const issueId = buildIssueId(submissionId, answer.questionId);
           return setDoc(doc(db, "remediationIssues", issueId), {
             ...buildRemediationIssuePayload(submissionDoc, answer),
+            discoveredAt: serverTimestamp(),
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });

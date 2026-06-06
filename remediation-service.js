@@ -34,8 +34,108 @@ export function buildRemediationIssuePayload(submission, answer) {
     responsible: "",
     status: "open",
     completedAt: null,
+    resolutionDurationMs: null,
+    discoveredAtText: submission.createdAtText || "",
+    linkedFromIssueId: null,
+    isUnresolvedCarryover: false,
     updatedBy: ""
   };
+}
+
+export function parseIssueDateText(text) {
+  if (!text) return null;
+  const normalized = String(text).trim().replace(" ", "T");
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function timestampToMillis(value) {
+  if (!value) return null;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  if (typeof value.toDate === "function") return value.valueOf();
+  if (value.seconds != null) return value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1e6);
+  return null;
+}
+
+export function getIssueDiscoveredMillis(issue) {
+  const fromTimestamp = timestampToMillis(issue.discoveredAt);
+  if (fromTimestamp) return fromTimestamp;
+
+  const fromCreatedAt = timestampToMillis(issue.createdAt);
+  if (fromCreatedAt) return fromCreatedAt;
+
+  const parsed = parseIssueDateText(issue.discoveredAtText || issue.submissionCreatedAtText);
+  return parsed ? parsed.getTime() : null;
+}
+
+export function getEffectiveDiscovery(issue, issuesById = new Map()) {
+  let current = issue;
+  let discoveredAt = issue.discoveredAt || null;
+  let discoveredAtText = issue.discoveredAtText || issue.submissionCreatedAtText || "";
+  let rootIssueId = issue.id;
+
+  while (current?.linkedFromIssueId) {
+    const parent = issuesById.get(current.linkedFromIssueId);
+    if (!parent) break;
+    current = parent;
+    rootIssueId = parent.id;
+    discoveredAt = parent.discoveredAt || discoveredAt;
+    discoveredAtText = parent.discoveredAtText || parent.submissionCreatedAtText || discoveredAtText;
+  }
+
+  return {
+    discoveredAt,
+    discoveredAtText,
+    rootIssueId,
+    discoveredMillis: getIssueDiscoveredMillis({
+      discoveredAt,
+      discoveredAtText,
+      submissionCreatedAtText: discoveredAtText
+    })
+  };
+}
+
+export function findRelatedUnresolvedIssues(allIssues, currentIssue) {
+  if (!currentIssue) return [];
+
+  return allIssues
+    .filter((issue) => {
+      if (issue.id === currentIssue.id) return false;
+      if (issue.status === "done") return false;
+      if (issue.questionId !== currentIssue.questionId) return false;
+      return issue.khuVuc === currentIssue.khuVuc;
+    })
+    .sort((a, b) => {
+      const timeA = getIssueDiscoveredMillis(a) || 0;
+      const timeB = getIssueDiscoveredMillis(b) || 0;
+      return timeB - timeA;
+    });
+}
+
+export function formatDurationVi(ms) {
+  if (ms == null || ms < 0) return "-";
+
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+
+  if (days > 0) return `${days} ngày ${hours} giờ`;
+  if (hours > 0) return `${hours} giờ ${minutes} phút`;
+  if (minutes > 0) return `${minutes} phút`;
+  return "Dưới 1 phút";
+}
+
+export function getIssueElapsedMs(issue, issuesById = new Map(), nowMs = Date.now()) {
+  const discovery = getEffectiveDiscovery(issue, issuesById);
+  if (!discovery.discoveredMillis) return null;
+
+  if (issue.status === "done") {
+    if (issue.resolutionDurationMs != null) return issue.resolutionDurationMs;
+    const completedMs = timestampToMillis(issue.completedAt);
+    if (completedMs) return completedMs - discovery.discoveredMillis;
+  }
+
+  return nowMs - discovery.discoveredMillis;
 }
 
 export function buildStatusFilterOptions(selectedValue = "ALL") {

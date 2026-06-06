@@ -120,6 +120,13 @@
 
       <div id="issueModalReadonly" class="issue-readonly-block"></div>
 
+      <div id="issueDiscoveryInfo" class="issue-discovery-info hidden"></div>
+
+      <div class="issue-carryover-actions">
+        <button type="button" id="unresolvedIssueBtn" class="ghost-btn">Lỗi chưa xử lý</button>
+        <button type="button" id="clearCarryoverBtn" class="ghost-btn hidden">Bỏ liên kết lỗi cũ</button>
+      </div>
+
       <div class="form-group">
         <label for="issuePlan">Kế hoạch khắc phục</label>
         <textarea id="issuePlan" rows="3" placeholder="Mô tả kế hoạch xử lý lỗi..."></textarea>
@@ -147,6 +154,37 @@
       <div class="modal-actions">
         <button type="button" id="saveIssueBtn" class="primary-btn">Lưu cập nhật</button>
         <button type="button" id="cancelIssueBtn" class="ghost-btn">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="unresolvedPickerModal" class="modal hidden">
+    <div class="modal-backdrop" id="unresolvedPickerBackdrop"></div>
+    <div class="modal-content modal-content-wide">
+      <h3>Chọn lỗi NG chưa hoàn thành</h3>
+      <p class="issue-picker-note">
+        Danh sách các lỗi cùng chi nhánh, cùng câu hỏi checklist và chưa hoàn thành khắc phục.
+      </p>
+      <div class="admin-table-container unresolved-picker-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Phiếu / Thời gian phát hiện</th>
+              <th>Trạng thái</th>
+              <th>Phụ trách</th>
+              <th>Kế hoạch</th>
+              <th>Chọn</th>
+            </tr>
+          </thead>
+          <tbody id="unresolvedPickerBody">
+            <tr>
+              <td colspan="5" class="empty-table">Đang tải...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="closeUnresolvedPickerBtn" class="ghost-btn">Đóng</button>
       </div>
     </div>
   </div>
