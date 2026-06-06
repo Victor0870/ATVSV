@@ -2174,7 +2174,7 @@ textarea {
   margin: 0;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--text);
+  color: var(--brand-black);
   word-break: break-word;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -2208,7 +2208,7 @@ textarea {
   font-size: 12px;
   font-weight: 700;
   text-align: right;
-  color: var(--text);
+  color: var(--brand-black);
 }
 
 .dashboard-chart-empty {
