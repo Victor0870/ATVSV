@@ -27,8 +27,10 @@ import {
   isValidUserArea,
   buildRegistrationBranchOptions
 } from "./areas-service.js";
+import { buildIssueId, buildRemediationIssuePayload } from "./remediation-service.js";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
+const USER_ROLES_CAN_MANAGE_REMEDIATION = ["admin", "manager"];
 
 function isAdminRole(role) {
   return String(role || "").trim().toLowerCase() === "admin";
@@ -421,10 +423,15 @@ async function showChecklistScreen(profile, firebaseUser) {
   document.getElementById("displayKhuVuc").textContent = profile.khuVuc || "-";
 
   const reportLink = document.getElementById("reportLink");
-  if (USER_ROLES_CAN_VIEW_REPORT.includes(profile.role)) {
-    reportLink.classList.remove("hidden");
+  const remediationLink = document.getElementById("remediationLink");
+  const canManageReports = USER_ROLES_CAN_VIEW_REPORT.includes(profile.role);
+
+  if (canManageReports) {
+    reportLink?.classList.remove("hidden");
+    remediationLink?.classList.remove("hidden");
   } else {
-    reportLink.classList.add("hidden");
+    reportLink?.classList.add("hidden");
+    remediationLink?.classList.add("hidden");
   }
 
   const adminLink = document.getElementById("adminLink");
@@ -998,6 +1005,20 @@ async function submitChecklist(event) {
     };
 
     await setDoc(doc(db, "submissions", submissionId), submissionDoc);
+
+    const ngAnswers = finalAnswers.filter((answer) => answer.result === "NG");
+    if (ngAnswers.length) {
+      await Promise.all(
+        ngAnswers.map((answer) => {
+          const issueId = buildIssueId(submissionId, answer.questionId);
+          return setDoc(doc(db, "remediationIssues", issueId), {
+            ...buildRemediationIssuePayload(submissionDoc, answer),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        })
+      );
+    }
 
     showToast("Gửi báo cáo thành công", "success");
     resetChecklistForm();

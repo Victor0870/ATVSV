@@ -19,6 +19,7 @@ import {
   buildReportFilterOptions,
   matchesReportAreaFilter
 } from "./areas-service.js";
+import { buildIssueId, getRemediationStatusMeta } from "./remediation-service.js";
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
 const DEFAULT_QUERY_LIMIT = 300;
@@ -393,6 +394,10 @@ function renderReportList() {
 }
 
 function renderReportDetail(submissionId) {
+  renderReportDetailAsync(submissionId);
+}
+
+async function renderReportDetailAsync(submissionId) {
   const detailContainer = document.getElementById("reportDetail");
   const submission = filteredSubmissions.find((item) => item.submissionId === submissionId);
 
@@ -401,10 +406,23 @@ function renderReportDetail(submissionId) {
     return;
   }
 
+  let issueMap = new Map();
+  try {
+    issueMap = await fetchIssuesForSubmission(submissionId);
+  } catch (error) {
+    console.warn("Không thể tải trạng thái khắc phục:", error);
+  }
+
   const answersHtml = (submission.answers || [])
     .map((answer, index) => {
       const resultClass = answer.result === "NG" ? "ng" : answer.result === "OK" ? "ok" : "na";
       const images = Array.isArray(answer.images) ? answer.images : [];
+      const issueId = buildIssueId(submissionId, answer.questionId);
+      const issue = issueMap.get(issueId);
+      const remediationHtml =
+        answer.result === "NG"
+          ? renderRemediationStatusBlock(issue, issueId)
+          : "";
 
       return `
         <div class="detail-answer">
@@ -419,6 +437,8 @@ function renderReportDetail(submissionId) {
               ? `<div class="detail-answer-note"><strong>Mô tả lỗi:</strong> ${escapeHtml(answer.note)}</div>`
               : ""
           }
+
+          ${remediationHtml}
 
           ${
             images.length
@@ -469,6 +489,47 @@ function renderReportDetail(submissionId) {
     </div>
 
     ${answersHtml || '<div class="empty-detail">Phiếu này chưa có câu trả lời.</div>'}
+  `;
+}
+
+async function fetchIssuesForSubmission(submissionId) {
+  const q = query(collection(db, "remediationIssues"), where("submissionId", "==", submissionId));
+  const snapshot = await getDocs(q);
+  const map = new Map();
+  snapshot.docs.forEach((docSnap) => {
+    map.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+  });
+  return map;
+}
+
+function renderRemediationStatusBlock(issue, issueId) {
+  if (!issue) {
+    return `
+      <div class="remediation-inline-block">
+        <span class="remediation-status-badge remediation-status-open">Chưa tạo issue</span>
+      </div>
+    `;
+  }
+
+  const statusMeta = getRemediationStatusMeta(issue.status);
+  const responsible = issue.responsible
+    ? `<div><strong>Phụ trách:</strong> ${escapeHtml(issue.responsible)}</div>`
+    : "";
+  const plan = issue.plan
+    ? `<div><strong>Kế hoạch:</strong> ${escapeHtml(issue.plan)}</div>`
+    : "";
+
+  return `
+    <div class="remediation-inline-block">
+      <div class="remediation-inline-header">
+        <span class="remediation-status-badge ${statusMeta.badgeClass}">${escapeHtml(statusMeta.label)}</span>
+        <a href="./remediation.html?issue=${encodeURIComponent(issueId)}" class="remediation-link-btn">
+          Xem hành động khắc phục
+        </a>
+      </div>
+      ${responsible}
+      ${plan}
+    </div>
   `;
 }
 

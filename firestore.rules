@@ -84,5 +84,20 @@ service cloud.firestore {
       allow read: if isActiveUser() || isAdmin();
       allow create, update, delete: if isAdmin();
     }
+
+    match /remediationIssues/{issueId} {
+      allow read: if isAdminOrManager();
+
+      allow create: if isActiveUser() &&
+                    request.resource.data.uid == request.auth.uid &&
+                    request.resource.data.status == "open" &&
+                    request.resource.data.plan == "" &&
+                    request.resource.data.action == "" &&
+                    request.resource.data.responsible == "";
+
+      allow update: if isAdminOrManager();
+
+      allow delete: if isAdmin();
+    }
   }
 }
