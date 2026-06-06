@@ -16,25 +16,32 @@ import {
 import {
   fetchBranches,
   buildReportFilterOptions,
-  getActiveBranchNames
+  getActiveBranchNames,
+  FACTORY_AREA
 } from "./areas-service.js";
 import {
   getRemediationStatusMeta,
   formatDurationVi,
   getIssueElapsedMs,
-  getIssueDurationLabel
+  getIssueDurationLabel,
+  parseIssueDateText,
+  timestampToMillis
 } from "./remediation-service.js";
 
 const PRIVILEGED_ROLES = ["admin", "manager"];
 const QUERY_LIMIT = 500;
 const NG_TABLE_LIMIT = 25;
+const TOP_DISCOVERERS_LIMIT = 5;
 
 let currentFirebaseUser = null;
 let currentUserProfile = null;
 let branchNames = [];
-let allSubmissions = [];
-let allIssues = [];
+let rawSubmissions = [];
+let rawIssues = [];
+let currentPeriod = "week";
+let currentAreaFilter = "ALL";
 let trendChart = null;
+let unresolvedAreaChart = null;
 let toastTimer = null;
 
 document.addEventListener("DOMContentLoaded", initDashboardPage);
@@ -54,6 +61,17 @@ function bindDashboardEvents() {
   document.getElementById("dashboardLogoutBtn")?.addEventListener("click", handleLogout);
   document.getElementById("applyDashboardFilterBtn")?.addEventListener("click", applyDashboardFilter);
   document.getElementById("resetDashboardFilterBtn")?.addEventListener("click", resetDashboardFilter);
+
+  document.querySelectorAll(".dashboard-period-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const period = btn.dataset.period;
+      if (!period || period === currentPeriod) return;
+      currentPeriod = period;
+      updatePeriodButtons();
+      renderDashboardViews();
+    });
+  });
+
   document.getElementById("closeImageModalBtn")?.addEventListener("click", closeImageModal);
   document.getElementById("imageModalBackdrop")?.addEventListener("click", closeImageModal);
   document.getElementById("ngTableBody")?.addEventListener("click", (event) => {
@@ -222,28 +240,118 @@ async function loadDashboardData(areaFilter) {
   showPageLoader(true, "Đang tải dữ liệu thống kê...");
 
   try {
+    currentAreaFilter = areaFilter;
     const submissions = await loadScopedSubmissions(areaFilter);
     const issues = await loadScopedIssues(areaFilter, submissions);
 
-    allSubmissions = submissions;
-    allIssues = issues;
+    rawSubmissions = submissions;
+    rawIssues = issues;
 
     document.getElementById("dashboardScopeText").textContent = getDashboardScopeLabel(
       currentUserProfile,
       areaFilter
     );
 
-    renderSubmissionStats(allSubmissions);
-    renderIssueStats(allIssues);
-    renderTrendChart(allSubmissions);
-    renderNgTable(allIssues);
+    renderDashboardViews();
   } catch (error) {
     console.error(error);
     showToast("Không thể tải dữ liệu dashboard.", "error");
     renderEmptyNgTable("Không thể tải dữ liệu. Vui lòng thử lại.");
+    renderTopDiscoverersTable([]);
   } finally {
     showPageLoader(false);
   }
+}
+
+function renderDashboardViews() {
+  const submissions = filterByPeriod(rawSubmissions, currentPeriod, getSubmissionDate);
+  const issues = filterByPeriod(rawIssues, currentPeriod, getIssueDate);
+
+  updatePeriodHint();
+  renderSubmissionStats(submissions);
+  renderIssueStats(issues);
+  renderTrendChart(submissions);
+  renderUnresolvedAreaChart(issues);
+  renderTopDiscoverersTable(submissions);
+  renderNgTable(issues);
+}
+
+function updatePeriodButtons() {
+  document.querySelectorAll(".dashboard-period-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.period === currentPeriod);
+  });
+}
+
+function updatePeriodHint() {
+  const hint = getPeriodHint(currentPeriod);
+  document.getElementById("dashboardPeriodHint").textContent = hint;
+  document.getElementById("topDiscoverersPeriodLabel").textContent = getPeriodShortLabel(currentPeriod);
+  document.getElementById("trendChartTitle").textContent = `Xu hướng phiếu checklist (${hint})`;
+}
+
+function getPeriodShortLabel(period) {
+  if (period === "month") return "Tháng";
+  if (period === "year") return "Năm";
+  return "Tuần";
+}
+
+function getPeriodHint(period) {
+  if (period === "month") return "Tháng này";
+  if (period === "year") return "Năm nay";
+  return "7 ngày gần nhất";
+}
+
+function getSubmissionDate(submission) {
+  const ms = timestampToMillis(submission.createdAt);
+  if (ms) return new Date(ms);
+  return parseIssueDateText(submission.createdAtText);
+}
+
+function getIssueDate(issue) {
+  const ms =
+    timestampToMillis(issue.discoveredAt) ||
+    timestampToMillis(issue.createdAt) ||
+    timestampToMillis(issue.updatedAt);
+  if (ms) return new Date(ms);
+  return parseIssueDateText(issue.discoveredAtText || issue.submissionCreatedAtText);
+}
+
+function filterByPeriod(items, period, getDateFn) {
+  const now = new Date();
+
+  return items.filter((item) => {
+    const date = getDateFn(item);
+    if (!date) return false;
+
+    if (period === "week") {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      weekAgo.setHours(0, 0, 0, 0);
+      return date >= weekAgo;
+    }
+
+    if (period === "month") {
+      return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+    }
+
+    if (period === "year") {
+      return date.getFullYear() === now.getFullYear();
+    }
+
+    return true;
+  });
+}
+
+function getChartAreaLabels(areaFilter = currentAreaFilter) {
+  if (areaFilter && areaFilter !== "ALL") {
+    return [areaFilter];
+  }
+
+  if (!canViewAllAreas()) {
+    return [currentUserProfile?.khuVuc || "Khác"];
+  }
+
+  return [FACTORY_AREA, ...branchNames];
 }
 
 async function loadScopedSubmissions(areaFilter) {
@@ -281,7 +389,7 @@ async function loadScopedIssues(areaFilter, submissions = []) {
     return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
   } catch (error) {
     console.warn("Không thể tải remediationIssues:", error);
-    return buildFallbackIssuesFromSubmissions(allSubmissions);
+    return buildFallbackIssuesFromSubmissions(submissions);
   }
 }
 
@@ -362,18 +470,7 @@ function renderIssueStats(issues) {
 }
 
 function renderTrendChart(submissions) {
-  const map = new Map();
-
-  submissions.forEach((submission) => {
-    const date = String(submission.createdAtText || "").split(" ")[0];
-    if (!date) return;
-    map.set(date, (map.get(date) || 0) + 1);
-  });
-
-  const sortedDates = [...map.keys()].sort();
-  const labels = sortedDates.slice(-7);
-  const data = labels.map((label) => map.get(label) || 0);
-
+  const { labels, data } = buildTrendSeries(submissions, currentPeriod);
   const canvas = document.getElementById("trendChart");
   if (!canvas) return;
 
@@ -412,6 +509,169 @@ function renderTrendChart(submissions) {
       }
     }
   });
+}
+
+function buildTrendSeries(submissions, period) {
+  const map = new Map();
+  const now = new Date();
+
+  submissions.forEach((submission) => {
+    const date = getSubmissionDate(submission);
+    if (!date) return;
+
+    let key = "";
+    if (period === "year") {
+      key = `T${date.getMonth() + 1}`;
+    } else {
+      key = formatDayKey(date);
+    }
+
+    map.set(key, (map.get(key) || 0) + 1);
+  });
+
+  if (period === "year") {
+    const labels = Array.from({ length: 12 }, (_, index) => `T${index + 1}`);
+    const data = labels.map((label) => map.get(label) || 0);
+    return { labels, data };
+  }
+
+  if (period === "month") {
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const labels = [];
+    const data = [];
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(year, month, day);
+      labels.push(String(day).padStart(2, "0"));
+      data.push(map.get(formatDayKey(date)) || 0);
+    }
+
+    return { labels, data };
+  }
+
+  const labels = [];
+  const data = [];
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - offset);
+    labels.push(formatDayLabel(date));
+    data.push(map.get(formatDayKey(date)) || 0);
+  }
+
+  return { labels, data };
+}
+
+function formatDayKey(date) {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function formatDayLabel(date) {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}`;
+}
+
+function renderUnresolvedAreaChart(issues) {
+  const labels = getChartAreaLabels();
+  const unresolved = issues.filter((issue) => issue.status !== "done");
+  const counts = new Map(labels.map((label) => [label, 0]));
+
+  unresolved.forEach((issue) => {
+    const area = issue.khuVuc || "Khác";
+    if (!counts.has(area)) {
+      counts.set(area, 0);
+    }
+    counts.set(area, (counts.get(area) || 0) + 1);
+  });
+
+  const data = labels.map((label) => counts.get(label) || 0);
+  const canvas = document.getElementById("unresolvedAreaChart");
+  if (!canvas) return;
+
+  if (unresolvedAreaChart) {
+    unresolvedAreaChart.destroy();
+  }
+
+  unresolvedAreaChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Lỗi chưa hoàn thành",
+          data,
+          backgroundColor: "rgba(237, 28, 36, 0.78)",
+          borderColor: "#ed1c24",
+          borderWidth: 1,
+          borderRadius: 8
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0 }
+        },
+        x: {
+          ticks: {
+            maxRotation: 45,
+            minRotation: 0
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderTopDiscoverersTable(submissions) {
+  const tbody = document.getElementById("topDiscoverersBody");
+  if (!tbody) return;
+
+  const counts = new Map();
+
+  submissions.forEach((submission) => {
+    let ngCount = 0;
+    (submission.answers || []).forEach((answer) => {
+      if (answer.result === "NG") ngCount += 1;
+    });
+
+    if (!ngCount) return;
+
+    const key = submission.uid || submission.taiKhoan || submission.hoTen || "unknown";
+    const existing = counts.get(key) || { name: submission.hoTen || "", count: 0 };
+    existing.count += ngCount;
+    if (submission.hoTen) {
+      existing.name = submission.hoTen;
+    }
+    counts.set(key, existing);
+  });
+
+  const topList = [...counts.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, TOP_DISCOVERERS_LIMIT);
+
+  tbody.innerHTML = Array.from({ length: TOP_DISCOVERERS_LIMIT }, (_, index) => {
+    const item = topList[index];
+    const rank = index + 1;
+    const name = item?.name ? escapeHtml(item.name) : "";
+    const count = item?.count != null ? item.count : "";
+
+    return `
+      <tr>
+        <td>${rank}</td>
+        <td>${name}</td>
+        <td>${count}</td>
+      </tr>
+    `;
+  }).join("");
 }
 
 function renderNgTable(issues) {

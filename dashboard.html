@@ -66,6 +66,16 @@
             <p id="dashboardScopeText">Đang tải phạm vi dữ liệu...</p>
           </header>
 
+          <section class="dashboard-period-bar">
+            <span class="dashboard-period-label">Thời gian thống kê</span>
+            <div class="dashboard-period-actions">
+              <button type="button" class="filter-chip dashboard-period-btn active" data-period="week">Tuần</button>
+              <button type="button" class="filter-chip dashboard-period-btn" data-period="month">Tháng</button>
+              <button type="button" class="filter-chip dashboard-period-btn" data-period="year">Năm</button>
+            </div>
+            <span id="dashboardPeriodHint" class="dashboard-period-hint">7 ngày gần nhất</span>
+          </section>
+
           <section id="dashboardFilterCard" class="filter-card hidden">
             <div class="filter-grid">
               <div class="form-group">
@@ -119,12 +129,48 @@
             </div>
           </section>
 
-          <section class="dashboard-chart-panel">
+          <section class="dashboard-charts-grid">
+            <section class="dashboard-chart-panel">
+              <div class="panel-header">
+                <h2 id="trendChartTitle">Xu hướng phiếu checklist</h2>
+              </div>
+              <div class="dashboard-chart-wrap">
+                <canvas id="trendChart"></canvas>
+              </div>
+            </section>
+
+            <section class="dashboard-chart-panel">
+              <div class="panel-header">
+                <h2>Lỗi chưa hoàn thành theo khu vực</h2>
+              </div>
+              <div class="dashboard-chart-wrap">
+                <canvas id="unresolvedAreaChart"></canvas>
+              </div>
+            </section>
+          </section>
+
+          <section class="report-list-panel">
             <div class="panel-header">
-              <h2>Xu hướng phiếu checklist (7 ngày gần nhất)</h2>
+              <h2>Top 5 người phát hiện nhiều lỗi nhất</h2>
+              <span id="topDiscoverersPeriodLabel">Tuần</span>
             </div>
-            <div class="dashboard-chart-wrap">
-              <canvas id="trendChart"></canvas>
+            <div class="admin-table-container">
+              <table class="admin-table dashboard-rank-table">
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Họ tên</th>
+                    <th>Số lỗi phát hiện</th>
+                  </tr>
+                </thead>
+                <tbody id="topDiscoverersBody">
+                  <tr><td>1</td><td></td><td></td></tr>
+                  <tr><td>2</td><td></td><td></td></tr>
+                  <tr><td>3</td><td></td><td></td></tr>
+                  <tr><td>4</td><td></td><td></td></tr>
+                  <tr><td>5</td><td></td><td></td></tr>
+                </tbody>
+              </table>
             </div>
           </section>
 
@@ -167,6 +213,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="./dashboard.js?v=20250607"></script>
+  <script type="module" src="./dashboard.js?v=20250608"></script>
 </body>
 </html>

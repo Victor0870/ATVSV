@@ -1999,3 +1999,63 @@ textarea {
   cursor: pointer;
   border: 1px solid var(--border);
 }
+
+.dashboard-period-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  box-shadow: var(--shadow);
+}
+
+.dashboard-period-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-black);
+}
+
+.dashboard-period-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dashboard-period-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dashboard-charts-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.dashboard-rank-table td:nth-child(1) {
+  width: 72px;
+  font-weight: 700;
+}
+
+.dashboard-rank-table td:nth-child(3) {
+  width: 160px;
+  font-weight: 700;
+}
+
+@media (min-width: 1100px) {
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-period-hint {
+    width: 100%;
+    margin-left: 0;
+  }
+}
