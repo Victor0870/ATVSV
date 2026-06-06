@@ -682,9 +682,30 @@ textarea {
 }
 
 .report-list {
-  max-height: 70vh;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
   padding: 12px;
+}
+
+.report-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid #eef2f6;
+}
+
+.report-page-info {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.report-pagination .ghost-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .submission-card {

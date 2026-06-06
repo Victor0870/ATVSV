@@ -15,12 +15,14 @@ import {
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
 const DEFAULT_QUERY_LIMIT = 300;
+const REPORT_PAGE_SIZE = 8;
 
 let currentFirebaseUser = null;
 let currentUserProfile = null;
 let allSubmissions = [];
 let filteredSubmissions = [];
 let selectedSubmissionId = null;
+let currentReportPage = 1;
 let toastTimer = null;
 
 document.addEventListener("DOMContentLoaded", initReportPage);
@@ -44,6 +46,14 @@ function bindReportEvents() {
     selectedSubmissionId = submissionId;
     renderReportList();
     renderReportDetail(submissionId);
+  });
+
+  document.getElementById("reportPrevPageBtn").addEventListener("click", () => {
+    goToReportPage(currentReportPage - 1);
+  });
+
+  document.getElementById("reportNextPageBtn").addEventListener("click", () => {
+    goToReportPage(currentReportPage + 1);
   });
 
   document.getElementById("reportDetail").addEventListener("click", (event) => {
@@ -201,6 +211,7 @@ async function loadReportData(filters) {
     });
 
     filteredSubmissions = applyClientSideFilters(allSubmissions, filters);
+    currentReportPage = 1;
     selectedSubmissionId = filteredSubmissions.length ? filteredSubmissions[0].submissionId : null;
 
     renderReportStats(filteredSubmissions);
@@ -268,10 +279,54 @@ function renderReportStats(data) {
   document.getElementById("statTotalNa").textContent = totalNa;
 }
 
+function getTotalReportPages() {
+  if (!filteredSubmissions.length) return 1;
+  return Math.ceil(filteredSubmissions.length / REPORT_PAGE_SIZE);
+}
+
+function getPaginatedSubmissions() {
+  const start = (currentReportPage - 1) * REPORT_PAGE_SIZE;
+  return filteredSubmissions.slice(start, start + REPORT_PAGE_SIZE);
+}
+
+function goToReportPage(page) {
+  const totalPages = getTotalReportPages();
+  const nextPage = Math.min(Math.max(1, page), totalPages);
+  if (nextPage === currentReportPage) return;
+
+  currentReportPage = nextPage;
+  renderReportList();
+
+  const listContainer = document.getElementById("reportList");
+  if (listContainer) {
+    listContainer.scrollTop = 0;
+  }
+}
+
+function renderReportPagination(totalPages) {
+  const pagination = document.getElementById("reportPagination");
+  const prevBtn = document.getElementById("reportPrevPageBtn");
+  const nextBtn = document.getElementById("reportNextPageBtn");
+  const pageInfo = document.getElementById("reportPageInfo");
+
+  if (!pagination || !prevBtn || !nextBtn || !pageInfo) return;
+
+  if (totalPages <= 1) {
+    pagination.classList.add("hidden");
+    return;
+  }
+
+  pagination.classList.remove("hidden");
+  prevBtn.disabled = currentReportPage <= 1;
+  nextBtn.disabled = currentReportPage >= totalPages;
+  pageInfo.textContent = `Trang ${currentReportPage} / ${totalPages}`;
+}
+
 function renderReportList() {
   const listContainer = document.getElementById("reportList");
 
   if (!filteredSubmissions.length) {
+    renderReportPagination(1);
     listContainer.innerHTML = `
       <div class="empty-card" style="margin: 12px;">
         <h3>Không có dữ liệu</h3>
@@ -281,7 +336,14 @@ function renderReportList() {
     return;
   }
 
-  listContainer.innerHTML = filteredSubmissions
+  const totalPages = getTotalReportPages();
+  if (currentReportPage > totalPages) {
+    currentReportPage = totalPages;
+  }
+
+  const pageItems = getPaginatedSubmissions();
+
+  listContainer.innerHTML = pageItems
     .map((item) => {
       const isActive = item.submissionId === selectedSubmissionId;
       const summary = item.summary || {};
@@ -303,6 +365,8 @@ function renderReportList() {
       `;
     })
     .join("");
+
+  renderReportPagination(totalPages);
 }
 
 function renderReportDetail(submissionId) {
@@ -392,7 +456,15 @@ function renderEmptyDetail(message) {
 }
 
 function updateReportCountText() {
-  document.getElementById("reportCountText").textContent = `${filteredSubmissions.length} kết quả`;
+  const totalPages = getTotalReportPages();
+  const countText = `${filteredSubmissions.length} kết quả`;
+
+  if (totalPages > 1) {
+    document.getElementById("reportCountText").textContent = `${countText} · ${REPORT_PAGE_SIZE} phiếu/trang`;
+    return;
+  }
+
+  document.getElementById("reportCountText").textContent = countText;
 }
 
 function exportCsv() {
