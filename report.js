@@ -21,7 +21,7 @@ import {
   matchesReportAreaFilter
 } from "./areas-service.js";
 import { buildIssueId, getRemediationStatusMeta, formatDurationVi, getIssueElapsedMs, getIssueDurationLabel } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250610";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250611";
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
 const DEFAULT_QUERY_LIMIT = 300;

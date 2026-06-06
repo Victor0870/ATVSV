@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20250610";
+import { t } from "./i18n.js?v=20250611";
 
 export const REMEDIATION_STATUSES = {
   open: { value: "open", label: "Chờ xử lý", badgeClass: "remediation-status-open" },

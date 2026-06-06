@@ -2092,14 +2092,35 @@ textarea {
   margin-bottom: 16px;
 }
 
-.dashboard-rank-table td:nth-child(1) {
-  width: 72px;
-  font-weight: 700;
+.dashboard-rank-table {
+  table-layout: fixed;
+  width: 100%;
 }
 
-.dashboard-rank-table td:nth-child(3) {
-  width: 160px;
+.dashboard-rank-table th:nth-child(1),
+.dashboard-rank-table td:nth-child(1) {
+  width: 44px;
   font-weight: 700;
+  text-align: center;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.dashboard-rank-table th:nth-child(2),
+.dashboard-rank-table td:nth-child(2) {
+  width: auto;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.dashboard-rank-table th:nth-child(3),
+.dashboard-rank-table td:nth-child(3) {
+  width: 64px;
+  font-weight: 700;
+  text-align: center;
+  padding-left: 6px;
+  padding-right: 6px;
+  white-space: nowrap;
 }
 
 .dashboard-insights-grid {

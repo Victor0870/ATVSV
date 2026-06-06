@@ -33,7 +33,7 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250610";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250611";
 
 const ISSUE_QUERY_LIMIT = 500;
 
