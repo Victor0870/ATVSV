@@ -286,7 +286,7 @@ function updatePeriodHint() {
   const hint = getPeriodHint(currentPeriod);
   document.getElementById("dashboardPeriodHint").textContent = hint;
   document.getElementById("topDiscoverersPeriodLabel").textContent = getPeriodShortLabel(currentPeriod);
-  document.getElementById("trendChartTitle").textContent = `Xu hướng phiếu checklist (${hint})`;
+  document.getElementById("trendChartTitle").textContent = `Xu hướng lỗi NG (${hint})`;
 }
 
 function getPeriodShortLabel(period) {
