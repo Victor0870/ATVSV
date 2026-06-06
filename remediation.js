@@ -36,6 +36,7 @@ import {
 const ISSUE_QUERY_LIMIT = 500;
 
 let currentUserProfile = null;
+let currentFirebaseUser = null;
 let allIssues = [];
 let filteredIssues = [];
 let branchNames = [];
@@ -51,7 +52,8 @@ function initRemediationPage() {
     observeRemediationAuth();
   } catch (error) {
     console.error(error);
-    showAccessDenied("Không thể khởi tạo trang. Vui lòng tải lại hoặc liên hệ quản trị viên.");
+    showGuestAccessDenied("Không thể khởi tạo trang. Vui lòng tải lại hoặc liên hệ quản trị viên.");
+    showPageLoader(false);
   }
 }
 
@@ -98,10 +100,11 @@ function observeRemediationAuth() {
   onAuthStateChanged(auth, async (user) => {
     try {
       if (!user) {
-        showAccessDenied("Bạn chưa đăng nhập. Vui lòng đăng nhập trước.");
+        showGuestAccessDenied("Bạn chưa đăng nhập. Vui lòng đăng nhập trước.");
         return;
       }
 
+      currentFirebaseUser = user;
       const profile = await loadCurrentUserProfile(user.uid);
       currentUserProfile = profile;
       ensureRemediationAccess(profile);
@@ -117,7 +120,11 @@ function observeRemediationAuth() {
       }
     } catch (error) {
       console.error(error);
-      showAccessDenied(error.message || "Bạn không có quyền truy cập trang này.");
+      showAccessDenied(
+        error.message || "Bạn không có quyền truy cập trang này.",
+        currentUserProfile,
+        currentFirebaseUser
+      );
     } finally {
       showPageLoader(false);
     }
@@ -151,10 +158,22 @@ function ensureRemediationAccess(profile) {
   }
 }
 
-function showAccessDenied(message) {
+function showGuestAccessDenied(message) {
   document.getElementById("remediationLayout")?.classList.add("hidden");
   document.getElementById("remediationAccessWrap")?.classList.remove("hidden");
-  document.getElementById("remediationAccessMessage").textContent = message;
+  document.getElementById("remediationGuestMessage").textContent = message;
+}
+
+function showAccessDenied(message, profile = null, firebaseUser = null) {
+  if (profile && firebaseUser) {
+    showAppLayout(profile, firebaseUser);
+    document.getElementById("remediationScreen")?.classList.add("hidden");
+    document.getElementById("remediationMainAccessDenied")?.classList.remove("hidden");
+    document.getElementById("remediationMainAccessMessage").textContent = message;
+    return;
+  }
+
+  showGuestAccessDenied(message);
 }
 
 function getUserInitials(name) {
@@ -170,7 +189,7 @@ function getUserInitials(name) {
   return String(name || "U").slice(0, 2).toUpperCase();
 }
 
-function showRemediationScreen(profile, firebaseUser) {
+function showAppLayout(profile, firebaseUser) {
   document.getElementById("remediationAccessWrap")?.classList.add("hidden");
   document.getElementById("remediationLayout")?.classList.remove("hidden");
 
@@ -181,6 +200,12 @@ function showRemediationScreen(profile, firebaseUser) {
 
   const isAdmin = String(profile.role || "").trim().toLowerCase() === "admin";
   document.getElementById("remediationAdminLink")?.classList.toggle("hidden", !isAdmin);
+}
+
+function showRemediationScreen(profile, firebaseUser) {
+  showAppLayout(profile, firebaseUser);
+  document.getElementById("remediationMainAccessDenied")?.classList.add("hidden");
+  document.getElementById("remediationScreen")?.classList.remove("hidden");
 }
 
 async function loadFilterOptions() {

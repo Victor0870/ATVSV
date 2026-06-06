@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hành động khắc phục - Idemitsu</title>
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=20250606">
 </head>
-<body>
+<body class="admin-page">
   <div id="pageLoader" class="page-loader">
     <div class="loader-card">
       <div class="spinner"></div>
@@ -15,9 +15,9 @@
   </div>
 
   <main id="remediationAccessWrap" class="app-shell auth-screen hidden">
-    <section id="remediationAccessDenied" class="empty-card">
+    <section class="empty-card">
       <h2>Không thể truy cập</h2>
-      <p id="remediationAccessMessage">Bạn không có quyền quản lý hành động khắc phục.</p>
+      <p id="remediationGuestMessage">Bạn chưa đăng nhập. Vui lòng đăng nhập trước.</p>
       <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
     </section>
   </main>
@@ -64,7 +64,13 @@
           </div>
         </div>
 
-        <section id="remediationScreen">
+        <section id="remediationMainAccessDenied" class="empty-card hidden">
+          <h2>Không thể truy cập</h2>
+          <p id="remediationMainAccessMessage">Bạn không có quyền quản lý hành động khắc phục.</p>
+          <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
+        </section>
+
+        <section id="remediationScreen" class="hidden">
           <header class="hero-card">
             <h1>HÀNH ĐỘNG KHẮC PHỤC</h1>
             <p>Theo dõi và phân công xử lý các lỗi NG phát sinh từ checklist kiểm tra</p>
@@ -232,6 +238,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="./remediation.js"></script>
+  <script type="module" src="./remediation.js?v=20250606"></script>
 </body>
 </html>
