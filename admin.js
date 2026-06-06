@@ -572,16 +572,121 @@ async function syncCategoriesFromItems() {
 
 function renderCategoryList() {
   const container = document.getElementById("categoryList");
+  const hint = document.getElementById("categoryDragHint");
   if (!container) return;
 
   if (!checklistCategories.length) {
+    if (hint) hint.classList.add("hidden");
     container.innerHTML = `<span class="category-empty-note">Chưa có danh mục. Bấm "Tạo danh mục" để bắt đầu.</span>`;
     return;
   }
 
+  if (hint) hint.classList.remove("hidden");
+
   container.innerHTML = checklistCategories
-    .map((category) => `<span class="category-chip">${escapeHtml(category.name)}</span>`)
+    .map(
+      (category) => `
+        <span
+          class="category-chip"
+          draggable="true"
+          data-id="${escapeHtml(category.id)}"
+          title="Kéo để sắp xếp"
+        >
+          <span class="category-chip-grip" aria-hidden="true">⋮⋮</span>
+          ${escapeHtml(category.name)}
+        </span>
+      `
+    )
     .join("");
+
+  setupCategoryDragDrop();
+}
+
+function setupCategoryDragDrop() {
+  const container = document.getElementById("categoryList");
+  if (!container) return;
+
+  let draggedId = null;
+
+  container.querySelectorAll(".category-chip").forEach((chip) => {
+    chip.addEventListener("dragstart", (event) => {
+      draggedId = chip.dataset.id;
+      chip.classList.add("dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", draggedId);
+    });
+
+    chip.addEventListener("dragend", () => {
+      chip.classList.remove("dragging");
+      container.querySelectorAll(".category-chip").forEach((item) => {
+        item.classList.remove("drag-over");
+      });
+      draggedId = null;
+    });
+
+    chip.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      if (chip.dataset.id !== draggedId) {
+        chip.classList.add("drag-over");
+      }
+    });
+
+    chip.addEventListener("dragleave", () => {
+      chip.classList.remove("drag-over");
+    });
+
+    chip.addEventListener("drop", (event) => {
+      event.preventDefault();
+      chip.classList.remove("drag-over");
+      const targetId = chip.dataset.id;
+      if (!draggedId || !targetId || draggedId === targetId) return;
+      reorderCategories(draggedId, targetId);
+    });
+  });
+}
+
+async function reorderCategories(draggedId, targetId) {
+  const fromIndex = checklistCategories.findIndex((category) => category.id === draggedId);
+  const toIndex = checklistCategories.findIndex((category) => category.id === targetId);
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+  if (checklistCategories.some((category) => String(category.id).startsWith("fallback_"))) {
+    showToast("Danh mục chưa đồng bộ Firestore. Vui lòng tải lại trang.", "error");
+    return;
+  }
+
+  const reordered = [...checklistCategories];
+  const [moved] = reordered.splice(fromIndex, 1);
+  reordered.splice(toIndex, 0, moved);
+
+  checklistCategories = reordered.map((category, index) => ({
+    ...category,
+    order: index + 1
+  }));
+
+  renderCategoryList();
+  renderChecklistTable();
+  populateCategorySelect(document.getElementById("checkCategory")?.value || "");
+
+  try {
+    showPageLoader(true, "Đang cập nhật thứ tự danh mục...");
+    await Promise.all(
+      checklistCategories.map((category, index) =>
+        updateDoc(doc(db, "checklistCategories", category.id), {
+          order: index + 1,
+          updatedAt: serverTimestamp()
+        })
+      )
+    );
+    showToast("Đã cập nhật thứ tự danh mục", "success");
+  } catch (error) {
+    console.error(error);
+    showToast("Không thể cập nhật thứ tự danh mục", "error");
+    await reloadChecklistData(false);
+  } finally {
+    showPageLoader(false);
+  }
 }
 
 function populateCategorySelect(selectedValue = "") {
