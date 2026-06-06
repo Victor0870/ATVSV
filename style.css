@@ -1680,7 +1680,13 @@ textarea {
 
   .admin-sidebar {
     width: 260px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
     min-height: 100vh;
+    overflow-y: auto;
     border-bottom: none;
     border-right: 1px solid var(--border);
     display: flex;
