@@ -1532,6 +1532,24 @@ textarea {
   line-height: 1.5;
 }
 
+#checklistSection .checklist-area-cell,
+#checklistSection .checklist-order-cell,
+#checklistSection .checklist-status-cell,
+#checklistSection .checklist-actions-cell {
+  white-space: nowrap;
+  width: 1%;
+}
+
+#checklistSection .checklist-action-buttons {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+#checklistSection .checklist-action-buttons .btn-action {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
 .checkbox-row {
   margin-top: 4px;
 }

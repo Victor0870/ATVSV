@@ -131,7 +131,7 @@ function observeAuth() {
       console.error(error);
       const message = getFirestoreErrorMessage(error);
       showTableError("userTableBody", 7, message);
-      showTableError("checklistTableBody", 7, message);
+      showTableError("checklistTableBody", 6, message);
       showToast(message, "error");
     } finally {
       isLoadingAdminData = false;
@@ -500,7 +500,7 @@ async function reloadChecklistData(showLoader = true) {
   } catch (error) {
     console.error(error);
     const message = getFirestoreErrorMessage(error);
-    showTableError("checklistTableBody", 7, message);
+    showTableError("checklistTableBody", 6, message);
     showToast(message, "error");
     throw error;
   } finally {
@@ -650,19 +650,14 @@ async function saveCategory() {
 function getChecklistRowsForRender() {
   const rows = [];
   const sorted = sortChecklistItems(checklistItems, checklistCategories);
-  const categoryCounters = new Map();
 
   sorted.forEach((item) => {
     const category = item.category || "Khác";
-    const indexInCategory = (categoryCounters.get(category) || 0) + 1;
-    categoryCounters.set(category, indexInCategory);
-
     const siblings = getItemsInCategory(sorted, category);
     const siblingIndex = siblings.findIndex((s) => s.id === item.id);
 
     rows.push({
       item,
-      indexInCategory,
       canMoveUp: siblingIndex > 0,
       canMoveDown: siblingIndex < siblings.length - 1
     });
@@ -676,34 +671,33 @@ function renderChecklistTable() {
   if (!tbody) return;
 
   if (!checklistItems.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-table">Chưa có câu hỏi checklist. Tạo danh mục rồi bấm "Thêm câu hỏi".</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-table">Chưa có câu hỏi checklist. Tạo danh mục rồi bấm "Thêm câu hỏi".</td></tr>`;
     return;
   }
 
   const rows = getChecklistRowsForRender();
 
   tbody.innerHTML = rows
-    .map(({ item, indexInCategory, canMoveUp, canMoveDown }) => {
+    .map(({ item, canMoveUp, canMoveDown }) => {
       const isActive = item.active !== false;
       return `
         <tr>
           <td>${escapeHtml(item.category || "-")}</td>
           <td class="checklist-text-cell">${escapeHtml(item.text || "-")}</td>
-          <td>${escapeHtml(item.area || "ALL")}</td>
-          <td class="text-center">${indexInCategory}</td>
-          <td>
+          <td class="checklist-area-cell">${escapeHtml(item.area || "ALL")}</td>
+          <td class="checklist-order-cell">
             <div class="order-buttons">
               <button type="button" class="order-btn btn-move-up" data-id="${item.id}" ${canMoveUp ? "" : "disabled"} title="Lên">▲</button>
               <button type="button" class="order-btn btn-move-down" data-id="${item.id}" ${canMoveDown ? "" : "disabled"} title="Xuống">▼</button>
             </div>
           </td>
-          <td>
+          <td class="checklist-status-cell">
             <span class="status-badge status-${isActive ? "active" : "locked"}">
               ${isActive ? "Đang dùng" : "Đã tắt"}
             </span>
           </td>
-          <td>
-            <div class="action-buttons">
+          <td class="checklist-actions-cell">
+            <div class="action-buttons checklist-action-buttons">
               <button type="button" class="btn-action btn-edit-checklist" data-id="${item.id}">Sửa</button>
               <button type="button" class="btn-action reject btn-toggle-checklist" data-id="${item.id}" data-active="${isActive}">
                 ${isActive ? "Tắt" : "Bật"}
