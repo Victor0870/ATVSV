@@ -27,6 +27,7 @@ import {
   buildRegistrationBranchOptions
 } from "./areas-service.js";
 import { buildIssueId, buildRemediationIssuePayload } from "./remediation-service.js";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
 const USER_ROLES_CAN_MANAGE_REMEDIATION = ["admin", "manager"];
@@ -47,11 +48,25 @@ let toastTimer = null;
 document.addEventListener("DOMContentLoaded", initApp);
 
 async function initApp() {
+  initI18n();
   bindEvents();
 
   await authPersistenceReady;
   await loadRegistrationBranches();
   observeAuthState();
+
+  onLanguageChange(async () => {
+    document.querySelectorAll("[data-original-text]").forEach((el) => {
+      delete el.dataset.originalText;
+    });
+    applyI18n();
+    setupRegistrationAreaSelect(cachedBranches);
+    if (currentUserProfile && currentFirebaseUser) {
+      await showChecklistScreen(currentUserProfile, currentFirebaseUser);
+    } else {
+      showLoginScreen();
+    }
+  });
 }
 
 function bindEvents() {
@@ -95,7 +110,7 @@ function showAuthTab(tabName) {
 }
 
 function observeAuthState() {
-  showPageLoader(true, "Đang kiểm tra phiên đăng nhập...");
+  showPageLoader(true, t("common.checkingSession"));
 
   onAuthStateChanged(auth, async (user) => {
     if (isHandlingRegistration) {
@@ -120,7 +135,7 @@ function observeAuthState() {
       await showChecklistScreen(profile, user);
     } catch (error) {
       console.error(error);
-      const message = error.message || "Không thể tải hồ sơ người dùng";
+      const message = error.message || t("auth.loadProfileFailed");
 
       if (shouldSignOutOnAccessError(message)) {
         await safeSignOut();
@@ -146,16 +161,16 @@ async function handleLogin(event) {
   const loginBtn = document.getElementById("loginBtn");
 
   if (!email || !password) {
-    showToast("Vui lòng nhập đầy đủ email và mật khẩu", "error");
+    showToast(t("auth.fillEmailPassword"), "error");
     return;
   }
 
-  setButtonLoading(loginBtn, true, "Đang đăng nhập...");
+  setButtonLoading(loginBtn, true, t("auth.loggingIn"));
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
     document.getElementById("passwordInput").value = "";
-    showToast("Đăng nhập thành công", "success");
+    showToast(t("auth.loginSuccess"), "success");
   } catch (error) {
     console.error(error);
     showToast(getFirebaseErrorMessage(error), "error");
@@ -192,8 +207,8 @@ async function handleRegister(event) {
 
   let createdAuthUser = null;
 
-  setButtonLoading(registerBtn, true, "Đang đăng ký...");
-  showPageLoader(true, "Đang tạo tài khoản...");
+  setButtonLoading(registerBtn, true, t("auth.registering"));
+  showPageLoader(true, t("auth.creatingAccount"));
   isHandlingRegistration = true;
 
   try {
@@ -223,7 +238,7 @@ async function handleRegister(event) {
     currentUserProfile = null;
     showLoginScreen(email);
 
-    showToast("Đăng ký thành công. Tài khoản đang chờ admin phê duyệt.", "success");
+    showToast(t("auth.registerSuccess"), "success");
   } catch (error) {
     console.error(error);
 
@@ -246,19 +261,19 @@ async function handleRegister(event) {
 
 function validateRegisterForm({ email, password, confirmPassword, taiKhoan, hoTen, khuVuc }, branches = []) {
   if (!email || !password || !confirmPassword || !taiKhoan || !hoTen || !khuVuc) {
-    return "Vui lòng nhập đầy đủ thông tin đăng ký.";
+    return t("auth.fillRegisterInfo");
   }
 
   if (password.length < 6) {
-    return "Mật khẩu phải có tối thiểu 6 ký tự.";
+    return t("auth.passwordMin6");
   }
 
   if (password !== confirmPassword) {
-    return "Mật khẩu xác nhận không khớp.";
+    return t("auth.passwordMismatch");
   }
 
   if (!isValidUserArea(khuVuc, branches)) {
-    return "Khu vực đăng ký không hợp lệ.";
+    return t("auth.invalidArea");
   }
 
   return "";
@@ -279,7 +294,7 @@ function setupRegistrationAreaSelect(branches = []) {
   if (!branchSelect) return;
 
   const activeOptions = buildRegistrationBranchOptions(branches);
-  branchSelect.innerHTML = `<option value="">-- Chọn chi nhánh --</option>${activeOptions}`;
+  branchSelect.innerHTML = `<option value="">${t("auth.placeholder.selectBranch")}</option>${activeOptions}`;
 }
 
 function handleRegisterAreaTypeChange() {
@@ -315,10 +330,10 @@ async function handleLogout() {
   try {
     clearChecklistState();
     await signOut(auth);
-    showToast("Đã đăng xuất", "info");
+    showToast(t("auth.loggedOut"), "info");
   } catch (error) {
     console.error(error);
-    showToast("Không thể đăng xuất. Vui lòng thử lại.", "error");
+    showToast(t("common.logoutFailed"), "error");
   }
 }
 
@@ -328,10 +343,10 @@ function togglePasswordVisibility() {
 
   if (input.type === "password") {
     input.type = "text";
-    btn.textContent = "Ẩn";
+    btn.textContent = t("auth.hidePassword");
   } else {
     input.type = "password";
-    btn.textContent = "Hiện";
+    btn.textContent = t("auth.showPassword");
   }
 }
 
@@ -348,7 +363,7 @@ async function loadCurrentUserProfile(uid) {
   const docSnap = await getDoc(docRef);
 
   if (!docSnap.exists()) {
-    throw new Error("Không tìm thấy hồ sơ người dùng trong Firestore");
+    throw new Error(t("auth.profileNotFound"));
   }
 
   const profile = docSnap.data();
@@ -366,7 +381,7 @@ async function loadCurrentUserProfile(uid) {
 
 function ensureAuthorizedAccess(profile, branches = cachedBranches) {
   if (!profile) {
-    throw new Error("Hồ sơ người dùng không hợp lệ");
+    throw new Error(t("auth.invalidProfile"));
   }
 
   const role = String(profile.role || "").trim().toLowerCase();
@@ -382,15 +397,15 @@ function ensureAuthorizedAccess(profile, branches = cachedBranches) {
   const status = profile.status === "inactive" ? "pending" : profile.status;
 
   if (status === "pending") {
-    throw new Error("Tài khoản của bạn đang chờ quản trị viên phê duyệt.");
+    throw new Error(t("auth.pendingApproval"));
   }
 
   if (status === "locked") {
-    throw new Error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+    throw new Error(t("auth.accountLocked"));
   }
 
   if (status !== "active") {
-    throw new Error("Tài khoản chưa được kích hoạt. Vui lòng liên hệ quản trị viên.");
+    throw new Error(t("auth.notActivated"));
   }
 
   if (!isValidUserArea(khuVuc, branches)) {
@@ -399,7 +414,7 @@ function ensureAuthorizedAccess(profile, branches = cachedBranches) {
       return;
     }
 
-    throw new Error("Khu vực của tài khoản không hợp lệ");
+    throw new Error(t("auth.invalidAccountArea"));
   }
 }
 
@@ -408,11 +423,19 @@ function shouldSignOutOnAccessError(message) {
 
   return [
     "chờ quản trị",
+    "pending admin approval",
+    "pending approval",
     "bị khóa",
+    "has been locked",
+    "locked",
     "chưa được kích hoạt",
+    "not activated",
     "không tìm thấy hồ sơ",
+    "profile not found",
     "khu vực của tài khoản không hợp lệ",
-    "hồ sơ người dùng không hợp lệ"
+    "invalid account area",
+    "hồ sơ người dùng không hợp lệ",
+    "invalid user profile"
   ].some((phrase) => normalized.includes(phrase));
 }
 
@@ -424,7 +447,7 @@ function showRetryScreen(message) {
 
   const subtitle = document.querySelector("#loginScreen .auth-subtitle");
   if (subtitle) {
-    subtitle.textContent = message || "Không thể tải dữ liệu. Vui lòng tải lại trang.";
+    subtitle.textContent = message || t("auth.loadDataFailed");
   }
 }
 
@@ -435,7 +458,7 @@ function showLoginScreen(prefillEmail = "") {
 
   const subtitle = document.querySelector("#loginScreen .auth-subtitle");
   if (subtitle) {
-    subtitle.textContent = "Idemitsu Lubricants Vietnam";
+    subtitle.textContent = t("common.company");
   }
 
   document.getElementById("loginForm")?.reset();
@@ -449,7 +472,7 @@ function showLoginScreen(prefillEmail = "") {
   }
 
   if (togglePasswordBtn) {
-    togglePasswordBtn.textContent = "Hiện";
+    togglePasswordBtn.textContent = t("auth.showPassword");
   }
 
   if (emailInput && prefillEmail) {
@@ -509,7 +532,7 @@ async function renderQuestions(area) {
   const container = document.getElementById("questionsContainer");
   if (!container) return;
 
-  showPageLoader(true, "Đang tải checklist...");
+  showPageLoader(true, t("checklist.loading"));
 
   try {
     const [{ items, source }, { categories }, { branches }] = await Promise.all([
@@ -522,13 +545,13 @@ async function renderQuestions(area) {
     const groups = groupChecklistForArea(items, area, categories, branchNames);
 
     if (!groups.length) {
-      container.innerHTML = `<div class="empty-card">Không có câu hỏi checklist cho khu vực này.</div>`;
-      showToast("Không tìm thấy câu hỏi checklist phù hợp.", "error");
+      container.innerHTML = `<div class="empty-card">${escapeHtml(t("checklist.noQuestions"))}</div>`;
+      showToast(t("checklist.noQuestionsFound"), "error");
       return;
     }
 
     if (source === "fallback") {
-      showToast("Đang dùng checklist dự phòng. Vui lòng liên hệ admin.", "info");
+      showToast(t("checklist.fallbackWarning"), "info");
     }
 
     clearChecklistState();
@@ -561,29 +584,29 @@ async function renderQuestions(area) {
             <div class="options-row">
               <label class="option-chip ok">
                 <input type="radio" name="answer_${questionId}" value="OK" data-question-id="${questionId}">
-                <span>OK</span>
+                <span>${t("checklist.answer.ok")}</span>
               </label>
 
               <label class="option-chip ng">
                 <input type="radio" name="answer_${questionId}" value="NG" data-question-id="${questionId}">
-                <span>NG</span>
+                <span>${t("checklist.answer.ng")}</span>
               </label>
 
               <label class="option-chip na">
                 <input type="radio" name="answer_${questionId}" value="N/A" data-question-id="${questionId}">
-                <span>N/A</span>
+                <span>${t("checklist.answer.na")}</span>
               </label>
             </div>
 
             <div class="extra-fields hidden" id="extra_${questionId}">
               <div class="form-group">
-                <label for="note_${questionId}">Mô tả lỗi phát hiện</label>
-                <textarea id="note_${questionId}" placeholder="Mô tả lỗi phát hiện..."></textarea>
-                <div class="helper-text">Bắt buộc nhập mô tả khi chọn NG.</div>
+                <label for="note_${questionId}">${t("checklist.errorNote")}</label>
+                <textarea id="note_${questionId}" placeholder="${escapeHtml(t("checklist.errorNotePlaceholder"))}"></textarea>
+                <div class="helper-text">${t("checklist.ngNoteRequired")}</div>
               </div>
 
               <div class="image-upload-box">
-                <label>Ảnh minh chứng lỗi (tối đa 2 ảnh)</label>
+                <label>${t("checklist.evidenceImages")}</label>
                 <div class="image-upload-actions">
                   <input
                     type="file"
@@ -595,7 +618,7 @@ async function renderQuestions(area) {
                     multiple
                   >
                   <div class="helper-text">
-                    Ảnh sẽ được tự động resize tối đa 1280px và nén JPEG trước khi upload.
+                    ${t("checklist.imageResizeDetail")}
                   </div>
                 </div>
                 <div id="preview_${questionId}" class="image-preview-grid"></div>
@@ -616,8 +639,8 @@ async function renderQuestions(area) {
     container.innerHTML = html;
   } catch (error) {
     console.error(error);
-    container.innerHTML = `<div class="empty-card">Không thể tải checklist. Vui lòng thử lại.</div>`;
-    showToast(error.message || "Không thể tải checklist", "error");
+    container.innerHTML = `<div class="empty-card">${escapeHtml(t("checklist.loadFailed"))}</div>`;
+    showToast(error.message || t("checklist.loadFailed"), "error");
   } finally {
     showPageLoader(false);
   }
@@ -680,27 +703,27 @@ async function handleImageSelection(inputElement) {
   const remainingSlots = 2 - currentImages.length;
 
   if (remainingSlots <= 0) {
-    showToast("Mỗi câu lỗi chỉ được tối đa 2 ảnh", "error");
+    showToast(t("checklist.max2Images"), "error");
     return;
   }
 
   const filesToProcess = selectedFiles.slice(0, remainingSlots);
 
   if (selectedFiles.length > remainingSlots) {
-    showToast(`Chỉ nhận thêm ${remainingSlots} ảnh cho câu này`, "info");
+    showToast(t("checklist.onlyMoreImages", { count: remainingSlots }), "info");
   }
 
   try {
-    showPageLoader(true, "Đang xử lý ảnh...");
+    showPageLoader(true, t("checklist.processingImages"));
     for (const file of filesToProcess) {
       const resized = await resizeImageFile(file);
       tempImagesByQuestion[questionId].push(resized);
     }
     previewSelectedImages(questionId);
-    showToast("Đã thêm ảnh minh chứng", "success");
+    showToast(t("checklist.imageAdded"), "success");
   } catch (error) {
     console.error(error);
-    showToast(error.message || "Không thể xử lý ảnh", "error");
+    showToast(error.message || t("checklist.imageProcessFailed"), "error");
   } finally {
     showPageLoader(false);
   }
@@ -721,12 +744,12 @@ function previewSelectedImages(questionId) {
     .map((image, index) => {
       return `
         <div class="image-preview-card">
-          <img src="${image.previewUrl}" alt="Ảnh minh chứng ${index + 1}">
+          <img src="${image.previewUrl}" alt="${escapeHtml(t("common.imageEvidence"))} ${index + 1}">
           <div class="image-preview-meta">
-            <div><strong>Tên file:</strong> ${escapeHtml(image.name)}</div>
-            <div><strong>Kích thước gốc:</strong> ${formatBytes(image.originalSize)}</div>
-            <div><strong>Sau nén:</strong> ${formatBytes(image.resizedSize)}</div>
-            <div><strong>Kích thước ảnh:</strong> ${image.width} x ${image.height}px</div>
+            <div><strong>${t("checklist.previewFileName")}</strong> ${escapeHtml(image.name)}</div>
+            <div><strong>${t("checklist.previewOriginalSize")}</strong> ${formatBytes(image.originalSize)}</div>
+            <div><strong>${t("checklist.previewCompressedSize")}</strong> ${formatBytes(image.resizedSize)}</div>
+            <div><strong>${t("checklist.previewDimensions")}</strong> ${image.width} x ${image.height}px</div>
           </div>
           <button
             type="button"
@@ -734,7 +757,7 @@ function previewSelectedImages(questionId) {
             data-question-id="${questionId}"
             data-image-index="${index}"
           >
-            Xóa ảnh này
+            ${t("checklist.removeImage")}
           </button>
         </div>
       `;
@@ -807,18 +830,18 @@ function revokeAllPreviewUrls() {
 
 async function resizeImageFile(file) {
   if (!file.type.startsWith("image/")) {
-    throw new Error(`File "${file.name}" không phải là ảnh hợp lệ`);
+    throw new Error(t("checklist.fileNotImage", { name: file.name }));
   }
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onerror = () => reject(new Error(`Không thể đọc file "${file.name}"`));
+    reader.onerror = () => reject(new Error(t("checklist.fileReadFailed", { name: file.name })));
 
     reader.onload = () => {
       const img = new Image();
 
-      img.onerror = () => reject(new Error(`Không thể xử lý ảnh "${file.name}"`));
+      img.onerror = () => reject(new Error(t("checklist.fileProcessFailed", { name: file.name })));
 
       img.onload = () => {
         const maxWidth = 1280;
@@ -838,7 +861,7 @@ async function resizeImageFile(file) {
 
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          reject(new Error("Trình duyệt không hỗ trợ xử lý canvas"));
+          reject(new Error(t("checklist.canvasNotSupported")));
           return;
         }
 
@@ -847,7 +870,7 @@ async function resizeImageFile(file) {
         canvas.toBlob(
           (blob) => {
             if (!blob) {
-              reject(new Error(`Không thể nén ảnh "${file.name}"`));
+              reject(new Error(t("checklist.compressFailed", { name: file.name })));
               return;
             }
 
@@ -881,7 +904,7 @@ async function resizeImageFile(file) {
 
 function validateChecklist() {
   if (!currentFirebaseUser || !currentUserProfile || currentUserProfile.status !== "active") {
-    showToast("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.", "error");
+    showToast(t("checklist.invalidSession"), "error");
     return false;
   }
 
@@ -897,30 +920,30 @@ function validateChecklist() {
 
     if (!selected) {
       questionItem.classList.add("invalid");
-      errorBox.textContent = "Vui lòng chọn kết quả cho câu này.";
+      errorBox.textContent = t("checklist.selectAnswer");
       errorBox.classList.remove("hidden");
       questionItem.scrollIntoView({ behavior: "smooth", block: "center" });
-      showToast("Vui lòng chọn kết quả cho tất cả câu hỏi", "error");
+      showToast(t("checklist.selectAllAnswers"), "error");
       return false;
     }
 
     if (selected.value === "NG" && !noteField.value.trim()) {
       questionItem.classList.add("invalid");
-      errorBox.textContent = "Câu chọn NG bắt buộc phải nhập mô tả lỗi.";
+      errorBox.textContent = t("checklist.ngNoteRequiredInline");
       errorBox.classList.remove("hidden");
       noteField.focus();
       questionItem.scrollIntoView({ behavior: "smooth", block: "center" });
-      showToast("Vui lòng nhập mô tả lỗi cho câu đã chọn NG", "error");
+      showToast(t("checklist.enterNgNote"), "error");
       return false;
     }
 
     const questionImages = tempImagesByQuestion[item.id] || [];
     if (questionImages.length > 2) {
       questionItem.classList.add("invalid");
-      errorBox.textContent = "Tối đa 2 ảnh cho mỗi câu lỗi.";
+      errorBox.textContent = t("checklist.max2ImagesError");
       errorBox.classList.remove("hidden");
       questionItem.scrollIntoView({ behavior: "smooth", block: "center" });
-      showToast("Có câu đang vượt quá số lượng ảnh cho phép", "error");
+      showToast(t("checklist.tooManyImages"), "error");
       return false;
     }
   }
@@ -1023,8 +1046,8 @@ async function submitChecklist(event) {
 
   const submitBtn = document.getElementById("submitBtn");
   isSubmitting = true;
-  setButtonLoading(submitBtn, true, "Đang gửi...");
-  showPageLoader(true, "Đang upload ảnh và lưu dữ liệu...");
+  setButtonLoading(submitBtn, true, t("checklist.submitting"));
+  showPageLoader(true, t("checklist.uploadingSaving"));
 
   const uploadedStoragePaths = [];
 
@@ -1082,7 +1105,7 @@ async function submitChecklist(event) {
       );
     }
 
-    showToast("Gửi báo cáo thành công", "success");
+    showToast(t("checklist.submitSuccess"), "success");
     resetChecklistForm();
   } catch (error) {
     console.error(error);
@@ -1096,7 +1119,7 @@ async function submitChecklist(event) {
       );
     }
 
-    showToast(error.message || "Không thể gửi báo cáo. Vui lòng thử lại.", "error");
+    showToast(error.message || t("checklist.submitFailed"), "error");
   } finally {
     isSubmitting = false;
     setButtonLoading(submitBtn, false);
@@ -1110,7 +1133,7 @@ function resetChecklistForm() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function showPageLoader(show, text = "Đang xử lý...") {
+function showPageLoader(show, text = t("common.loading")) {
   const loader = document.getElementById("pageLoader");
   const loaderText = document.getElementById("pageLoaderText");
 
@@ -1127,7 +1150,7 @@ function showPageLoader(show, text = "Đang xử lý...") {
   }
 }
 
-function setButtonLoading(button, isLoading, loadingText = "Đang xử lý...") {
+function setButtonLoading(button, isLoading, loadingText = t("common.loading")) {
   if (!button) return;
 
   if (!button.dataset.originalText) {
@@ -1157,19 +1180,19 @@ function getFirebaseErrorMessage(error) {
 
   switch (code) {
     case "auth/invalid-email":
-      return "Email không đúng định dạng.";
+      return t("auth.error.invalidEmail");
     case "auth/user-disabled":
-      return "Tài khoản này đã bị vô hiệu hóa.";
+      return t("auth.error.userDisabled");
     case "auth/user-not-found":
     case "auth/wrong-password":
     case "auth/invalid-credential":
-      return "Sai email hoặc mật khẩu.";
+      return t("auth.error.wrongPassword");
     case "auth/too-many-requests":
-      return "Bạn thử đăng nhập quá nhiều lần. Vui lòng thử lại sau.";
+      return t("auth.error.tooManyRequests");
     case "auth/network-request-failed":
-      return "Lỗi kết nối mạng. Vui lòng kiểm tra Internet.";
+      return t("auth.error.network");
     default:
-      return error?.message || "Đã xảy ra lỗi không xác định.";
+      return error?.message || t("auth.error.unknown");
   }
 }
 
@@ -1178,17 +1201,17 @@ function getRegisterErrorMessage(error) {
 
   switch (code) {
     case "auth/email-already-in-use":
-      return "Email này đã được đăng ký.";
+      return t("auth.error.emailExists");
     case "auth/invalid-email":
-      return "Email không đúng định dạng.";
+      return t("auth.error.invalidEmail");
     case "auth/weak-password":
-      return "Mật khẩu quá yếu. Vui lòng dùng mật khẩu mạnh hơn.";
+      return t("auth.error.weakPassword");
     case "permission-denied":
-      return "Không đủ quyền tạo hồ sơ người dùng. Hãy kiểm tra Firestore Rules.";
+      return t("auth.error.permissionDenied");
     case "auth/network-request-failed":
-      return "Lỗi kết nối mạng. Vui lòng kiểm tra Internet.";
+      return t("auth.error.network");
     default:
-      return error?.message || "Không thể đăng ký tài khoản.";
+      return error?.message || t("auth.error.registerFailed");
   }
 }
 

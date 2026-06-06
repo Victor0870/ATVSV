@@ -19,6 +19,7 @@ import {
   FALLBACK_BRANCHES,
   buildChecklistAreaOptions
 } from "./areas-service.js";
+import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js";
 
 let users = [];
 let checklistItems = [];
@@ -36,8 +37,21 @@ let isLoadingAdminData = false;
 document.addEventListener("DOMContentLoaded", initAdminPage);
 
 async function initAdminPage() {
+  initI18n();
   setCurrentDate();
   bindEvents();
+
+  onLanguageChange(() => {
+    document.querySelectorAll("[data-original-text]").forEach((el) => {
+      delete el.dataset.originalText;
+    });
+    applyI18n();
+    setCurrentDate();
+    renderUserTable();
+    renderCategoryList();
+    renderChecklistTable();
+    renderBranchTable();
+  });
 
   await authPersistenceReady;
   observeAuth();
@@ -48,7 +62,8 @@ function setCurrentDate() {
   if (!el) return;
 
   const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
-  el.textContent = new Date().toLocaleDateString("vi-VN", options);
+  const locale = getLang() === "en" ? "en-US" : "vi-VN";
+  el.textContent = new Date().toLocaleDateString(locale, options);
 }
 
 function bindEvents() {
@@ -92,7 +107,7 @@ function bindEvents() {
 }
 
 function observeAuth() {
-  showPageLoader(true, "Đang kiểm tra quyền truy cập...");
+  showPageLoader(true, t("common.checkingAccess"));
 
   onAuthStateChanged(auth, async (user) => {
     if (isLoadingAdminData) return;
@@ -111,8 +126,8 @@ function observeAuth() {
       const userDoc = await getDoc(doc(db, "users", user.uid));
 
       if (!userDoc.exists()) {
-        showTableError("userTableBody", 7, "Không tìm thấy hồ sơ người dùng.");
-        showToast("Không tìm thấy hồ sơ người dùng", "error");
+        showTableError("userTableBody", 7, t("admin.profileNotFound"));
+        showToast(t("admin.profileNotFound"), "error");
         setTimeout(() => { location.href = "./index.html"; }, 2000);
         return;
       }
@@ -122,15 +137,15 @@ function observeAuth() {
       const status = String(profile.status || "").trim().toLowerCase();
 
       if (role !== "admin") {
-        showTableError("userTableBody", 7, "Tài khoản này không có quyền admin.");
-        showToast("Bạn không có quyền truy cập trang quản trị", "error");
+        showTableError("userTableBody", 7, t("admin.noAdminRole"));
+        showToast(t("admin.noAdminAccess"), "error");
         setTimeout(() => { location.href = "./index.html"; }, 2000);
         return;
       }
 
       if (status !== "active") {
-        showTableError("userTableBody", 7, "Tài khoản admin chưa được kích hoạt.");
-        showToast("Tài khoản admin chưa được kích hoạt", "error");
+        showTableError("userTableBody", 7, t("admin.adminNotActive"));
+        showToast(t("admin.adminNotActive"), "error");
         setTimeout(() => { location.href = "./index.html"; }, 2000);
         return;
       }
@@ -162,10 +177,10 @@ function getFirestoreErrorMessage(error) {
   const code = error?.code || "";
 
   if (code === "permission-denied") {
-    return "Không đủ quyền đọc dữ liệu. Kiểm tra role=admin và status=active trong Firestore.";
+    return t("admin.loadPermissionDenied");
   }
 
-  return error?.message || "Không thể tải dữ liệu từ Firebase.";
+  return error?.message || t("admin.loadFailed");
 }
 
 function updateAdminSidebar(firebaseUser, profile) {
@@ -185,7 +200,7 @@ function getInitials(name) {
 }
 
 async function loadUsers(showLoader = true) {
-  if (showLoader) showPageLoader(true, "Đang đồng bộ hóa danh sách người dùng...");
+  if (showLoader) showPageLoader(true, t("admin.syncingUsers"));
   try {
     const snap = await getDocs(collection(db, "users"));
     users = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -257,10 +272,10 @@ function renderUserTable() {
       <tr>
         <td colspan="7" class="empty-table">${
           userFilter === "pending"
-            ? "Không có tài khoản nào đang chờ duyệt."
+            ? t("admin.noPendingUsers")
             : searchQuery
-              ? "Không tìm thấy người dùng nào phù hợp với điều kiện lọc."
-              : "Chưa có người dùng nào."
+              ? t("admin.noFilterMatch")
+              : t("admin.noUsers")
         }</td>
       </tr>
     `;
@@ -301,8 +316,8 @@ function renderActionButtons(userId, status) {
   if (status === "pending") {
     return `
       <div class="action-buttons">
-        <button type="button" class="btn-action approve btn-approve" data-id="${userId}">Phê duyệt</button>
-        <button type="button" class="btn-action reject btn-reject" data-id="${userId}">Từ chối</button>
+        <button type="button" class="btn-action approve btn-approve" data-id="${userId}">${t("common.approve")}</button>
+        <button type="button" class="btn-action reject btn-reject" data-id="${userId}">${t("common.reject")}</button>
       </div>
     `;
   }
@@ -310,15 +325,15 @@ function renderActionButtons(userId, status) {
   if (status === "active") {
     return `
       <div class="action-buttons">
-        <span class="admin-reviewed-note">Đã kiểm duyệt</span>
-        <button type="button" class="btn-action lock btn-lock" data-id="${userId}">Khóa</button>
+        <span class="admin-reviewed-note">${t("admin.statusActive")}</span>
+        <button type="button" class="btn-action lock btn-lock" data-id="${userId}">${t("common.lock")}</button>
       </div>
     `;
   }
 
   return `
     <div class="action-buttons">
-      <button type="button" class="btn-action unlock btn-unlock" data-id="${userId}">Mở khóa</button>
+      <button type="button" class="btn-action unlock btn-unlock" data-id="${userId}">${t("common.unlock")}</button>
     </div>
   `;
 }
@@ -337,12 +352,12 @@ function setupUserTableEvents() {
           role: newRole,
           updatedAt: serverTimestamp()
         });
-        showToast("Đã cập nhật vai trò người dùng", "success");
+        showToast(t("admin.roleUpdated"), "success");
         await loadUsers();
       } catch (error) {
         console.error(error);
         e.target.value = currentRole;
-        showToast("Không thể cập nhật vai trò", "error");
+        showToast(t("admin.roleUpdateFailed"), "error");
       }
     });
   });
@@ -366,7 +381,7 @@ function setupUserTableEvents() {
 
 async function handleStatusChange(userId, action) {
   const user = users.find((u) => u.id === userId);
-  const displayName = user?.hoTen || user?.email || "người dùng";
+  const displayName = user?.hoTen || user?.email || t("common.account");
 
   let newStatus;
   let message;
@@ -375,21 +390,21 @@ async function handleStatusChange(userId, action) {
   switch (action) {
     case "approve":
       newStatus = "active";
-      message = `Đã phê duyệt tài khoản: ${displayName}`;
+      message = `${t("common.approve")}: ${displayName}`;
       break;
     case "reject":
       newStatus = "locked";
-      message = `Đã từ chối cấp quyền cho: ${displayName}`;
+      message = `${t("common.reject")}: ${displayName}`;
       toastType = "info";
       break;
     case "lock":
       newStatus = "locked";
-      message = `Đã khóa tài khoản: ${displayName}`;
+      message = `${t("common.lock")}: ${displayName}`;
       toastType = "info";
       break;
     case "unlock":
       newStatus = "active";
-      message = `Đã mở khóa tài khoản: ${displayName}`;
+      message = `${t("common.unlock")}: ${displayName}`;
       break;
     default:
       return;
@@ -404,7 +419,7 @@ async function handleStatusChange(userId, action) {
     await loadUsers();
   } catch (error) {
     console.error(error);
-    showToast(error.message || "Không thể cập nhật trạng thái", "error");
+    showToast(error.message || t("admin.statusUpdateFailed"), "error");
   }
 }
 
@@ -416,11 +431,11 @@ function normalizeStatus(status) {
 function getStatusLabel(status) {
   switch (status) {
     case "active":
-      return "Hoạt động";
+      return t("admin.statusActive");
     case "locked":
-      return "Bị khóa";
+      return t("admin.statusLocked");
     default:
-      return "Chờ duyệt";
+      return t("admin.statusPending");
   }
 }
 
@@ -429,7 +444,8 @@ function formatCreatedAt(createdAt) {
 
   try {
     const date = createdAt.toDate ? createdAt.toDate() : new Date(createdAt.seconds * 1000);
-    return date.toLocaleString("vi-VN", {
+    const locale = getLang() === "en" ? "en-US" : "vi-VN";
+    return date.toLocaleString(locale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -442,12 +458,12 @@ function formatCreatedAt(createdAt) {
 }
 
 async function logout() {
-  showToast("Đang đăng xuất...", "info");
+  showToast(t("admin.loggingOut"), "info");
   await signOut(auth);
   location.href = "./index.html";
 }
 
-function showPageLoader(show, text = "Đang xử lý...") {
+function showPageLoader(show, text = t("common.loading")) {
   const loader = document.getElementById("pageLoader");
   const loaderText = document.getElementById("pageLoaderText");
   if (!loader) return;
@@ -481,7 +497,7 @@ function setActiveNav(section) {
 }
 
 async function reloadChecklistData(showLoader = true) {
-  if (showLoader) showPageLoader(true, "Đang tải checklist...");
+  if (showLoader) showPageLoader(true, t("admin.loadingChecklist"));
   try {
     await loadCategories();
 
@@ -590,7 +606,7 @@ function renderCategoryList() {
 
   if (!checklistCategories.length) {
     if (hint) hint.classList.add("hidden");
-    container.innerHTML = `<span class="category-empty-note">Chưa có danh mục. Bấm "Tạo danh mục" để bắt đầu.</span>`;
+    container.innerHTML = `<span class="category-empty-note">${escapeHtml(t("admin.noCategories"))}</span>`;
     return;
   }
 
@@ -603,7 +619,7 @@ function renderCategoryList() {
           class="category-chip"
           draggable="true"
           data-id="${escapeHtml(category.id)}"
-          title="Kéo để sắp xếp"
+          title="${escapeHtml(t("admin.dragToSort"))}"
         >
           <span class="category-chip-grip" aria-hidden="true">⋮⋮</span>
           ${escapeHtml(category.name)}
@@ -665,7 +681,7 @@ async function reorderCategories(draggedId, targetId) {
   if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
 
   if (checklistCategories.some((category) => String(category.id).startsWith("fallback_"))) {
-    showToast("Danh mục chưa đồng bộ Firestore. Vui lòng tải lại trang.", "error");
+    showToast(t("admin.categoryNotSynced"), "error");
     return;
   }
 
@@ -683,7 +699,7 @@ async function reorderCategories(draggedId, targetId) {
   populateCategorySelect(document.getElementById("checkCategory")?.value || "");
 
   try {
-    showPageLoader(true, "Đang cập nhật thứ tự danh mục...");
+    showPageLoader(true, t("admin.updatingCategoryOrder"));
     await Promise.all(
       checklistCategories.map((category, index) =>
         updateDoc(doc(db, "checklistCategories", category.id), {
@@ -692,10 +708,10 @@ async function reorderCategories(draggedId, targetId) {
         })
       )
     );
-    showToast("Đã cập nhật thứ tự danh mục", "success");
+    showToast(t("admin.categoryOrderUpdated"), "success");
   } catch (error) {
     console.error(error);
-    showToast("Không thể cập nhật thứ tự danh mục", "error");
+    showToast(t("admin.categoryOrderFailed"), "error");
     await reloadChecklistData(false);
   } finally {
     showPageLoader(false);
@@ -707,12 +723,12 @@ function populateCategorySelect(selectedValue = "") {
   if (!select) return;
 
   if (!checklistCategories.length) {
-    select.innerHTML = `<option value="">Chưa có danh mục — hãy tạo danh mục trước</option>`;
+    select.innerHTML = `<option value="">${escapeHtml(t("admin.createCategoryFirst"))}</option>`;
     return;
   }
 
   select.innerHTML = [
-    `<option value="">-- Chọn danh mục --</option>`,
+    `<option value="">${t("common.select")}</option>`,
     ...checklistCategories.map((category) => {
       const selected = category.name === selectedValue ? "selected" : "";
       return `<option value="${escapeHtml(category.name)}" ${selected}>${escapeHtml(category.name)}</option>`;
@@ -732,17 +748,17 @@ function closeCategoryModal() {
 async function saveCategory() {
   const name = document.getElementById("newCategoryName").value.trim();
   if (!name) {
-    showToast("Vui lòng nhập tên danh mục", "error");
+    showToast(t("admin.enterCategoryName"), "error");
     return;
   }
 
   if (checklistCategories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-    showToast("Danh mục này đã tồn tại", "error");
+    showToast(t("admin.categoryExists"), "error");
     return;
   }
 
   try {
-    showPageLoader(true, "Đang tạo danh mục...");
+    showPageLoader(true, t("admin.creatingCategory"));
     const nextOrder = checklistCategories.length
       ? Math.max(...checklistCategories.map((c) => Number(c.order) || 0)) + 1
       : 1;
@@ -755,11 +771,11 @@ async function saveCategory() {
     });
 
     closeCategoryModal();
-    showToast("Đã tạo danh mục mới", "success");
+    showToast(t("admin.categoryCreated"), "success");
     await reloadChecklistData(false);
   } catch (error) {
     console.error(error);
-    showToast(error.message || "Không thể tạo danh mục", "error");
+    showToast(error.message || t("admin.categoryCreateFailed"), "error");
   } finally {
     showPageLoader(false);
   }
@@ -789,7 +805,7 @@ function renderChecklistTable() {
   if (!tbody) return;
 
   if (!checklistItems.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-table">Chưa có câu hỏi checklist. Tạo danh mục rồi bấm "Thêm câu hỏi".</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-table">${escapeHtml(t("admin.noChecklistQuestions"))}</td></tr>`;
     return;
   }
 
@@ -805,22 +821,22 @@ function renderChecklistTable() {
           <td class="checklist-area-cell">${escapeHtml(item.area || "ALL")}</td>
           <td class="checklist-order-cell">
             <div class="order-buttons">
-              <button type="button" class="order-btn btn-move-up" data-id="${item.id}" ${canMoveUp ? "" : "disabled"} title="Lên">▲</button>
-              <button type="button" class="order-btn btn-move-down" data-id="${item.id}" ${canMoveDown ? "" : "disabled"} title="Xuống">▼</button>
+              <button type="button" class="order-btn btn-move-up" data-id="${item.id}" ${canMoveUp ? "" : "disabled"} title="${escapeHtml(t("admin.moveUp"))}">▲</button>
+              <button type="button" class="order-btn btn-move-down" data-id="${item.id}" ${canMoveDown ? "" : "disabled"} title="${escapeHtml(t("admin.moveDown"))}">▼</button>
             </div>
           </td>
           <td class="checklist-status-cell">
             <span class="status-badge status-${isActive ? "active" : "locked"}">
-              ${isActive ? "Đang dùng" : "Đã tắt"}
+              ${isActive ? t("admin.inUse") : t("admin.disabled")}
             </span>
           </td>
           <td class="checklist-actions-cell">
             <div class="action-buttons checklist-action-buttons">
-              <button type="button" class="btn-action btn-edit-checklist" data-id="${item.id}">Sửa</button>
+              <button type="button" class="btn-action btn-edit-checklist" data-id="${item.id}">${t("common.edit")}</button>
               <button type="button" class="btn-action reject btn-toggle-checklist" data-id="${item.id}" data-active="${isActive}">
-                ${isActive ? "Tắt" : "Bật"}
+                ${isActive ? t("common.disable") : t("common.enable")}
               </button>
-              <button type="button" class="btn-action reject btn-delete-checklist" data-id="${item.id}">Xóa</button>
+              <button type="button" class="btn-action reject btn-delete-checklist" data-id="${item.id}">${t("common.delete")}</button>
             </div>
           </td>
         </tr>
@@ -867,7 +883,7 @@ async function moveChecklistItem(id, direction) {
   const target = siblings[targetIndex];
 
   try {
-    showPageLoader(true, "Đang cập nhật thứ tự...");
+    showPageLoader(true, t("admin.updatingOrder"));
     await Promise.all([
       updateDoc(doc(db, "checklistItems", current.id), {
         order: Number(target.order) || targetIndex + 1,
@@ -879,10 +895,10 @@ async function moveChecklistItem(id, direction) {
       })
     ]);
     await reloadChecklistData(false);
-    showToast("Đã cập nhật thứ tự câu hỏi", "success");
+    showToast(t("admin.questionOrderUpdated"), "success");
   } catch (error) {
     console.error(error);
-    showToast("Không thể đổi thứ tự câu hỏi", "error");
+    showToast(t("admin.questionOrderFailed"), "error");
   } finally {
     showPageLoader(false);
   }
@@ -890,7 +906,7 @@ async function moveChecklistItem(id, direction) {
 
 function openChecklistModal(item = null) {
   if (!checklistCategories.length) {
-    showToast("Vui lòng tạo danh mục trước khi thêm câu hỏi", "error");
+    showToast(t("admin.createCategoryFirst"), "error");
     openCategoryModal();
     return;
   }
@@ -898,8 +914,8 @@ function openChecklistModal(item = null) {
   editingChecklistId = item?.id || null;
 
   document.getElementById("checklistModalTitle").textContent = item
-    ? "Sửa câu hỏi checklist"
-    : "Thêm câu hỏi checklist";
+    ? t("admin.editQuestionTitle")
+    : t("admin.addQuestionTitle");
 
   populateCategorySelect(item?.category || "");
   populateCheckAreaSelect(item?.area || "ALL");
@@ -931,7 +947,7 @@ async function saveChecklist() {
   const active = document.getElementById("checkActive").checked;
 
   if (!category || !text) {
-    showToast("Vui lòng chọn danh mục và nhập nội dung câu hỏi", "error");
+    showToast(t("admin.fillQuestionForm"), "error");
     return;
   }
 
@@ -956,25 +972,25 @@ async function saveChecklist() {
   };
 
   try {
-    showPageLoader(true, "Đang lưu câu hỏi...");
+    showPageLoader(true, t("admin.savingQuestion"));
 
     if (editingChecklistId) {
       await updateDoc(doc(db, "checklistItems", editingChecklistId), data);
-      showToast("Đã cập nhật câu hỏi checklist", "success");
+      showToast(t("admin.questionUpdated"), "success");
     } else {
       const id = `check_${Date.now()}`;
       await setDoc(doc(db, "checklistItems", id), {
         ...data,
         createdAt: serverTimestamp()
       });
-      showToast("Đã thêm câu hỏi vào cuối danh mục", "success");
+      showToast(t("admin.questionAdded"), "success");
     }
 
     closeChecklistModal();
     await reloadChecklistData(false);
   } catch (error) {
     console.error(error);
-    showToast(error.message || "Không thể lưu câu hỏi", "error");
+    showToast(error.message || t("admin.questionSaveFailed"), "error");
   } finally {
     showPageLoader(false);
   }
@@ -986,11 +1002,11 @@ async function toggleChecklistActive(id, currentlyActive) {
       active: !currentlyActive,
       updatedAt: serverTimestamp()
     });
-    showToast(currentlyActive ? "Đã tắt câu hỏi" : "Đã bật câu hỏi", "success");
+    showToast(currentlyActive ? t("admin.questionDisabled") : t("admin.questionEnabled"), "success");
     await reloadChecklistData(false);
   } catch (error) {
     console.error(error);
-    showToast("Không thể cập nhật trạng thái câu hỏi", "error");
+    showToast(t("admin.questionStatusFailed"), "error");
   }
 }
 
@@ -1002,13 +1018,13 @@ async function deleteChecklist(id) {
   if (!confirmed) return;
 
   try {
-    showPageLoader(true, "Đang xóa câu hỏi...");
+    showPageLoader(true, t("admin.deletingQuestion"));
     await deleteDoc(doc(db, "checklistItems", id));
-    showToast("Đã xóa câu hỏi checklist", "success");
+    showToast(t("admin.questionDeleted"), "success");
     await reloadChecklistData(false);
   } catch (error) {
     console.error(error);
-    showToast("Không thể xóa câu hỏi", "error");
+    showToast(t("admin.questionDeleteFailed"), "error");
   } finally {
     showPageLoader(false);
   }
@@ -1021,7 +1037,7 @@ function populateCheckAreaSelect(selectedValue = "ALL") {
 }
 
 async function reloadBranchData(showLoader = true) {
-  if (showLoader) showPageLoader(true, "Đang tải chi nhánh...");
+  if (showLoader) showPageLoader(true, t("admin.loadingBranches"));
   try {
     await loadBranches();
 
@@ -1068,7 +1084,7 @@ function renderBranchTable() {
   if (!tbody) return;
 
   if (!branchList.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="empty-table">Chưa có chi nhánh. Bấm "Thêm chi nhánh" để bắt đầu.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-table">${escapeHtml(t("admin.noBranches"))}</td></tr>`;
     return;
   }
 
@@ -1081,15 +1097,15 @@ function renderBranchTable() {
           <td class="text-center">${Number(branch.order) || 0}</td>
           <td>
             <span class="status-badge status-${isActive ? "active" : "locked"}">
-              ${isActive ? "Đang dùng" : "Đã tắt"}
+              ${isActive ? t("admin.inUse") : t("admin.disabled")}
             </span>
           </td>
           <td class="checklist-actions-cell">
             <div class="action-buttons checklist-action-buttons">
               <button type="button" class="btn-action reject btn-toggle-branch" data-id="${branch.id}" data-active="${isActive}">
-                ${isActive ? "Tắt" : "Bật"}
+                ${isActive ? t("common.disable") : t("common.enable")}
               </button>
-              <button type="button" class="btn-action reject btn-delete-branch" data-id="${branch.id}">Xóa</button>
+              <button type="button" class="btn-action reject btn-delete-branch" data-id="${branch.id}">${t("common.delete")}</button>
             </div>
           </td>
         </tr>
@@ -1122,17 +1138,17 @@ function closeBranchModal() {
 async function saveBranch() {
   const name = document.getElementById("newBranchName").value.trim();
   if (!name) {
-    showToast("Vui lòng nhập tên chi nhánh", "error");
+    showToast(t("admin.enterBranchName"), "error");
     return;
   }
 
   if (branchList.some((branch) => branch.name.toLowerCase() === name.toLowerCase())) {
-    showToast("Chi nhánh này đã tồn tại", "error");
+    showToast(t("admin.branchExists"), "error");
     return;
   }
 
   try {
-    showPageLoader(true, "Đang thêm chi nhánh...");
+    showPageLoader(true, t("admin.addingBranch"));
     const nextOrder = branchList.length
       ? Math.max(...branchList.map((branch) => Number(branch.order) || 0)) + 1
       : 1;
@@ -1145,11 +1161,11 @@ async function saveBranch() {
     });
 
     closeBranchModal();
-    showToast("Đã thêm chi nhánh mới", "success");
+    showToast(t("admin.branchAdded"), "success");
     await reloadBranchData(false);
   } catch (error) {
     console.error(error);
-    showToast(error.message || "Không thể thêm chi nhánh", "error");
+    showToast(error.message || t("admin.branchAddFailed"), "error");
   } finally {
     showPageLoader(false);
   }
@@ -1161,11 +1177,11 @@ async function toggleBranchActive(id, currentlyActive) {
       active: !currentlyActive,
       updatedAt: serverTimestamp()
     });
-    showToast(currentlyActive ? "Đã tắt chi nhánh" : "Đã bật chi nhánh", "success");
+    showToast(currentlyActive ? t("admin.branchDisabled") : t("admin.branchEnabled"), "success");
     await reloadBranchData(false);
   } catch (error) {
     console.error(error);
-    showToast("Không thể cập nhật trạng thái chi nhánh", "error");
+    showToast(t("admin.branchStatusFailed"), "error");
   }
 }
 
@@ -1182,13 +1198,13 @@ async function deleteBranch(id) {
   if (!confirmed) return;
 
   try {
-    showPageLoader(true, "Đang xóa chi nhánh...");
+    showPageLoader(true, t("admin.deletingBranch"));
     await deleteDoc(doc(db, "branches", id));
-    showToast("Đã xóa chi nhánh", "success");
+    showToast(t("admin.branchDeleted"), "success");
     await reloadBranchData(false);
   } catch (error) {
     console.error(error);
-    showToast("Không thể xóa chi nhánh", "error");
+    showToast(t("admin.branchDeleteFailed"), "error");
   } finally {
     showPageLoader(false);
   }

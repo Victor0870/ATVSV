@@ -6,19 +6,19 @@
   <title>Hành động khắc phục - Idemitsu</title>
   <link rel="stylesheet" href="./style.css?v=20250606">
 </head>
-<body class="admin-page">
+<body class="admin-page" data-page-title-key="page.remediation">
   <div id="pageLoader" class="page-loader">
     <div class="loader-card">
       <div class="spinner"></div>
-      <p id="pageLoaderText">Đang tải dữ liệu...</p>
+      <p id="pageLoaderText" data-i18n="common.loadingData">Đang tải dữ liệu...</p>
     </div>
   </div>
 
   <main id="remediationAccessWrap" class="app-shell auth-screen hidden">
     <section class="empty-card">
-      <h2>Không thể truy cập</h2>
+      <h2 data-i18n="common.accessDenied">Không thể truy cập</h2>
       <p id="remediationGuestMessage">Bạn chưa đăng nhập. Vui lòng đăng nhập trước.</p>
-      <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
+      <a href="./index.html" class="primary-btn inline-btn" data-i18n="common.backToChecklist">Quay về trang checklist</a>
     </section>
   </main>
 
@@ -29,22 +29,29 @@
           <div class="admin-brand-icon">AT</div>
           <div>
             <strong>IDEMITSU ILV</strong>
-            <span>E-Checksheet ATVSV</span>
+            <span data-i18n="nav.brand.eChecksheet">E-Checksheet ATVSV</span>
           </div>
         </div>
 
         <nav class="admin-sidebar-nav">
-          <p class="admin-nav-label">Chức năng</p>
-          <a href="./index.html" class="admin-nav-item">Làm Checklist</a>
-          <a href="./dashboard.html" class="admin-nav-item">Dashboard thống kê</a>
+          <p class="admin-nav-label" data-i18n="nav.section.functions">Chức năng</p>
+          <a href="./index.html" class="admin-nav-item" data-i18n="nav.checklist">Làm Checklist</a>
+          <a href="./dashboard.html" class="admin-nav-item" data-i18n="nav.dashboard">Dashboard thống kê</a>
 
-          <p class="admin-nav-label">Quản lý</p>
-          <a href="./report.html" class="admin-nav-item">Báo cáo &amp; Thống kê</a>
-          <span class="admin-nav-item active">Hành động khắc phục</span>
-          <a id="remediationAdminLink" href="./admin.html" class="admin-nav-item hidden">Quản trị hệ thống</a>
+          <p class="admin-nav-label" data-i18n="nav.section.management">Quản lý</p>
+          <a href="./report.html" class="admin-nav-item" data-i18n="nav.report">Báo cáo &amp; Thống kê</a>
+          <span class="admin-nav-item active" data-i18n="nav.remediation">Hành động khắc phục</span>
+          <a id="remediationAdminLink" href="./admin.html" class="admin-nav-item hidden" data-i18n="nav.admin">Quản trị hệ thống</a>
         </nav>
 
         <div class="admin-sidebar-footer">
+          <div class="sidebar-lang-switch">
+            <span class="sidebar-lang-label" data-i18n="lang.label">Ngôn ngữ</span>
+            <div class="sidebar-lang-actions">
+              <button type="button" class="lang-switch-btn" data-lang="vi">VI</button>
+              <button type="button" class="lang-switch-btn" data-lang="en">EN</button>
+            </div>
+          </div>
           <div class="admin-user-card">
             <div id="remediationUserInitials" class="admin-user-avatar">U</div>
             <div class="admin-user-meta">
@@ -52,7 +59,7 @@
               <span id="sidebarRemediationUserEmail">-</span>
             </div>
           </div>
-          <button type="button" id="remediationLogoutBtn" class="ghost-btn full-btn admin-logout-btn">
+          <button type="button" id="remediationLogoutBtn" class="ghost-btn full-btn admin-logout-btn" data-i18n="common.logout">
             Đăng xuất
           </button>
         </div>
@@ -61,70 +68,70 @@
       <div class="admin-main report-main">
         <div class="topbar admin-topbar">
           <div class="topbar-left">
-            <span class="topbar-tag">Hành động khắc phục</span>
+            <span class="topbar-tag" data-i18n="nav.remediation">Hành động khắc phục</span>
           </div>
         </div>
 
         <section id="remediationMainAccessDenied" class="empty-card hidden">
-          <h2>Không thể truy cập</h2>
+          <h2 data-i18n="common.accessDenied">Không thể truy cập</h2>
           <p id="remediationMainAccessMessage">Bạn không có quyền quản lý hành động khắc phục.</p>
-          <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
+          <a href="./index.html" class="primary-btn inline-btn" data-i18n="common.backToChecklist">Quay về trang checklist</a>
         </section>
 
         <section id="remediationScreen" class="hidden">
           <header class="hero-card">
-            <h1>HÀNH ĐỘNG KHẮC PHỤC</h1>
-            <p>Theo dõi và phân công xử lý các lỗi NG phát sinh từ checklist kiểm tra</p>
+            <h1 data-i18n="remediation.hero.title">HÀNH ĐỘNG KHẮC PHỤC</h1>
+            <p data-i18n="remediation.hero.subtitle">Theo dõi và phân công xử lý các lỗi NG phát sinh từ checklist kiểm tra</p>
           </header>
 
           <section class="filter-card">
             <div class="filter-grid">
               <div class="form-group">
-                <label for="filterIssueStatus">Trạng thái</label>
+                <label for="filterIssueStatus" data-i18n="common.status">Trạng thái</label>
                 <select id="filterIssueStatus"></select>
               </div>
 
               <div class="form-group">
-                <label for="filterIssueArea">Khu vực</label>
+                <label for="filterIssueArea" data-i18n="common.area">Khu vực</label>
                 <select id="filterIssueArea">
-                  <option value="ALL">Tất cả khu vực</option>
+                  <option value="ALL" data-i18n="common.allAreas">Tất cả khu vực</option>
                 </select>
               </div>
 
               <div class="form-group search-group">
-                <label for="filterIssueKeyword">Tìm kiếm</label>
-                <input type="text" id="filterIssueKeyword" placeholder="Phiếu / họ tên / câu hỏi / người phụ trách">
+                <label for="filterIssueKeyword" data-i18n="common.search">Tìm kiếm</label>
+                <input type="text" id="filterIssueKeyword" data-i18n-placeholder="remediation.searchPlaceholder" placeholder="Phiếu / họ tên / câu hỏi / người phụ trách">
               </div>
             </div>
 
             <div class="filter-actions">
-              <button type="button" id="applyIssueFilterBtn" class="primary-btn">Lọc dữ liệu</button>
-              <button type="button" id="resetIssueFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
+              <button type="button" id="applyIssueFilterBtn" class="primary-btn" data-i18n="common.filterApply">Lọc dữ liệu</button>
+              <button type="button" id="resetIssueFilterBtn" class="ghost-btn" data-i18n="common.filterReset">Xóa bộ lọc</button>
             </div>
           </section>
 
           <section class="stats-grid remediation-stats-grid">
             <div class="stat-card">
-              <span class="stat-label">Chờ xử lý</span>
+              <span class="stat-label" data-i18n="remediation.stats.open">Chờ xử lý</span>
               <strong id="statIssueOpen">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Đang khắc phục</span>
+              <span class="stat-label" data-i18n="remediation.stats.inProgress">Đang khắc phục</span>
               <strong id="statIssueProgress">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Hoàn thành</span>
+              <span class="stat-label" data-i18n="remediation.stats.done">Hoàn thành</span>
               <strong id="statIssueDone">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Tổng issue</span>
+              <span class="stat-label" data-i18n="remediation.stats.total">Tổng issue</span>
               <strong id="statIssueTotal">0</strong>
             </div>
           </section>
 
           <section class="report-list-panel">
             <div class="panel-header">
-              <h2>Danh sách issue cần khắc phục</h2>
+              <h2 data-i18n="remediation.issueList">Danh sách issue cần khắc phục</h2>
               <span id="issueCountText">0 kết quả</span>
             </div>
 
@@ -132,17 +139,17 @@
               <table class="admin-table remediation-table">
                 <thead>
                   <tr>
-                    <th>Phiếu / Thời gian</th>
-                    <th>Khu vực</th>
-                    <th>Nội dung lỗi</th>
-                    <th>Phụ trách</th>
-                    <th>Trạng thái</th>
-                    <th>Thao tác</th>
+                    <th data-i18n="remediation.table.ticketTime">Phiếu / Thời gian</th>
+                    <th data-i18n="common.area">Khu vực</th>
+                    <th data-i18n="remediation.table.errorContent">Nội dung lỗi</th>
+                    <th data-i18n="remediation.table.responsible">Phụ trách</th>
+                    <th data-i18n="common.status">Trạng thái</th>
+                    <th data-i18n="common.actions">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody id="issueTableBody">
                   <tr>
-                    <td colspan="6" class="empty-table">Đang tải issue...</td>
+                    <td colspan="6" class="empty-table" data-i18n="common.loadingRow">Đang tải dữ liệu...</td>
                   </tr>
                 </tbody>
               </table>
@@ -156,44 +163,44 @@
   <div id="issueModal" class="modal hidden">
     <div class="modal-backdrop" id="issueModalBackdrop"></div>
     <div class="modal-content modal-content-wide">
-      <h3 id="issueModalTitle">Chi tiết hành động khắc phục</h3>
+      <h3 id="issueModalTitle" data-i18n="remediation.modal.title">Chi tiết hành động khắc phục</h3>
 
       <div id="issueModalReadonly" class="issue-readonly-block"></div>
 
       <div id="issueDiscoveryInfo" class="issue-discovery-info hidden"></div>
 
       <div class="issue-carryover-actions">
-        <button type="button" id="unresolvedIssueBtn" class="ghost-btn">Lỗi chưa xử lý</button>
-        <button type="button" id="clearCarryoverBtn" class="ghost-btn hidden">Bỏ liên kết lỗi cũ</button>
+        <button type="button" id="unresolvedIssueBtn" class="ghost-btn" data-i18n="remediation.modal.unresolved">Lỗi chưa xử lý</button>
+        <button type="button" id="clearCarryoverBtn" class="ghost-btn hidden" data-i18n="remediation.modal.clearCarryover">Bỏ liên kết lỗi cũ</button>
       </div>
 
       <div class="form-group">
-        <label for="issuePlan">Kế hoạch khắc phục</label>
+        <label for="issuePlan" data-i18n="remediation.modal.plan">Kế hoạch khắc phục</label>
         <textarea id="issuePlan" rows="3" placeholder="Mô tả kế hoạch xử lý lỗi..."></textarea>
       </div>
 
       <div class="form-group">
-        <label for="issueAction">Hành động khắc phục</label>
+        <label for="issueAction" data-i18n="remediation.modal.action">Hành động khắc phục</label>
         <textarea id="issueAction" rows="3" placeholder="Các bước / hành động đã và sẽ thực hiện..."></textarea>
       </div>
 
       <div class="form-group">
-        <label for="issueResponsible">Người / bộ phận phụ trách</label>
+        <label for="issueResponsible" data-i18n="remediation.modal.responsible">Người / bộ phận phụ trách</label>
         <input type="text" id="issueResponsible" placeholder="Ví dụ: BP ATVSV - Nguyễn Văn A">
       </div>
 
       <div class="form-group">
-        <label for="issueStatus">Trạng thái khắc phục</label>
+        <label for="issueStatus" data-i18n="remediation.modal.status">Trạng thái khắc phục</label>
         <select id="issueStatus">
-          <option value="open">Chờ xử lý</option>
-          <option value="in_progress">Đang khắc phục</option>
-          <option value="done">Hoàn thành</option>
+          <option value="open" data-i18n="remediation.status.open">Chờ xử lý</option>
+          <option value="in_progress" data-i18n="remediation.status.in_progress">Đang khắc phục</option>
+          <option value="done" data-i18n="remediation.status.done">Hoàn thành</option>
         </select>
       </div>
 
       <div class="modal-actions">
-        <button type="button" id="saveIssueBtn" class="primary-btn">Lưu cập nhật</button>
-        <button type="button" id="cancelIssueBtn" class="ghost-btn">Đóng</button>
+        <button type="button" id="saveIssueBtn" class="primary-btn" data-i18n="remediation.modal.save">Lưu cập nhật</button>
+        <button type="button" id="cancelIssueBtn" class="ghost-btn" data-i18n="common.close">Đóng</button>
       </div>
     </div>
   </div>
@@ -201,30 +208,30 @@
   <div id="unresolvedPickerModal" class="modal hidden">
     <div class="modal-backdrop" id="unresolvedPickerBackdrop"></div>
     <div class="modal-content modal-content-wide">
-      <h3>Chọn lỗi NG chưa hoàn thành</h3>
-      <p class="issue-picker-note">
+      <h3 data-i18n="remediation.picker.title">Chọn lỗi NG chưa hoàn thành</h3>
+      <p class="issue-picker-note" data-i18n="remediation.picker.note">
         Danh sách các lỗi cùng chi nhánh, cùng câu hỏi checklist và chưa hoàn thành khắc phục.
       </p>
       <div class="admin-table-container unresolved-picker-table-wrap">
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Phiếu / Thời gian phát hiện</th>
-              <th>Trạng thái</th>
-              <th>Phụ trách</th>
-              <th>Kế hoạch</th>
-              <th>Chọn</th>
+              <th data-i18n="remediation.picker.discoveryTime">Phiếu / Thời gian phát hiện</th>
+              <th data-i18n="common.status">Trạng thái</th>
+              <th data-i18n="remediation.table.responsible">Phụ trách</th>
+              <th data-i18n="remediation.modal.plan">Kế hoạch khắc phục</th>
+              <th data-i18n="common.select">Chọn</th>
             </tr>
           </thead>
           <tbody id="unresolvedPickerBody">
             <tr>
-              <td colspan="5" class="empty-table">Đang tải...</td>
+              <td colspan="5" class="empty-table" data-i18n="common.loadingRow">Đang tải dữ liệu...</td>
             </tr>
           </tbody>
         </table>
       </div>
       <div class="modal-actions">
-        <button type="button" id="closeUnresolvedPickerBtn" class="ghost-btn">Đóng</button>
+        <button type="button" id="closeUnresolvedPickerBtn" class="ghost-btn" data-i18n="common.close">Đóng</button>
       </div>
     </div>
   </div>

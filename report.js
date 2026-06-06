@@ -21,6 +21,7 @@ import {
   matchesReportAreaFilter
 } from "./areas-service.js";
 import { buildIssueId, getRemediationStatusMeta, formatDurationVi, getIssueElapsedMs, getIssueDurationLabel } from "./remediation-service.js";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js";
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
 const DEFAULT_QUERY_LIMIT = 300;
@@ -39,12 +40,27 @@ let toastTimer = null;
 document.addEventListener("DOMContentLoaded", initReportPage);
 
 function initReportPage() {
+  initI18n();
   try {
     bindReportEvents();
     authPersistenceReady.then(() => observeReportAuthState());
+
+    onLanguageChange(async () => {
+      document.querySelectorAll("[data-original-text]").forEach((el) => {
+        delete el.dataset.originalText;
+      });
+      applyI18n();
+      await loadReportBranches();
+      renderReportStats(filteredSubmissions);
+      renderReportList();
+      if (selectedSubmissionId) {
+        renderReportDetail(selectedSubmissionId);
+      }
+      updateReportCountText();
+    });
   } catch (error) {
     console.error(error);
-    showAccessDenied("Không thể khởi tạo trang báo cáo. Vui lòng tải lại hoặc liên hệ quản trị viên.");
+    showAccessDenied(t("report.initFailed"));
     showPageLoader(false);
   }
 }
@@ -85,12 +101,12 @@ function bindReportEvents() {
 }
 
 function observeReportAuthState() {
-  showPageLoader(true, "Đang kiểm tra quyền truy cập báo cáo...");
+  showPageLoader(true, t("report.checkingAccess"));
 
   onAuthStateChanged(auth, async (user) => {
     try {
       if (!user) {
-        showAccessDenied("Bạn chưa đăng nhập. Vui lòng đăng nhập trước khi xem báo cáo.");
+        showAccessDenied(t("report.notLoggedIn"));
         return;
       }
 
@@ -105,7 +121,7 @@ function observeReportAuthState() {
       await loadReportData(getCurrentFilters());
     } catch (error) {
       console.error(error);
-      showAccessDenied(error.message || "Bạn không có quyền xem trang báo cáo.");
+      showAccessDenied(error.message || t("report.noReportAccess"));
     } finally {
       showPageLoader(false);
     }
@@ -117,7 +133,7 @@ async function loadCurrentUserProfile(uid) {
   const userSnap = await getDoc(userRef);
 
   if (!userSnap.exists()) {
-    throw new Error("Không tìm thấy hồ sơ người dùng trong Firestore.");
+    throw new Error(t("report.profileNotFoundFirestore"));
   }
 
   const data = userSnap.data();
@@ -135,16 +151,16 @@ async function loadCurrentUserProfile(uid) {
 
 function ensureReportAccess(profile) {
   if (!profile) {
-    throw new Error("Không tìm thấy hồ sơ người dùng.");
+    throw new Error(t("report.profileNotFound"));
   }
 
   if (profile.status !== "active") {
-    throw new Error("Tài khoản của bạn đang ở trạng thái không hoạt động.");
+    throw new Error(t("report.accountInactive"));
   }
 
   const role = String(profile.role || "").trim().toLowerCase();
   if (!ALLOWED_REPORT_ROLES.includes(role)) {
-    throw new Error("Bạn không có quyền xem trang báo cáo.");
+    throw new Error(t("report.noReportAccess"));
   }
 }
 
@@ -197,7 +213,7 @@ async function applyFilters() {
   const filters = getCurrentFilters();
 
   if (filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) {
-    showToast("Ngày bắt đầu không được lớn hơn ngày kết thúc.", "error");
+    showToast(t("report.dateRangeInvalid"), "error");
     return;
   }
 
@@ -227,7 +243,7 @@ async function loadReportBranches() {
 }
 
 async function loadReportData(filters) {
-  showPageLoader(true, "Đang tải dữ liệu báo cáo...");
+  showPageLoader(true, t("report.loadingData"));
 
   try {
     const submissionsRef = collection(db, "submissions");
@@ -271,7 +287,7 @@ async function loadReportData(filters) {
     if (selectedSubmissionId) {
       renderReportDetail(selectedSubmissionId);
     } else {
-      renderEmptyDetail("Không có dữ liệu phù hợp với bộ lọc.");
+      renderEmptyDetail(t("report.noFilterResults"));
     }
 
     updateReportCountText();
@@ -283,12 +299,12 @@ async function loadReportData(filters) {
     console.error(error);
 
     if (String(error.message || "").includes("index")) {
-      showToast("Truy vấn cần tạo chỉ mục Firestore. Hãy bấm link trong lỗi ở Console để tạo index.", "error");
+      showToast(t("report.indexRequired"), "error");
     } else {
-      showToast("Không thể tải dữ liệu báo cáo.", "error");
+      showToast(t("report.loadFailed"), "error");
     }
 
-    renderEmptyDetail("Không thể tải dữ liệu báo cáo.");
+    renderEmptyDetail(t("report.loadFailed"));
   } finally {
     showPageLoader(false);
   }
@@ -371,7 +387,7 @@ function renderReportPagination(totalPages) {
   pagination.classList.remove("hidden");
   prevBtn.disabled = currentReportPage <= 1;
   nextBtn.disabled = currentReportPage >= totalPages;
-  pageInfo.textContent = `Trang ${currentReportPage} / ${totalPages}`;
+  pageInfo.textContent = t("common.pageOf", { current: currentReportPage, total: totalPages });
 }
 
 function renderReportList() {
@@ -381,8 +397,8 @@ function renderReportList() {
     renderReportPagination(1);
     listContainer.innerHTML = `
       <div class="empty-card" style="margin: 12px;">
-        <h3>Không có dữ liệu</h3>
-        <p>Không tìm thấy phiếu nào phù hợp với điều kiện lọc hiện tại.</p>
+        <h3>${escapeHtml(t("common.noData"))}</h3>
+        <p>${escapeHtml(t("report.noFilterResults"))}</p>
       </div>
     `;
     return;
@@ -403,10 +419,10 @@ function renderReportList() {
         <div class="submission-card ${isActive ? "active" : ""}" data-submission-id="${escapeHtml(item.submissionId)}">
           <div class="submission-title">${escapeHtml(item.hoTen || "-")} - ${escapeHtml(item.submissionId || "-")}</div>
           <div class="submission-meta">
-            <div><strong>Thời gian:</strong> ${escapeHtml(item.createdAtText || "-")}</div>
-            <div><strong>Tài khoản:</strong> ${escapeHtml(item.taiKhoan || "-")}</div>
-            <div><strong>Email:</strong> ${escapeHtml(item.email || "-")}</div>
-            <div><strong>Khu vực:</strong> ${escapeHtml(item.khuVuc || "-")}</div>
+            <div><strong>${t("report.time")}</strong> ${escapeHtml(item.createdAtText || "-")}</div>
+            <div><strong>${t("report.account")}</strong> ${escapeHtml(item.taiKhoan || "-")}</div>
+            <div><strong>${t("common.email")}:</strong> ${escapeHtml(item.email || "-")}</div>
+            <div><strong>${t("report.area")}</strong> ${escapeHtml(item.khuVuc || "-")}</div>
           </div>
           <div class="badge-row">
             <span class="badge ok">OK: ${summary.okCount || 0}</span>
@@ -430,7 +446,7 @@ async function renderReportDetailAsync(submissionId) {
   const submission = filteredSubmissions.find((item) => item.submissionId === submissionId);
 
   if (!submission) {
-    renderEmptyDetail("Không tìm thấy chi tiết phiếu.");
+    renderEmptyDetail(t("report.submissionNotFound"));
     return;
   }
 
@@ -462,7 +478,7 @@ async function renderReportDetailAsync(submissionId) {
 
           ${
             answer.note
-              ? `<div class="detail-answer-note"><strong>Mô tả lỗi:</strong> ${escapeHtml(answer.note)}</div>`
+              ? `<div class="detail-answer-note"><strong>${t("report.errorDescription")}</strong> ${escapeHtml(answer.note)}</div>`
               : ""
           }
 
@@ -478,13 +494,13 @@ async function renderReportDetailAsync(submissionId) {
                         <div class="detail-image-item">
                           <img
                             src="${img.url}"
-                            alt="Ảnh minh chứng"
+                            alt="${escapeHtml(t("common.imageEvidence"))}"
                             class="report-detail-image"
                             data-full-src="${img.url}"
                           >
                           <div class="detail-image-caption">
-                            <div><strong>Tên file:</strong> ${escapeHtml(img.name || "-")}</div>
-                            <div><strong>Dung lượng:</strong> ${formatBytes(img.size || 0)}</div>
+                            <div><strong>${t("checklist.previewFileName")}</strong> ${escapeHtml(img.name || "-")}</div>
+                            <div><strong>${t("checklist.previewCompressedSize")}</strong> ${formatBytes(img.size || 0)}</div>
                           </div>
                         </div>
                       `
@@ -503,11 +519,11 @@ async function renderReportDetailAsync(submissionId) {
     <div class="detail-header">
       <h3>${escapeHtml(submission.submissionId || "-")}</h3>
       <div class="detail-meta">
-        <div><strong>Thời gian:</strong> ${escapeHtml(submission.createdAtText || "-")}</div>
-        <div><strong>Họ tên:</strong> ${escapeHtml(submission.hoTen || "-")}</div>
-        <div><strong>Email:</strong> ${escapeHtml(submission.email || "-")}</div>
-        <div><strong>Tài khoản:</strong> ${escapeHtml(submission.taiKhoan || "-")}</div>
-        <div><strong>Khu vực:</strong> ${escapeHtml(submission.khuVuc || "-")}</div>
+        <div><strong>${t("report.time")}</strong> ${escapeHtml(submission.createdAtText || "-")}</div>
+        <div><strong>${t("common.fullName")}:</strong> ${escapeHtml(submission.hoTen || "-")}</div>
+        <div><strong>${t("common.email")}:</strong> ${escapeHtml(submission.email || "-")}</div>
+        <div><strong>${t("report.account")}</strong> ${escapeHtml(submission.taiKhoan || "-")}</div>
+        <div><strong>${t("report.area")}</strong> ${escapeHtml(submission.khuVuc || "-")}</div>
       </div>
       <div class="badge-row">
         <span class="badge ok">OK: ${submission.summary?.okCount || 0}</span>
@@ -516,7 +532,7 @@ async function renderReportDetailAsync(submissionId) {
       </div>
     </div>
 
-    ${answersHtml || '<div class="empty-detail">Phiếu này chưa có câu trả lời.</div>'}
+    ${answersHtml || `<div class="empty-detail">${escapeHtml(t("common.noData"))}</div>`}
   `;
 }
 
@@ -534,22 +550,22 @@ function renderRemediationStatusBlock(issue, issueId) {
   if (!issue) {
     return `
       <div class="remediation-inline-block">
-        <span class="remediation-status-badge remediation-status-open">Chưa tạo issue</span>
+        <span class="remediation-status-badge remediation-status-open">${escapeHtml(t("report.issueNotCreated"))}</span>
       </div>
     `;
   }
 
   const statusMeta = getRemediationStatusMeta(issue.status);
   const responsible = issue.responsible
-    ? `<div><strong>Phụ trách:</strong> ${escapeHtml(issue.responsible)}</div>`
+    ? `<div><strong>${t("remediation.table.responsible")}:</strong> ${escapeHtml(issue.responsible)}</div>`
     : "";
   const plan = issue.plan
-    ? `<div><strong>Kế hoạch:</strong> ${escapeHtml(issue.plan)}</div>`
+    ? `<div><strong>${t("remediation.modal.plan")}:</strong> ${escapeHtml(issue.plan)}</div>`
     : "";
   const discoveryText = issue.discoveredAtText || issue.submissionCreatedAtText || "-";
   const elapsedMs = getIssueElapsedMs(issue);
   const carryoverNote = issue.isUnresolvedCarryover
-    ? `<div><strong>Loại lỗi:</strong> Lỗi chưa xử lý xong từ báo cáo trước</div>`
+    ? `<div>${escapeHtml(t("report.carryoverNote"))}</div>`
     : "";
 
   return `
@@ -557,10 +573,10 @@ function renderRemediationStatusBlock(issue, issueId) {
       <div class="remediation-inline-header">
         <span class="remediation-status-badge ${statusMeta.badgeClass}">${escapeHtml(statusMeta.label)}</span>
         <a href="./remediation.html?issue=${encodeURIComponent(issueId)}" class="remediation-link-btn">
-          Xem hành động khắc phục
+          ${t("report.viewRemediation")}
         </a>
       </div>
-      <div><strong>Thời gian phát hiện:</strong> ${escapeHtml(discoveryText)}</div>
+      <div><strong>${t("remediation.picker.discoveryTime")}:</strong> ${escapeHtml(discoveryText)}</div>
       <div><strong>${escapeHtml(getIssueDurationLabel(issue.status))}:</strong> ${escapeHtml(formatDurationVi(elapsedMs))}</div>
       ${carryoverNote}
       ${responsible}
@@ -577,10 +593,10 @@ function renderEmptyDetail(message) {
 
 function updateReportCountText() {
   const totalPages = getTotalReportPages();
-  const countText = `${filteredSubmissions.length} kết quả`;
+  const countText = t("common.resultsCount", { count: filteredSubmissions.length });
 
   if (totalPages > 1) {
-    document.getElementById("reportCountText").textContent = `${countText} · ${REPORT_PAGE_SIZE} phiếu/trang`;
+    document.getElementById("reportCountText").textContent = `${countText} · ${t("common.perPage", { count: REPORT_PAGE_SIZE })}`;
     return;
   }
 
@@ -589,7 +605,7 @@ function updateReportCountText() {
 
 function exportCsv() {
   if (!filteredSubmissions.length) {
-    showToast("Không có dữ liệu để xuất CSV", "error");
+    showToast(t("report.noCsvData"), "error");
     return;
   }
 
@@ -644,7 +660,7 @@ function exportCsv() {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 
-  showToast("Đã xuất file CSV", "success");
+  showToast(t("report.csvExported"), "success");
 }
 
 async function handleLogout() {
@@ -653,7 +669,7 @@ async function handleLogout() {
     window.location.href = "./index.html";
   } catch (error) {
     console.error(error);
-    showToast("Không thể đăng xuất. Vui lòng thử lại.", "error");
+    showToast(t("common.logoutFailed"), "error");
   }
 }
 
@@ -673,7 +689,7 @@ function closeImageModal() {
   modal.classList.add("hidden");
 }
 
-function showPageLoader(show, text = "Đang xử lý...") {
+function showPageLoader(show, text = t("common.loading")) {
   const loader = document.getElementById("pageLoader");
   const loaderText = document.getElementById("pageLoaderText");
 

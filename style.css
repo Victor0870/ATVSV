@@ -1976,6 +1976,61 @@ textarea {
   vertical-align: middle;
 }
 
+.sidebar-lang-switch,
+.auth-lang-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f2f6;
+}
+
+.auth-lang-switch {
+  margin-bottom: 16px;
+  padding-bottom: 0;
+  border-bottom: none;
+  justify-content: flex-end;
+}
+
+.sidebar-lang-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sidebar-lang-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.lang-switch-btn {
+  min-width: 42px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--brand-black);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lang-switch-btn:hover {
+  border-color: var(--brand-red);
+  color: var(--brand-red);
+}
+
+.lang-switch-btn.active {
+  background: var(--brand-red);
+  border-color: var(--brand-red);
+  color: #fff;
+}
+
 .dashboard-chart-panel {
   background: #fff;
   border: 1px solid var(--border);

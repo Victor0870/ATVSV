@@ -1,4 +1,5 @@
 import { db, collection, getDocs } from "./firebase-config.js";
+import { t } from "./i18n.js";
 
 export const FACTORY_AREA = "Nhà máy";
 export const ALL_BRANCHES_AREA = "Chi nhánh";
@@ -91,9 +92,9 @@ export function matchesReportAreaFilter(submissionArea, filterArea, branchNames 
 
 export function buildChecklistAreaOptions(branches = [], selectedValue = "ALL") {
   const options = [
-    { value: "ALL", label: "Tất cả khu vực" },
-    { value: FACTORY_AREA, label: FACTORY_AREA },
-    { value: ALL_BRANCHES_AREA, label: "Tất cả chi nhánh" }
+    { value: "ALL", label: t("common.allAreas") },
+    { value: FACTORY_AREA, label: t("filter.areaType.factory") },
+    { value: ALL_BRANCHES_AREA, label: t("filter.allBranchesGroup") }
   ];
 
   getActiveBranchNames(branches).forEach((branchName) => {
@@ -110,9 +111,9 @@ export function buildChecklistAreaOptions(branches = [], selectedValue = "ALL") 
 
 export function buildReportFilterOptions(branches = [], selectedValue = "ALL") {
   const options = [
-    { value: "ALL", label: "Tất cả khu vực" },
-    { value: FACTORY_AREA, label: FACTORY_AREA },
-    { value: ALL_BRANCHES_AREA, label: "Tất cả chi nhánh" }
+    { value: "ALL", label: t("common.allAreas") },
+    { value: FACTORY_AREA, label: t("filter.areaType.factory") },
+    { value: ALL_BRANCHES_AREA, label: t("filter.allBranchesGroup") }
   ];
 
   getActiveBranchNames(branches).forEach((branchName) => {

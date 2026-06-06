@@ -1,3 +1,5 @@
+import { t } from "./i18n.js";
+
 export const REMEDIATION_STATUSES = {
   open: { value: "open", label: "Chờ xử lý", badgeClass: "remediation-status-open" },
   in_progress: { value: "in_progress", label: "Đang khắc phục", badgeClass: "remediation-status-progress" },
@@ -11,7 +13,11 @@ export function buildIssueId(submissionId, questionId) {
 }
 
 export function getRemediationStatusMeta(status) {
-  return REMEDIATION_STATUSES[status] || REMEDIATION_STATUSES.open;
+  const base = REMEDIATION_STATUSES[status] || REMEDIATION_STATUSES.open;
+  return {
+    ...base,
+    label: t(`remediation.status.${base.value}`)
+  };
 }
 
 export function buildRemediationIssuePayload(submission, answer) {
@@ -119,16 +125,14 @@ export function formatDurationVi(ms) {
   const hours = Math.floor((ms % 86400000) / 3600000);
   const minutes = Math.floor((ms % 3600000) / 60000);
 
-  if (days > 0) return `${days} ngày ${hours} giờ`;
-  if (hours > 0) return `${hours} giờ ${minutes} phút`;
-  if (minutes > 0) return `${minutes} phút`;
-  return "Dưới 1 phút";
+  if (days > 0) return t("remediation.duration.daysHours", { days, hours });
+  if (hours > 0) return t("remediation.duration.hoursMinutes", { hours, minutes });
+  if (minutes > 0) return t("remediation.duration.minutes", { minutes });
+  return t("remediation.duration.under1Min");
 }
 
 export function getIssueDurationLabel(status) {
-  return status === "done"
-    ? "Thời gian xử lý"
-    : "Thời gian từ lúc phát hiện đến hiện tại";
+  return status === "done" ? t("remediation.duration.done") : t("remediation.duration.open");
 }
 
 export function getIssueElapsedMs(issue, issuesById = new Map(), nowMs = Date.now()) {
@@ -145,10 +149,10 @@ export function getIssueElapsedMs(issue, issuesById = new Map(), nowMs = Date.no
 }
 
 export function buildStatusFilterOptions(selectedValue = "ALL") {
-  const options = [{ value: "ALL", label: "Tất cả trạng thái" }];
+  const options = [{ value: "ALL", label: t("common.allStatuses") }];
 
   Object.values(REMEDIATION_STATUSES).forEach((status) => {
-    options.push({ value: status.value, label: status.label });
+    options.push({ value: status.value, label: t(`remediation.status.${status.value}`) });
   });
 
   return options

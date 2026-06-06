@@ -7,19 +7,19 @@
   <link rel="stylesheet" href="./style.css?v=20250607">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
-<body class="admin-page">
+<body class="admin-page" data-page-title-key="page.dashboard">
   <div id="pageLoader" class="page-loader">
     <div class="loader-card">
       <div class="spinner"></div>
-      <p id="pageLoaderText">Đang tải dashboard...</p>
+      <p id="pageLoaderText" data-i18n="common.loadingData">Đang tải dữ liệu...</p>
     </div>
   </div>
 
   <main id="dashboardGuestWrap" class="app-shell auth-screen hidden">
     <section class="empty-card">
-      <h2>Không thể truy cập</h2>
+      <h2 data-i18n="common.accessDenied">Không thể truy cập</h2>
       <p id="dashboardGuestMessage">Bạn chưa đăng nhập. Vui lòng đăng nhập trước.</p>
-      <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
+      <a href="./index.html" class="primary-btn inline-btn" data-i18n="common.backToChecklist">Quay về trang checklist</a>
     </section>
   </main>
 
@@ -30,22 +30,29 @@
           <div class="admin-brand-icon">AT</div>
           <div>
             <strong>IDEMITSU ILV</strong>
-            <span>E-Checksheet ATVSV</span>
+            <span data-i18n="nav.brand.eChecksheet">E-Checksheet ATVSV</span>
           </div>
         </div>
 
         <nav class="admin-sidebar-nav">
-          <p class="admin-nav-label">Chức năng</p>
-          <a href="./index.html" class="admin-nav-item">Làm Checklist</a>
-          <span class="admin-nav-item active">Dashboard thống kê</span>
+          <p class="admin-nav-label" data-i18n="nav.section.functions">Chức năng</p>
+          <a href="./index.html" class="admin-nav-item" data-i18n="nav.checklist">Làm Checklist</a>
+          <span class="admin-nav-item active" data-i18n="nav.dashboard">Dashboard thống kê</span>
 
-          <p id="dashboardManageNavLabel" class="admin-nav-label hidden">Quản lý</p>
-          <a id="dashboardReportLink" href="./report.html" class="admin-nav-item hidden">Báo cáo &amp; Thống kê</a>
-          <a id="dashboardRemediationLink" href="./remediation.html" class="admin-nav-item hidden">Hành động khắc phục</a>
-          <a id="dashboardAdminLink" href="./admin.html" class="admin-nav-item hidden">Quản trị hệ thống</a>
+          <p id="dashboardManageNavLabel" class="admin-nav-label hidden" data-i18n="nav.section.management">Quản lý</p>
+          <a id="dashboardReportLink" href="./report.html" class="admin-nav-item hidden" data-i18n="nav.report">Báo cáo &amp; Thống kê</a>
+          <a id="dashboardRemediationLink" href="./remediation.html" class="admin-nav-item hidden" data-i18n="nav.remediation">Hành động khắc phục</a>
+          <a id="dashboardAdminLink" href="./admin.html" class="admin-nav-item hidden" data-i18n="nav.admin">Quản trị hệ thống</a>
         </nav>
 
         <div class="admin-sidebar-footer">
+          <div class="sidebar-lang-switch">
+            <span class="sidebar-lang-label" data-i18n="lang.label">Ngôn ngữ</span>
+            <div class="sidebar-lang-actions">
+              <button type="button" class="lang-switch-btn" data-lang="vi">VI</button>
+              <button type="button" class="lang-switch-btn" data-lang="en">EN</button>
+            </div>
+          </div>
           <div class="admin-user-card">
             <div id="dashboardUserInitials" class="admin-user-avatar">U</div>
             <div class="admin-user-meta">
@@ -53,7 +60,7 @@
               <span id="sidebarDashboardUserEmail">-</span>
             </div>
           </div>
-          <button type="button" id="dashboardLogoutBtn" class="ghost-btn full-btn admin-logout-btn">
+          <button type="button" id="dashboardLogoutBtn" class="ghost-btn full-btn admin-logout-btn" data-i18n="common.logout">
             Đăng xuất
           </button>
         </div>
@@ -62,16 +69,16 @@
       <div class="admin-main report-main">
         <section id="dashboardScreen">
           <header class="hero-card">
-            <h1>DASHBOARD THỐNG KÊ ATVSV</h1>
+            <h1 data-i18n="dashboard.hero.title">DASHBOARD THỐNG KÊ ATVSV</h1>
             <p id="dashboardScopeText">Đang tải phạm vi dữ liệu...</p>
           </header>
 
           <section class="dashboard-period-bar">
-            <span class="dashboard-period-label">Thời gian thống kê</span>
+            <span class="dashboard-period-label" data-i18n="dashboard.period.label">Thời gian thống kê</span>
             <div class="dashboard-period-actions">
-              <button type="button" class="filter-chip dashboard-period-btn active" data-period="week">Tuần</button>
-              <button type="button" class="filter-chip dashboard-period-btn" data-period="month">Tháng</button>
-              <button type="button" class="filter-chip dashboard-period-btn" data-period="year">Năm</button>
+              <button type="button" class="filter-chip dashboard-period-btn active" data-period="week" data-i18n="dashboard.period.week">Tuần</button>
+              <button type="button" class="filter-chip dashboard-period-btn" data-period="month" data-i18n="dashboard.period.month">Tháng</button>
+              <button type="button" class="filter-chip dashboard-period-btn" data-period="year" data-i18n="dashboard.period.year">Năm</button>
             </div>
             <span id="dashboardPeriodHint" class="dashboard-period-hint">7 ngày gần nhất</span>
           </section>
@@ -79,52 +86,52 @@
           <section id="dashboardFilterCard" class="filter-card hidden">
             <div class="filter-grid">
               <div class="form-group">
-                <label for="filterDashboardArea">Khu vực</label>
+                <label for="filterDashboardArea" data-i18n="common.area">Khu vực</label>
                 <select id="filterDashboardArea">
-                  <option value="ALL">Tất cả khu vực</option>
+                  <option value="ALL" data-i18n="common.allAreas">Tất cả khu vực</option>
                 </select>
               </div>
             </div>
             <div class="filter-actions">
-              <button type="button" id="applyDashboardFilterBtn" class="primary-btn">Áp dụng</button>
-              <button type="button" id="resetDashboardFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
+              <button type="button" id="applyDashboardFilterBtn" class="primary-btn" data-i18n="common.apply">Áp dụng</button>
+              <button type="button" id="resetDashboardFilterBtn" class="ghost-btn" data-i18n="common.filterReset">Xóa bộ lọc</button>
             </div>
           </section>
 
           <section class="stats-grid">
             <div class="stat-card">
-              <span class="stat-label">Tổng số phiếu</span>
+              <span class="stat-label" data-i18n="common.totalSubmissions">Tổng số phiếu</span>
               <strong id="statTotalSubmissions">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Tổng câu OK</span>
+              <span class="stat-label" data-i18n="common.totalOk">Tổng câu OK</span>
               <strong id="statTotalOk">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Tổng câu NG</span>
+              <span class="stat-label" data-i18n="common.totalNg">Tổng câu NG</span>
               <strong id="statTotalNg">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Tổng câu N/A</span>
+              <span class="stat-label" data-i18n="common.totalNa">Tổng câu N/A</span>
               <strong id="statTotalNa">0</strong>
             </div>
           </section>
 
           <section class="stats-grid remediation-stats-grid">
             <div class="stat-card">
-              <span class="stat-label">Issue chờ xử lý</span>
+              <span class="stat-label" data-i18n="dashboard.stats.issueOpen">Issue chờ xử lý</span>
               <strong id="statIssueOpen">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Đang khắc phục</span>
+              <span class="stat-label" data-i18n="remediation.stats.inProgress">Đang khắc phục</span>
               <strong id="statIssueProgress">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Đã hoàn thành</span>
+              <span class="stat-label" data-i18n="dashboard.stats.issueDone">Đã hoàn thành</span>
               <strong id="statIssueDone">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Thời gian xử lý TB</span>
+              <span class="stat-label" data-i18n="dashboard.stats.avgResolution">Thời gian xử lý TB</span>
               <strong id="statAvgResolution">-</strong>
             </div>
           </section>
@@ -132,7 +139,7 @@
           <section class="dashboard-charts-grid">
             <section class="dashboard-chart-panel">
               <div class="panel-header">
-                <h2 id="trendChartTitle">Xu hướng lỗi NG</h2>
+                <h2 id="trendChartTitle" data-i18n="dashboard.chart.ngTrend">Xu hướng lỗi NG</h2>
               </div>
               <div class="dashboard-chart-wrap">
                 <canvas id="trendChart"></canvas>
@@ -141,7 +148,7 @@
 
             <section class="dashboard-chart-panel">
               <div class="panel-header">
-                <h2>Lỗi chưa hoàn thành khắc phục theo khu vực</h2>
+                <h2 data-i18n="dashboard.chart.unresolvedByArea">Lỗi chưa hoàn thành khắc phục theo khu vực</h2>
               </div>
               <div class="dashboard-chart-wrap">
                 <canvas id="unresolvedAreaChart"></canvas>
@@ -151,16 +158,16 @@
 
           <section class="report-list-panel">
             <div class="panel-header">
-              <h2>Top 5 người phát hiện nhiều lỗi nhất</h2>
+              <h2 data-i18n="dashboard.rank.title">Top 5 người phát hiện nhiều lỗi nhất</h2>
               <span id="topDiscoverersPeriodLabel">Tuần</span>
             </div>
             <div class="admin-table-container">
               <table class="admin-table dashboard-rank-table">
                 <thead>
                   <tr>
-                    <th>STT</th>
-                    <th>Họ tên</th>
-                    <th>Số lỗi phát hiện</th>
+                    <th data-i18n="common.rank">STT</th>
+                    <th data-i18n="common.fullName">Họ tên</th>
+                    <th data-i18n="dashboard.rank.errorsFound">Số lỗi phát hiện</th>
                   </tr>
                 </thead>
                 <tbody id="topDiscoverersBody">
@@ -176,23 +183,23 @@
 
           <section class="report-list-panel">
             <div class="panel-header">
-              <h2>Lỗi NG cần theo dõi</h2>
+              <h2 data-i18n="dashboard.ngTable.title">Lỗi NG cần theo dõi</h2>
               <span id="ngTableCount">0 kết quả</span>
             </div>
             <div class="admin-table-container">
               <table class="admin-table">
                 <thead>
                   <tr>
-                    <th>Phiếu / Thời gian</th>
-                    <th>Khu vực</th>
-                    <th>Nội dung lỗi</th>
-                    <th>Trạng thái khắc phục</th>
-                    <th>Thao tác</th>
+                    <th data-i18n="remediation.table.ticketTime">Phiếu / Thời gian</th>
+                    <th data-i18n="common.area">Khu vực</th>
+                    <th data-i18n="remediation.table.errorContent">Nội dung lỗi</th>
+                    <th data-i18n="dashboard.ngTable.remediationStatus">Trạng thái khắc phục</th>
+                    <th data-i18n="common.actions">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody id="ngTableBody">
                   <tr>
-                    <td colspan="5" class="empty-table">Đang tải dữ liệu...</td>
+                    <td colspan="5" class="empty-table" data-i18n="common.loadingRow">Đang tải dữ liệu...</td>
                   </tr>
                 </tbody>
               </table>

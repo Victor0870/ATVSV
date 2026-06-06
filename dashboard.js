@@ -27,6 +27,7 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js";
 
 const PRIVILEGED_ROLES = ["admin", "manager"];
 const QUERY_LIMIT = 500;
@@ -47,12 +48,28 @@ let toastTimer = null;
 document.addEventListener("DOMContentLoaded", initDashboardPage);
 
 function initDashboardPage() {
+  initI18n();
   try {
     bindDashboardEvents();
     authPersistenceReady.then(() => observeDashboardAuth());
+
+    onLanguageChange(async () => {
+      document.querySelectorAll("[data-original-text]").forEach((el) => {
+        delete el.dataset.originalText;
+      });
+      applyI18n();
+      if (currentUserProfile && canViewAllAreas(currentUserProfile)) {
+        const { branches } = await fetchBranches();
+        const filterArea = document.getElementById("filterDashboardArea");
+        if (filterArea) {
+          filterArea.innerHTML = buildReportFilterOptions(branches, filterArea.value || "ALL");
+        }
+      }
+      renderDashboardViews();
+    });
   } catch (error) {
     console.error(error);
-    showGuestAccessDenied("Không thể khởi tạo dashboard. Vui lòng tải lại trang.");
+    showGuestAccessDenied(t("dashboard.initFailed"));
     showPageLoader(false);
   }
 }
@@ -89,12 +106,12 @@ function bindDashboardEvents() {
 }
 
 function observeDashboardAuth() {
-  showPageLoader(true, "Đang kiểm tra quyền truy cập...");
+  showPageLoader(true, t("common.checkingAccess"));
 
   onAuthStateChanged(auth, async (user) => {
     try {
       if (!user) {
-        showGuestAccessDenied("Bạn chưa đăng nhập. Vui lòng đăng nhập trước.");
+        showGuestAccessDenied(t("common.notLoggedIn"));
         return;
       }
 
@@ -108,7 +125,7 @@ function observeDashboardAuth() {
       await loadDashboardData(getDashboardAreaFilter());
     } catch (error) {
       console.error(error);
-      showGuestAccessDenied(error.message || "Bạn không thể truy cập dashboard.");
+      showGuestAccessDenied(error.message || t("dashboard.noAccess"));
     } finally {
       showPageLoader(false);
     }
@@ -118,7 +135,7 @@ function observeDashboardAuth() {
 async function loadCurrentUserProfile(uid) {
   const userSnap = await getDoc(doc(db, "users", uid));
   if (!userSnap.exists()) {
-    throw new Error("Không tìm thấy hồ sơ người dùng.");
+    throw new Error(t("dashboard.profileNotFound"));
   }
 
   const data = userSnap.data();
@@ -136,13 +153,13 @@ async function loadCurrentUserProfile(uid) {
 function ensureDashboardAccess(profile) {
   const status = String(profile.status || "").trim().toLowerCase();
   if (status === "pending" || status === "inactive") {
-    throw new Error("Tài khoản chưa được kích hoạt.");
+    throw new Error(t("dashboard.accountNotActive"));
   }
   if (status === "locked") {
-    throw new Error("Tài khoản đã bị khóa.");
+    throw new Error(t("dashboard.accountLocked"));
   }
   if (status !== "active") {
-    throw new Error("Tài khoản không ở trạng thái hoạt động.");
+    throw new Error(t("dashboard.accountInactive"));
   }
 }
 
@@ -158,12 +175,12 @@ function canManageIssues(profile = currentUserProfile) {
 function getDashboardScopeLabel(profile = currentUserProfile, areaFilter = "ALL") {
   if (canViewAllAreas(profile)) {
     if (areaFilter && areaFilter !== "ALL") {
-      return `Phạm vi: ${areaFilter}`;
+      return t("dashboard.scope.area", { area: areaFilter });
     }
-    return "Phạm vi: Toàn hệ thống (Admin/Manager)";
+    return t("dashboard.scope.all");
   }
 
-  return `Phạm vi: Khu vực ${profile?.khuVuc || "-"}`;
+  return t("dashboard.scope.userArea", { area: profile?.khuVuc || "-" });
 }
 
 function getDashboardAreaFilter() {
@@ -237,7 +254,7 @@ async function resetDashboardFilter() {
 }
 
 async function loadDashboardData(areaFilter) {
-  showPageLoader(true, "Đang tải dữ liệu thống kê...");
+  showPageLoader(true, t("dashboard.loadingStats"));
 
   try {
     currentAreaFilter = areaFilter;
@@ -255,8 +272,8 @@ async function loadDashboardData(areaFilter) {
     renderDashboardViews();
   } catch (error) {
     console.error(error);
-    showToast("Không thể tải dữ liệu dashboard.", "error");
-    renderEmptyNgTable("Không thể tải dữ liệu. Vui lòng thử lại.");
+    showToast(t("dashboard.loadFailed"), "error");
+    renderEmptyNgTable(t("dashboard.loadDataRetry"));
     renderTopDiscoverersTable([]);
   } finally {
     showPageLoader(false);
@@ -286,19 +303,19 @@ function updatePeriodHint() {
   const hint = getPeriodHint(currentPeriod);
   document.getElementById("dashboardPeriodHint").textContent = hint;
   document.getElementById("topDiscoverersPeriodLabel").textContent = getPeriodShortLabel(currentPeriod);
-  document.getElementById("trendChartTitle").textContent = `Xu hướng lỗi NG (${hint})`;
+  document.getElementById("trendChartTitle").textContent = t("dashboard.chart.ngTrendWithPeriod", { period: hint });
 }
 
 function getPeriodShortLabel(period) {
-  if (period === "month") return "Tháng";
-  if (period === "year") return "Năm";
-  return "Tuần";
+  if (period === "month") return t("dashboard.period.month");
+  if (period === "year") return t("dashboard.period.year");
+  return t("dashboard.period.week");
 }
 
 function getPeriodHint(period) {
-  if (period === "month") return "Tháng này";
-  if (period === "year") return "Năm nay";
-  return "7 ngày gần nhất";
+  if (period === "month") return t("dashboard.period.hint.month");
+  if (period === "year") return t("dashboard.period.hint.year");
+  return t("dashboard.period.hint.week");
 }
 
 function getSubmissionDate(submission) {
@@ -484,7 +501,7 @@ function renderTrendChart(submissions) {
       labels,
       datasets: [
         {
-          label: "Số phiếu",
+          label: t("dashboard.chart.ngCount"),
           data,
           borderColor: "#ed1c24",
           backgroundColor: "rgba(237, 28, 36, 0.12)",
@@ -519,6 +536,12 @@ function buildTrendSeries(submissions, period) {
     const date = getSubmissionDate(submission);
     if (!date) return;
 
+    let ngCount = 0;
+    (submission.answers || []).forEach((answer) => {
+      if (answer.result === "NG") ngCount += 1;
+    });
+    if (!ngCount) return;
+
     let key = "";
     if (period === "year") {
       key = `T${date.getMonth() + 1}`;
@@ -526,7 +549,7 @@ function buildTrendSeries(submissions, period) {
       key = formatDayKey(date);
     }
 
-    map.set(key, (map.get(key) || 0) + 1);
+    map.set(key, (map.get(key) || 0) + ngCount);
   });
 
   if (period === "year") {
@@ -600,7 +623,7 @@ function renderUnresolvedAreaChart(issues) {
       labels,
       datasets: [
         {
-          label: "Lỗi chưa hoàn thành khắc phục",
+          label: t("dashboard.chart.unresolvedCount"),
           data,
           backgroundColor: "rgba(237, 28, 36, 0.78)",
           borderColor: "#ed1c24",
@@ -685,10 +708,10 @@ function renderNgTable(issues) {
     })
     .slice(0, NG_TABLE_LIMIT);
 
-  document.getElementById("ngTableCount").textContent = `${openIssues.length} kết quả`;
+  document.getElementById("ngTableCount").textContent = t("common.resultsCount", { count: openIssues.length });
 
   if (!openIssues.length) {
-    renderEmptyNgTable("Không có lỗi NG đang mở trong phạm vi này.");
+    renderEmptyNgTable(t("common.noData"));
     return;
   }
 
@@ -700,8 +723,8 @@ function renderNgTable(issues) {
       const images = Array.isArray(issue.images) ? issue.images : [];
       const firstImage = images[0];
       const issueLink = canManageIssues()
-        ? `<a href="./remediation.html?issue=${encodeURIComponent(issue.id)}" class="dashboard-issue-link remediation-link-btn">Xem khắc phục</a>`
-        : `<span class="issue-subtext">Liên hệ quản lý khu vực</span>`;
+        ? `<a href="./remediation.html?issue=${encodeURIComponent(issue.id)}" class="dashboard-issue-link remediation-link-btn">${t("remediation.viewRemediation")}</a>`
+        : `<span class="issue-subtext">${t("dashboard.contactManager")}</span>`;
 
       return `
         <tr>
@@ -716,7 +739,7 @@ function renderNgTable(issues) {
             ${issue.note ? `<div class="issue-subtext">${escapeHtml(issue.note)}</div>` : ""}
             ${
               firstImage
-                ? `<img src="${firstImage.url}" alt="Ảnh NG" class="dashboard-ng-image" data-full-src="${firstImage.url}">`
+                ? `<img src="${firstImage.url}" alt="${escapeHtml(t("common.imageEvidence"))}" class="dashboard-ng-image" data-full-src="${firstImage.url}">`
                 : ""
             }
           </td>
@@ -737,7 +760,7 @@ function renderEmptyNgTable(message) {
       <td colspan="5" class="empty-table">${escapeHtml(message)}</td>
     </tr>
   `;
-  document.getElementById("ngTableCount").textContent = "0 kết quả";
+  document.getElementById("ngTableCount").textContent = t("common.resultsCount", { count: 0 });
 }
 
 async function handleLogout() {
@@ -746,7 +769,7 @@ async function handleLogout() {
     window.location.href = "./index.html";
   } catch (error) {
     console.error(error);
-    showToast("Không thể đăng xuất.", "error");
+    showToast(t("remediation.logoutFailed"), "error");
   }
 }
 
@@ -760,7 +783,7 @@ function closeImageModal() {
   document.getElementById("imageModal").classList.add("hidden");
 }
 
-function showPageLoader(show, text = "Đang xử lý...") {
+function showPageLoader(show, text = t("common.loading")) {
   const loader = document.getElementById("pageLoader");
   const loaderText = document.getElementById("pageLoaderText");
   if (loaderText) loaderText.textContent = text;

@@ -6,11 +6,11 @@
   <title>E-Checksheet ATVSV - Idemitsu</title>
   <link rel="stylesheet" href="./style.css">
 </head>
-<body>
+<body data-page-title-key="page.index">
   <div id="pageLoader" class="page-loader">
     <div class="loader-card">
       <div class="spinner"></div>
-      <p id="pageLoaderText">Đang kiểm tra phiên đăng nhập...</p>
+      <p id="pageLoaderText" data-i18n="common.checkingSession">Đang kiểm tra phiên đăng nhập...</p>
     </div>
   </div>
 
@@ -18,15 +18,21 @@
     <!-- Màn hình đăng nhập / đăng ký -->
 <section id="loginScreen" class="screen auth-screen hidden">
   <div class="auth-card">
+    <div class="auth-lang-switch">
+      <div class="sidebar-lang-actions">
+        <button type="button" class="lang-switch-btn" data-lang="vi">VI</button>
+        <button type="button" class="lang-switch-btn" data-lang="en">EN</button>
+      </div>
+    </div>
     <div class="brand-line"></div>
     <h1 class="auth-title">E-Checksheet ATVSV</h1>
-    <p class="auth-subtitle">Idemitsu Lubricants Vietnam</p>
+    <p class="auth-subtitle" data-i18n="common.company">Idemitsu Lubricants Vietnam</p>
 
     <div class="auth-switch">
-      <button type="button" id="showLoginTabBtn" class="switch-btn active">
+      <button type="button" id="showLoginTabBtn" class="switch-btn active" data-i18n="auth.login">
         Đăng nhập
       </button>
-      <button type="button" id="showRegisterTabBtn" class="switch-btn">
+      <button type="button" id="showRegisterTabBtn" class="switch-btn" data-i18n="auth.register">
         Đăng ký
       </button>
     </div>
@@ -35,10 +41,11 @@
     <div id="loginPanel" class="auth-panel active">
       <form id="loginForm" class="form-stack">
         <div class="form-group">
-          <label for="emailInput">Email đăng nhập</label>
+          <label for="emailInput" data-i18n="auth.loginEmail">Email đăng nhập</label>
           <input
             type="email"
             id="emailInput"
+            data-i18n-placeholder="auth.placeholder.email"
             placeholder="Nhập email"
             autocomplete="email"
             required
@@ -46,27 +53,28 @@
         </div>
 
         <div class="form-group">
-          <label for="passwordInput">Mật khẩu</label>
+          <label for="passwordInput" data-i18n="auth.password">Mật khẩu</label>
           <div class="password-wrap">
             <input
               type="password"
               id="passwordInput"
+              data-i18n-placeholder="auth.placeholder.password"
               placeholder="Nhập mật khẩu"
               autocomplete="current-password"
               required
             >
-            <button type="button" id="togglePasswordBtn" class="ghost-btn small-btn">Hiện</button>
+            <button type="button" id="togglePasswordBtn" class="ghost-btn small-btn" data-i18n="auth.showPassword">Hiện</button>
           </div>
         </div>
 
-        <button type="submit" id="loginBtn" class="primary-btn full-btn">
+        <button type="submit" id="loginBtn" class="primary-btn full-btn" data-i18n="auth.login">
           Đăng nhập
         </button>
       </form>
 
       <div class="note-box">
-        <strong>Lưu ý:</strong>
-        <span>Chỉ tài khoản đã được admin kích hoạt mới sử dụng được checklist.</span>
+        <strong data-i18n="auth.note">Lưu ý:</strong>
+        <span data-i18n="auth.noteLogin">Chỉ tài khoản đã được admin kích hoạt mới sử dụng được checklist.</span>
       </div>
     </div>
 
@@ -74,10 +82,11 @@
     <div id="registerPanel" class="auth-panel hidden">
       <form id="registerForm" class="form-stack">
         <div class="form-group">
-          <label for="registerEmailInput">Email</label>
+          <label for="registerEmailInput" data-i18n="common.email">Email</label>
           <input
             type="email"
             id="registerEmailInput"
+            data-i18n-placeholder="auth.placeholder.email"
             placeholder="Nhập email"
             autocomplete="email"
             required
@@ -85,10 +94,11 @@
         </div>
 
         <div class="form-group">
-          <label for="registerPasswordInput">Mật khẩu</label>
+          <label for="registerPasswordInput" data-i18n="auth.password">Mật khẩu</label>
           <input
             type="password"
             id="registerPasswordInput"
+            data-i18n-placeholder="auth.placeholder.minPassword"
             placeholder="Tối thiểu 6 ký tự"
             autocomplete="new-password"
             required
@@ -96,10 +106,11 @@
         </div>
 
         <div class="form-group">
-          <label for="registerConfirmPasswordInput">Xác nhận mật khẩu</label>
+          <label for="registerConfirmPasswordInput" data-i18n="auth.confirmPassword">Xác nhận mật khẩu</label>
           <input
             type="password"
             id="registerConfirmPasswordInput"
+            data-i18n-placeholder="auth.placeholder.confirmPassword"
             placeholder="Nhập lại mật khẩu"
             autocomplete="new-password"
             required
@@ -107,56 +118,55 @@
         </div>
 
         <div class="form-group">
-          <label for="registerTaiKhoanInput">Tài khoản nội bộ</label>
+          <label for="registerTaiKhoanInput" data-i18n="auth.internalAccount">Tài khoản nội bộ</label>
           <input
             type="text"
             id="registerTaiKhoanInput"
+            data-i18n-placeholder="auth.placeholder.account"
             placeholder="Ví dụ: test01"
             required
           >
         </div>
 
         <div class="form-group">
-          <label for="registerHoTenInput">Họ tên</label>
+          <label for="registerHoTenInput" data-i18n="common.fullName">Họ tên</label>
           <input
             type="text"
             id="registerHoTenInput"
+            data-i18n-placeholder="auth.placeholder.fullName"
             placeholder="Nhập họ tên đầy đủ"
             required
           >
         </div>
 
         <div class="form-group">
-          <label for="registerAreaTypeInput">Loại khu vực</label>
+          <label for="registerAreaTypeInput" data-i18n="auth.areaType">Loại khu vực</label>
           <select id="registerAreaTypeInput" required>
-            <option value="">-- Chọn loại khu vực --</option>
-            <option value="Nhà máy">Nhà máy</option>
-            <option value="Chi nhánh">Chi nhánh</option>
+            <option value="" data-i18n="auth.placeholder.selectAreaType">-- Chọn loại khu vực --</option>
+            <option value="Nhà máy" data-i18n="filter.areaType.factory">Nhà máy</option>
+            <option value="Chi nhánh" data-i18n="filter.areaType.branch">Chi nhánh</option>
           </select>
         </div>
 
         <div class="form-group hidden" id="registerBranchGroup">
-          <label for="registerBranchInput">Chi nhánh</label>
+          <label for="registerBranchInput" data-i18n="auth.branch">Chi nhánh</label>
           <select id="registerBranchInput">
-            <option value="">-- Chọn chi nhánh --</option>
+            <option value="" data-i18n="auth.placeholder.selectBranch">-- Chọn chi nhánh --</option>
           </select>
         </div>
 
-        <button type="submit" id="registerBtn" class="primary-btn full-btn">
+        <button type="submit" id="registerBtn" class="primary-btn full-btn" data-i18n="auth.registerAccount">
           Đăng ký tài khoản
         </button>
       </form>
 
       <div class="note-box">
-        <strong>Lưu ý:</strong>
-        <span>
-          Sau khi đăng ký, tài khoản sẽ ở trạng thái
-          <b>chờ admin phê duyệt</b>. Bạn chỉ đăng nhập được sau khi admin phê duyệt trên trang Quản trị.
-        </span>
+        <strong data-i18n="auth.note">Lưu ý:</strong>
+        <span data-i18n="auth.noteRegister">Sau khi đăng ký, tài khoản sẽ ở trạng thái chờ admin phê duyệt. Bạn chỉ đăng nhập được sau khi admin phê duyệt trên trang Quản trị.</span>
       </div>
     </div>
 
-    <a href="./admin.html" class="auth-admin-link">Quản trị hệ thống (Admin)</a>
+    <a href="./admin.html" class="auth-admin-link" data-i18n="auth.adminLink">Quản trị hệ thống (Admin)</a>
   </div>
 </section>
   </main>
@@ -168,66 +178,73 @@
           <div class="admin-sidebar-brand">
             <div class="admin-brand-icon">AT</div>
             <div>
-              <strong>IDEMITSU ILV</strong>
-              <span>E-Checksheet ATVSV</span>
+            <strong>IDEMITSU ILV</strong>
+            <span data-i18n="nav.brand.eChecksheet">E-Checksheet ATVSV</span>
+          </div>
+        </div>
+
+        <nav class="admin-sidebar-nav">
+          <p class="admin-nav-label" data-i18n="nav.section.functions">Chức năng</p>
+          <span class="admin-nav-item active" data-i18n="nav.checklist">Làm Checklist</span>
+          <a href="./dashboard.html" class="admin-nav-item" data-i18n="nav.dashboard">Dashboard thống kê</a>
+
+          <p id="appManageNavLabel" class="admin-nav-label hidden" data-i18n="nav.section.management">Quản lý</p>
+          <a id="reportLink" href="./report.html" class="admin-nav-item hidden" data-i18n="nav.report">Báo cáo &amp; Thống kê</a>
+          <a id="remediationLink" href="./remediation.html" class="admin-nav-item hidden" data-i18n="nav.remediation">Hành động khắc phục</a>
+          <a id="adminLink" href="./admin.html" class="admin-nav-item hidden" data-i18n="nav.admin">Quản trị hệ thống</a>
+        </nav>
+
+        <div class="admin-sidebar-footer">
+          <div class="sidebar-lang-switch">
+            <span class="sidebar-lang-label" data-i18n="lang.label">Ngôn ngữ</span>
+            <div class="sidebar-lang-actions">
+              <button type="button" class="lang-switch-btn" data-lang="vi">VI</button>
+              <button type="button" class="lang-switch-btn" data-lang="en">EN</button>
             </div>
           </div>
-
-          <nav class="admin-sidebar-nav">
-            <p class="admin-nav-label">Chức năng</p>
-            <span class="admin-nav-item active">Làm Checklist</span>
-            <a href="./dashboard.html" class="admin-nav-item">Dashboard thống kê</a>
-
-            <p id="appManageNavLabel" class="admin-nav-label hidden">Quản lý</p>
-            <a id="reportLink" href="./report.html" class="admin-nav-item hidden">Báo cáo &amp; Thống kê</a>
-            <a id="remediationLink" href="./remediation.html" class="admin-nav-item hidden">Hành động khắc phục</a>
-            <a id="adminLink" href="./admin.html" class="admin-nav-item hidden">Quản trị hệ thống</a>
-          </nav>
-
-          <div class="admin-sidebar-footer">
-            <div class="admin-user-card">
+          <div class="admin-user-card">
               <div id="appUserInitials" class="admin-user-avatar">U</div>
               <div class="admin-user-meta">
                 <strong id="sidebarUserName">-</strong>
                 <span id="sidebarUserEmail">-</span>
               </div>
             </div>
-            <button type="button" id="logoutBtn" class="ghost-btn full-btn admin-logout-btn">
-              Đăng xuất
-            </button>
+          <button type="button" id="logoutBtn" class="ghost-btn full-btn admin-logout-btn" data-i18n="common.logout">
+            Đăng xuất
+          </button>
+        </div>
+      </aside>
+
+      <div class="admin-main app-main">
+        <header class="hero-card">
+          <h1 data-i18n="checklist.hero.title">MẠNG LƯỚI ATVSV - DANH MỤC KIỂM TRA ATVSLĐ</h1>
+          <p data-i18n="common.company">Idemitsu Lubricants Vietnam</p>
+        </header>
+
+        <section class="user-info-grid">
+          <div class="info-card">
+            <span class="info-label" data-i18n="common.fullName">Họ tên</span>
+            <strong id="displayHoTen">-</strong>
           </div>
-        </aside>
+          <div class="info-card">
+            <span class="info-label" data-i18n="common.email">Email</span>
+            <strong id="displayEmail">-</strong>
+          </div>
+          <div class="info-card">
+            <span class="info-label" data-i18n="common.account">Tài khoản</span>
+            <strong id="displayTaiKhoan">-</strong>
+          </div>
+          <div class="info-card">
+            <span class="info-label" data-i18n="common.areaWorkshop">Khu vực / Phân xưởng</span>
+            <strong id="displayKhuVuc">-</strong>
+          </div>
+        </section>
 
-        <div class="admin-main app-main">
-          <header class="hero-card">
-            <h1>MẠNG LƯỚI ATVSV - DANH MỤC KIỂM TRA ATVSLĐ</h1>
-            <p>Idemitsu Lubricants Vietnam</p>
-          </header>
+        <form id="checklistForm">
+          <div id="questionsContainer"></div>
 
-          <section class="user-info-grid">
-            <div class="info-card">
-              <span class="info-label">Họ tên</span>
-              <strong id="displayHoTen">-</strong>
-            </div>
-            <div class="info-card">
-              <span class="info-label">Email</span>
-              <strong id="displayEmail">-</strong>
-            </div>
-            <div class="info-card">
-              <span class="info-label">Tài khoản</span>
-              <strong id="displayTaiKhoan">-</strong>
-            </div>
-            <div class="info-card">
-              <span class="info-label">Khu vực / Phân xưởng</span>
-              <strong id="displayKhuVuc">-</strong>
-            </div>
-          </section>
-
-          <form id="checklistForm">
-            <div id="questionsContainer"></div>
-
-            <div class="submit-bar">
-              <button type="submit" id="submitBtn" class="primary-btn full-btn">Gửi Báo Cáo</button>
+          <div class="submit-bar">
+            <button type="submit" id="submitBtn" class="primary-btn full-btn" data-i18n="checklist.submit">Gửi Báo Cáo</button>
             </div>
           </form>
         </div>

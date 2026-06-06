@@ -33,6 +33,7 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js";
 
 const ISSUE_QUERY_LIMIT = 500;
 
@@ -48,12 +49,27 @@ let toastTimer = null;
 document.addEventListener("DOMContentLoaded", initRemediationPage);
 
 function initRemediationPage() {
+  initI18n();
   try {
     bindRemediationEvents();
     authPersistenceReady.then(() => observeRemediationAuth());
+
+    onLanguageChange(async () => {
+      document.querySelectorAll("[data-original-text]").forEach((el) => {
+        delete el.dataset.originalText;
+      });
+      applyI18n();
+      await loadFilterOptions();
+      renderIssueStats(filteredIssues);
+      renderIssueTable();
+      updateIssueCountText();
+      if (editingIssueId) {
+        openIssueModal(editingIssueId);
+      }
+    });
   } catch (error) {
     console.error(error);
-    showGuestAccessDenied("Không thể khởi tạo trang. Vui lòng tải lại hoặc liên hệ quản trị viên.");
+    showGuestAccessDenied(t("remediation.initFailed"));
     showPageLoader(false);
   }
 }
@@ -96,12 +112,12 @@ function bindRemediationEvents() {
 }
 
 function observeRemediationAuth() {
-  showPageLoader(true, "Đang kiểm tra quyền truy cập...");
+  showPageLoader(true, t("common.checkingAccess"));
 
   onAuthStateChanged(auth, async (user) => {
     try {
       if (!user) {
-        showGuestAccessDenied("Bạn chưa đăng nhập. Vui lòng đăng nhập trước.");
+        showGuestAccessDenied(t("common.notLoggedIn"));
         return;
       }
 
@@ -122,7 +138,7 @@ function observeRemediationAuth() {
     } catch (error) {
       console.error(error);
       showAccessDenied(
-        error.message || "Bạn không có quyền truy cập trang này.",
+        error.message || t("remediation.noAccessGeneric"),
         currentUserProfile,
         currentFirebaseUser
       );
@@ -135,7 +151,7 @@ function observeRemediationAuth() {
 async function loadCurrentUserProfile(uid) {
   const userSnap = await getDoc(doc(db, "users", uid));
   if (!userSnap.exists()) {
-    throw new Error("Không tìm thấy hồ sơ người dùng.");
+    throw new Error(t("remediation.profileNotFound"));
   }
 
   const data = userSnap.data();
@@ -150,12 +166,12 @@ async function loadCurrentUserProfile(uid) {
 
 function ensureRemediationAccess(profile) {
   if (profile.status !== "active") {
-    throw new Error("Tài khoản của bạn chưa được kích hoạt.");
+    throw new Error(t("remediation.accountNotActive"));
   }
 
   const role = String(profile.role || "").trim().toLowerCase();
   if (!ALLOWED_REMEDIATION_ROLES.includes(role)) {
-    throw new Error("Chỉ Admin và Manager mới được quản lý hành động khắc phục.");
+    throw new Error(t("remediation.adminOnly"));
   }
 }
 
@@ -240,7 +256,7 @@ function resetIssueFilters() {
 }
 
 async function loadIssues() {
-  showPageLoader(true, "Đang tải danh sách issue...");
+  showPageLoader(true, t("remediation.loadingIssues"));
 
   try {
     const issuesRef = collection(db, "remediationIssues");
@@ -259,8 +275,8 @@ async function loadIssues() {
     }
   } catch (error) {
     console.error(error);
-    showTableError("issueTableBody", 6, "Không thể tải danh sách issue.");
-    showToast("Không thể tải danh sách issue.", "error");
+    showTableError("issueTableBody", 6, t("remediation.loadIssuesFailed"));
+    showToast(t("remediation.loadIssuesFailed"), "error");
   } finally {
     showPageLoader(false);
   }
@@ -316,7 +332,7 @@ function renderIssueTable() {
   if (!tbody) return;
 
   if (!filteredIssues.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-table">Không có issue phù hợp với bộ lọc.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-table">${escapeHtml(t("report.noFilterResults"))}</td></tr>`;
     return;
   }
 
@@ -325,7 +341,7 @@ function renderIssueTable() {
       const statusMeta = getRemediationStatusMeta(issue.status);
       const elapsedMs = getIssueElapsedMs(issue, getIssuesByIdMap());
       const carryoverBadge = issue.isUnresolvedCarryover
-        ? `<span class="issue-carryover-tag">Lỗi cũ chưa xử lý xong</span>`
+        ? `<span class="issue-carryover-tag">${escapeHtml(t("remediation.modal.unresolved"))}</span>`
         : "";
 
       return `
@@ -350,7 +366,7 @@ function renderIssueTable() {
           </td>
           <td class="checklist-actions-cell">
             <button type="button" class="btn-action btn-open-issue" data-issue-id="${escapeHtml(issue.id)}">
-              Xử lý
+              ${t("common.edit")}
             </button>
           </td>
         </tr>
@@ -391,12 +407,12 @@ function renderIssueDiscoveryInfo(issue) {
   const currentStatus = document.getElementById("issueStatus")?.value || issue.status;
 
   const linkedNote = editingIssueContext.isUnresolvedCarryover
-    ? `<div><strong>Liên kết lỗi cũ:</strong> ${escapeHtml(editingIssueContext.linkedFromIssueId || "-")}</div>`
+    ? `<div><strong>${t("remediation.modal.clearCarryover")}:</strong> ${escapeHtml(editingIssueContext.linkedFromIssueId || "-")}</div>`
     : "";
 
   container.innerHTML = `
     <div class="issue-discovery-grid">
-      <div><strong>Thời gian phát hiện:</strong> ${escapeHtml(editingIssueContext.discoveredAtText || "-")}</div>
+      <div><strong>${t("remediation.picker.discoveryTime")}:</strong> ${escapeHtml(editingIssueContext.discoveredAtText || "-")}</div>
       <div><strong>${escapeHtml(getIssueDurationLabel(currentStatus))}:</strong> ${escapeHtml(formatDurationVi(elapsedMs))}</div>
       ${linkedNote}
     </div>
@@ -413,7 +429,7 @@ function updateCarryoverButtons() {
 function openIssueModal(issueId) {
   const issue = allIssues.find((item) => item.id === issueId);
   if (!issue) {
-    showToast("Không tìm thấy issue.", "error");
+    showToast(t("remediation.issueNotFound"), "error");
     return;
   }
 
@@ -429,7 +445,7 @@ function openIssueModal(issueId) {
           .map(
             (img) => `
               <div class="detail-image-item">
-                <img src="${img.url}" alt="Ảnh minh chứng" class="report-detail-image" data-full-src="${img.url}">
+                <img src="${img.url}" alt="${escapeHtml(t("common.imageEvidence"))}" class="report-detail-image" data-full-src="${img.url}">
               </div>
             `
           )
@@ -440,12 +456,12 @@ function openIssueModal(issueId) {
 
   document.getElementById("issueModalReadonly").innerHTML = `
     <div class="issue-readonly-meta">
-      <div><strong>Phiếu hiện tại:</strong> ${escapeHtml(issue.submissionId || "-")}</div>
-      <div><strong>Thời gian báo cáo:</strong> ${escapeHtml(issue.submissionCreatedAtText || "-")}</div>
-      <div><strong>Người báo cáo:</strong> ${escapeHtml(issue.hoTen || "-")} (${escapeHtml(issue.khuVuc || "-")})</div>
-      <div><strong>Danh mục:</strong> ${escapeHtml(issue.category || "-")}</div>
-      <div><strong>Câu hỏi:</strong> ${escapeHtml(issue.question || "-")}</div>
-      ${issue.note ? `<div><strong>Mô tả lỗi:</strong> ${escapeHtml(issue.note)}</div>` : ""}
+      <div><strong>${t("remediation.table.ticketTime")}:</strong> ${escapeHtml(issue.submissionId || "-")}</div>
+      <div><strong>${t("report.time")}</strong> ${escapeHtml(issue.submissionCreatedAtText || "-")}</div>
+      <div><strong>${t("common.registeredUser")}:</strong> ${escapeHtml(issue.hoTen || "-")} (${escapeHtml(issue.khuVuc || "-")})</div>
+      <div><strong>${t("admin.checklist.colCategory")}:</strong> ${escapeHtml(issue.category || "-")}</div>
+      <div><strong>${t("admin.checklist.colQuestion")}:</strong> ${escapeHtml(issue.question || "-")}</div>
+      ${issue.note ? `<div><strong>${t("report.errorDescription")}</strong> ${escapeHtml(issue.note)}</div>` : ""}
     </div>
     ${imagesHtml}
   `;
@@ -468,7 +484,7 @@ function openUnresolvedPickerModal() {
   const tbody = document.getElementById("unresolvedPickerBody");
 
   if (!matches.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-table">Không có lỗi NG chưa hoàn thành cùng chi nhánh và cùng câu hỏi.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-table">${escapeHtml(t("common.noData"))}</td></tr>`;
   } else {
     tbody.innerHTML = matches
       .map((issue) => {
@@ -487,7 +503,7 @@ function openUnresolvedPickerModal() {
             <td class="checklist-text-cell">${escapeHtml(issue.plan || "-")}</td>
             <td>
               <button type="button" class="btn-action btn-select-unresolved" data-issue-id="${escapeHtml(issue.id)}">
-                Chọn
+                ${t("common.select")}
               </button>
             </td>
           </tr>
@@ -508,7 +524,7 @@ function applyCarryoverFromIssue(sourceIssueId) {
   const sourceIssue = allIssues.find((item) => item.id === sourceIssueId);
 
   if (!currentIssue || !sourceIssue) {
-    showToast("Không tìm thấy issue để liên kết.", "error");
+    showToast(t("remediation.linkIssueNotFound"), "error");
     return;
   }
 
@@ -530,7 +546,7 @@ function applyCarryoverFromIssue(sourceIssueId) {
   renderIssueDiscoveryInfo(currentIssue);
   updateCarryoverButtons();
   closeUnresolvedPickerModal();
-  showToast("Đã sao chép thông tin khắc phục từ lỗi trước.", "success");
+  showToast(t("remediation.carryoverCopied"), "success");
 }
 
 function clearCarryoverLink() {
@@ -547,7 +563,7 @@ function clearCarryoverLink() {
 
   renderIssueDiscoveryInfo(currentIssue);
   updateCarryoverButtons();
-  showToast("Đã bỏ liên kết lỗi cũ. Thời gian phát hiện tính theo báo cáo hiện tại.", "info");
+  showToast(t("remediation.carryoverCleared"), "info");
 }
 
 function closeIssueModal() {
@@ -567,17 +583,17 @@ async function saveIssue() {
   const status = document.getElementById("issueStatus").value;
 
   if (status === "in_progress" && !plan && !responsible) {
-    showToast("Khi chuyển sang Đang khắc phục, nên có kế hoạch hoặc người phụ trách.", "error");
+    showToast(t("remediation.needPlanOrResponsible"), "error");
     return;
   }
 
   if (status === "done" && !action) {
-    showToast("Vui lòng nhập hành động khắc phục trước khi đánh dấu Hoàn thành.", "error");
+    showToast(t("remediation.needActionBeforeDone"), "error");
     return;
   }
 
   try {
-    showPageLoader(true, "Đang lưu cập nhật...");
+    showPageLoader(true, t("remediation.savingUpdate"));
 
     const updateData = {
       plan,
@@ -616,18 +632,18 @@ async function saveIssue() {
     await updateDoc(doc(db, "remediationIssues", editingIssueId), updateData);
 
     closeIssueModal();
-    showToast("Đã cập nhật hành động khắc phục", "success");
+    showToast(t("remediation.saveSuccess"), "success");
     await loadIssues();
   } catch (error) {
     console.error(error);
-    showToast("Không thể lưu cập nhật issue.", "error");
+    showToast(t("remediation.saveFailed"), "error");
   } finally {
     showPageLoader(false);
   }
 }
 
 function updateIssueCountText() {
-  document.getElementById("issueCountText").textContent = `${filteredIssues.length} kết quả`;
+  document.getElementById("issueCountText").textContent = t("common.resultsCount", { count: filteredIssues.length });
 }
 
 function showTableError(tbodyId, colspan, message) {
@@ -642,7 +658,7 @@ async function handleLogout() {
     window.location.href = "./index.html";
   } catch (error) {
     console.error(error);
-    showToast("Không thể đăng xuất.", "error");
+    showToast(t("remediation.logoutFailed"), "error");
   }
 }
 
@@ -656,7 +672,7 @@ function closeImageModal() {
   document.getElementById("imageModal").classList.add("hidden");
 }
 
-function showPageLoader(show, text = "Đang xử lý...") {
+function showPageLoader(show, text = t("common.loading")) {
   const loader = document.getElementById("pageLoader");
   const loaderText = document.getElementById("pageLoaderText");
   if (loaderText) loaderText.textContent = text;

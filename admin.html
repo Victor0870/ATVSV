@@ -6,11 +6,11 @@
   <title>Quản trị hệ thống - Idemitsu</title>
   <link rel="stylesheet" href="./style.css">
 </head>
-<body class="admin-page">
+<body class="admin-page" data-page-title-key="page.admin">
   <div id="pageLoader" class="page-loader hidden">
     <div class="loader-card">
       <div class="spinner"></div>
-      <p id="pageLoaderText">Đang tải dữ liệu hệ thống...</p>
+      <p id="pageLoaderText" data-i18n="common.loadingData">Đang tải dữ liệu...</p>
     </div>
   </div>
 
@@ -20,30 +20,37 @@
         <div class="admin-brand-icon">AT</div>
         <div>
           <strong>IDEMITSU ILV</strong>
-          <span>Hệ thống ATVSV</span>
+          <span data-i18n="nav.brand.system">Hệ thống ATVSV</span>
         </div>
       </div>
 
       <nav class="admin-sidebar-nav">
-        <p class="admin-nav-label">Chức năng</p>
-        <a href="#usersSection" class="admin-nav-item active" data-section="users">
+        <p class="admin-nav-label" data-i18n="nav.section.functions">Chức năng</p>
+        <a href="#usersSection" class="admin-nav-item active" data-section="users" data-i18n="nav.adminUsers">
           Quản lý người dùng
         </a>
-        <a href="#checklistSection" class="admin-nav-item" data-section="checklist">
+        <a href="#checklistSection" class="admin-nav-item" data-section="checklist" data-i18n="nav.adminChecklist">
           Cấu hình Checklist
         </a>
-        <a href="#branchesSection" class="admin-nav-item" data-section="branches">
+        <a href="#branchesSection" class="admin-nav-item" data-section="branches" data-i18n="nav.adminBranches">
           Quản lý chi nhánh
         </a>
 
-        <p class="admin-nav-label">Liên kết nhanh</p>
-        <a href="./index.html" class="admin-nav-item">Làm Checklist ATVSV</a>
-        <a href="./dashboard.html" class="admin-nav-item">Dashboard thống kê</a>
-        <a href="./report.html" class="admin-nav-item">Báo cáo &amp; Thống kê</a>
-        <a href="./remediation.html" class="admin-nav-item">Hành động khắc phục</a>
+        <p class="admin-nav-label" data-i18n="nav.section.quickLinks">Liên kết nhanh</p>
+        <a href="./index.html" class="admin-nav-item" data-i18n="nav.checklistAtvsv">Làm Checklist ATVSV</a>
+        <a href="./dashboard.html" class="admin-nav-item" data-i18n="nav.dashboard">Dashboard thống kê</a>
+        <a href="./report.html" class="admin-nav-item" data-i18n="nav.report">Báo cáo &amp; Thống kê</a>
+        <a href="./remediation.html" class="admin-nav-item" data-i18n="nav.remediation">Hành động khắc phục</a>
       </nav>
 
       <div class="admin-sidebar-footer">
+        <div class="sidebar-lang-switch">
+          <span class="sidebar-lang-label" data-i18n="lang.label">Ngôn ngữ</span>
+          <div class="sidebar-lang-actions">
+            <button type="button" class="lang-switch-btn" data-lang="vi">VI</button>
+            <button type="button" class="lang-switch-btn" data-lang="en">EN</button>
+          </div>
+        </div>
         <div class="admin-user-card">
           <div id="adminUserInitials" class="admin-user-avatar">AD</div>
           <div class="admin-user-meta">
@@ -51,7 +58,7 @@
             <span id="adminUserEmail">admin@idemitsu.com</span>
           </div>
         </div>
-        <button type="button" id="adminLogoutBtn" class="ghost-btn full-btn admin-logout-btn">
+        <button type="button" id="adminLogoutBtn" class="ghost-btn full-btn admin-logout-btn" data-i18n="common.logoutSystem">
           Đăng xuất hệ thống
         </button>
       </div>
@@ -60,28 +67,28 @@
     <main class="admin-main">
       <div class="topbar admin-topbar">
         <div class="topbar-left">
-          <span class="topbar-tag">Quản trị hệ thống</span>
-          <span class="admin-breadcrumb">/ Phê duyệt nội bộ</span>
+          <span class="topbar-tag" data-i18n="admin.topbar">Quản trị hệ thống</span>
+          <span class="admin-breadcrumb" data-i18n="admin.breadcrumb">/ Phê duyệt nội bộ</span>
         </div>
         <div class="topbar-right">
           <span id="currentDate" class="admin-date"></span>
-          <span class="admin-status-dot">Hệ thống đang hoạt động</span>
+          <span class="admin-status-dot" data-i18n="common.systemOnline">Hệ thống đang hoạt động</span>
         </div>
       </div>
 
       <header class="hero-card admin-hero">
         <div class="admin-hero-text">
-          <span class="admin-hero-badge">Idemitsu Lubricants Vietnam</span>
-          <h1>CỔNG QUẢN TRỊ ATVSV</h1>
-          <p>Kiểm soát an toàn lao động, kiểm duyệt thành viên &amp; vận hành checklist an toàn.</p>
+          <span class="admin-hero-badge" data-i18n="common.company">Idemitsu Lubricants Vietnam</span>
+          <h1 data-i18n="admin.hero.title">CỔNG QUẢN TRỊ ATVSV</h1>
+          <p data-i18n="admin.hero.subtitle">Kiểm soát an toàn lao động, kiểm duyệt thành viên &amp; vận hành checklist an toàn.</p>
         </div>
         <div class="admin-stats-grid">
           <div class="admin-stat-card">
-            <span class="admin-stat-label">Chờ phê duyệt</span>
+            <span class="admin-stat-label" data-i18n="admin.stats.pending">Chờ phê duyệt</span>
             <strong id="statPending" class="admin-stat-value pending">0</strong>
           </div>
           <div class="admin-stat-card">
-            <span class="admin-stat-label">Đã hoạt động</span>
+            <span class="admin-stat-label" data-i18n="admin.stats.active">Đã hoạt động</span>
             <strong id="statActive" class="admin-stat-value active">0</strong>
           </div>
         </div>
@@ -90,33 +97,33 @@
       <section id="usersSection" class="admin-section">
         <div class="admin-section-header">
           <div class="panel-header">
-            <h2>Danh sách người dùng đăng ký</h2>
+            <h2 data-i18n="admin.users.title">Danh sách người dùng đăng ký</h2>
           </div>
           <div class="admin-search-wrap">
-            <input type="text" id="userSearchInput" class="admin-search-input" placeholder="Tìm kiếm tên, email...">
+            <input type="text" id="userSearchInput" class="admin-search-input" data-i18n-placeholder="admin.users.searchPlaceholder" placeholder="Tìm kiếm tên, email...">
           </div>
         </div>
 
         <div class="admin-filter-bar">
-          <button type="button" id="filterAllBtn" class="filter-chip active">Tất cả người dùng</button>
+          <button type="button" id="filterAllBtn" class="filter-chip active" data-i18n="admin.users.filterAll">Tất cả người dùng</button>
           <button type="button" id="filterPendingBtn" class="filter-chip">
-            Đang chờ duyệt
+            <span data-i18n="admin.users.filterPending">Đang chờ duyệt</span>
             <span id="pendingCountBadge" class="count-badge hidden">0</span>
           </button>
-          <span class="admin-filter-hint">Nhấn <b>Phê duyệt</b> để cấp quyền đăng nhập cho tài khoản.</span>
+          <span class="admin-filter-hint" data-i18n="admin.users.filterHint">Nhấn Phê duyệt để cấp quyền đăng nhập cho tài khoản.</span>
         </div>
 
         <div class="admin-table-container">
           <table class="admin-table">
             <thead>
               <tr>
-                <th>Email / Tài khoản</th>
-                <th>Họ và tên</th>
-                <th>Khu vực</th>
-                <th>Vai trò</th>
-                <th>Trạng thái</th>
-                <th>Ngày đăng ký</th>
-                <th>Thao tác</th>
+                <th data-i18n="admin.users.colEmail">Email / Tài khoản</th>
+                <th data-i18n="admin.users.colName">Họ và tên</th>
+                <th data-i18n="common.area">Khu vực</th>
+                <th data-i18n="common.role">Vai trò</th>
+                <th data-i18n="common.status">Trạng thái</th>
+                <th data-i18n="admin.users.colRegistered">Ngày đăng ký</th>
+                <th data-i18n="common.actions">Thao tác</th>
               </tr>
             </thead>
             <tbody id="userTableBody">
@@ -131,11 +138,11 @@
       <section id="branchesSection" class="admin-section">
         <div class="admin-section-header">
           <div class="panel-header">
-            <h2>Quản lý chi nhánh</h2>
+            <h2 data-i18n="admin.branches.title">Quản lý chi nhánh</h2>
           </div>
           <div class="admin-checklist-actions">
-            <button type="button" id="addBranchBtn" class="primary-btn">Thêm chi nhánh</button>
-            <button type="button" id="reloadBranchesBtn" class="ghost-btn">Tải lại</button>
+            <button type="button" id="addBranchBtn" class="primary-btn" data-i18n="admin.branches.add">Thêm chi nhánh</button>
+            <button type="button" id="reloadBranchesBtn" class="ghost-btn" data-i18n="common.reload">Tải lại</button>
           </div>
         </div>
 
@@ -147,10 +154,10 @@
           <table class="admin-table">
             <thead>
               <tr>
-                <th>Tên chi nhánh</th>
-                <th>Thứ tự</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th data-i18n="admin.branches.colName">Tên chi nhánh</th>
+                <th data-i18n="admin.checklist.colSort">Sắp xếp</th>
+                <th data-i18n="common.status">Trạng thái</th>
+                <th data-i18n="common.actions">Thao tác</th>
               </tr>
             </thead>
             <tbody id="branchTableBody">
@@ -165,12 +172,12 @@
       <section id="checklistSection" class="admin-section">
         <div class="admin-section-header">
           <div class="panel-header">
-            <h2>Quản lý câu hỏi Checklist</h2>
+            <h2 data-i18n="admin.checklist.title">Quản lý câu hỏi Checklist</h2>
           </div>
           <div class="admin-checklist-actions">
-            <button type="button" id="addCategoryBtn" class="ghost-btn">Tạo danh mục</button>
-            <button type="button" id="addChecklistBtn" class="primary-btn">Thêm câu hỏi</button>
-            <button type="button" id="reloadChecklistBtn" class="ghost-btn">Tải lại</button>
+            <button type="button" id="addCategoryBtn" class="ghost-btn" data-i18n="admin.checklist.addCategory">Tạo danh mục</button>
+            <button type="button" id="addChecklistBtn" class="primary-btn" data-i18n="admin.checklist.addQuestion">Thêm câu hỏi</button>
+            <button type="button" id="reloadChecklistBtn" class="ghost-btn" data-i18n="common.reload">Tải lại</button>
           </div>
         </div>
 
@@ -181,12 +188,12 @@
           <table class="admin-table">
             <thead>
               <tr>
-                <th>Danh mục</th>
-                <th>Nội dung câu hỏi</th>
-                <th>Khu vực</th>
-                <th>Sắp xếp</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th data-i18n="admin.checklist.colCategory">Danh mục</th>
+                <th data-i18n="admin.checklist.colQuestion">Nội dung câu hỏi</th>
+                <th data-i18n="admin.checklist.colAppliedArea">Khu vực áp dụng</th>
+                <th data-i18n="admin.checklist.colSort">Sắp xếp</th>
+                <th data-i18n="common.status">Trạng thái</th>
+                <th data-i18n="common.actions">Thao tác</th>
               </tr>
             </thead>
             <tbody id="checklistTableBody">

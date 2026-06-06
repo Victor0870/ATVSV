@@ -6,19 +6,19 @@
   <title>Báo cáo E-Checksheet - Idemitsu</title>
   <link rel="stylesheet" href="./style.css">
 </head>
-<body>
+<body data-page-title-key="page.report">
   <div id="pageLoader" class="page-loader">
     <div class="loader-card">
       <div class="spinner"></div>
-      <p id="pageLoaderText">Đang tải báo cáo...</p>
+      <p id="pageLoaderText" data-i18n="common.loadingData">Đang tải dữ liệu...</p>
     </div>
   </div>
 
   <main id="reportAccessWrap" class="app-shell auth-screen hidden">
     <section id="reportAccessDenied" class="empty-card">
-      <h2>Không thể truy cập</h2>
+      <h2 data-i18n="common.accessDenied">Không thể truy cập</h2>
       <p id="reportAccessMessage">Bạn không có quyền xem trang báo cáo.</p>
-      <a href="./index.html" class="primary-btn inline-btn">Quay về trang checklist</a>
+      <a href="./index.html" class="primary-btn inline-btn" data-i18n="common.backToChecklist">Quay về trang checklist</a>
     </section>
   </main>
 
@@ -29,22 +29,29 @@
           <div class="admin-brand-icon">AT</div>
           <div>
             <strong>IDEMITSU ILV</strong>
-            <span>E-Checksheet ATVSV</span>
+            <span data-i18n="nav.brand.eChecksheet">E-Checksheet ATVSV</span>
           </div>
         </div>
 
         <nav class="admin-sidebar-nav">
-          <p class="admin-nav-label">Chức năng</p>
-          <a href="./index.html" class="admin-nav-item">Làm Checklist</a>
-          <a href="./dashboard.html" class="admin-nav-item">Dashboard thống kê</a>
+          <p class="admin-nav-label" data-i18n="nav.section.functions">Chức năng</p>
+          <a href="./index.html" class="admin-nav-item" data-i18n="nav.checklist">Làm Checklist</a>
+          <a href="./dashboard.html" class="admin-nav-item" data-i18n="nav.dashboard">Dashboard thống kê</a>
 
-          <p class="admin-nav-label">Quản lý</p>
-          <span class="admin-nav-item active">Báo cáo &amp; Thống kê</span>
-          <a href="./remediation.html" class="admin-nav-item">Hành động khắc phục</a>
-          <a id="reportAdminLink" href="./admin.html" class="admin-nav-item hidden">Quản trị hệ thống</a>
+          <p class="admin-nav-label" data-i18n="nav.section.management">Quản lý</p>
+          <span class="admin-nav-item active" data-i18n="nav.report">Báo cáo &amp; Thống kê</span>
+          <a href="./remediation.html" class="admin-nav-item" data-i18n="nav.remediation">Hành động khắc phục</a>
+          <a id="reportAdminLink" href="./admin.html" class="admin-nav-item hidden" data-i18n="nav.admin">Quản trị hệ thống</a>
         </nav>
 
         <div class="admin-sidebar-footer">
+          <div class="sidebar-lang-switch">
+            <span class="sidebar-lang-label" data-i18n="lang.label">Ngôn ngữ</span>
+            <div class="sidebar-lang-actions">
+              <button type="button" class="lang-switch-btn" data-lang="vi">VI</button>
+              <button type="button" class="lang-switch-btn" data-lang="en">EN</button>
+            </div>
+          </div>
           <div class="admin-user-card">
             <div id="reportUserInitials" class="admin-user-avatar">U</div>
             <div class="admin-user-meta">
@@ -52,7 +59,7 @@
               <span id="sidebarReportUserEmail">-</span>
             </div>
           </div>
-          <button type="button" id="reportLogoutBtn" class="ghost-btn full-btn admin-logout-btn">
+          <button type="button" id="reportLogoutBtn" class="ghost-btn full-btn admin-logout-btn" data-i18n="common.logout">
             Đăng xuất
           </button>
         </div>
@@ -61,27 +68,27 @@
       <div class="admin-main report-main">
         <div class="topbar admin-topbar">
           <div class="topbar-left">
-            <span class="topbar-tag">Báo cáo &amp; Thống kê</span>
+            <span class="topbar-tag" data-i18n="nav.report">Báo cáo &amp; Thống kê</span>
           </div>
         </div>
 
         <section id="reportScreen">
           <header class="hero-card">
-            <h1>BÁO CÁO CHECKLIST ATVSV</h1>
-            <p>Idemitsu Lubricants Vietnam</p>
+            <h1 data-i18n="report.hero.title">BÁO CÁO CHECKLIST ATVSV</h1>
+            <p data-i18n="common.company">Idemitsu Lubricants Vietnam</p>
           </header>
 
           <section class="user-info-grid compact">
             <div class="info-card">
-              <span class="info-label">Người đăng nhập</span>
+              <span class="info-label" data-i18n="common.registeredUser">Người đăng nhập</span>
               <strong id="reportUserName">-</strong>
             </div>
             <div class="info-card">
-              <span class="info-label">Email</span>
+              <span class="info-label" data-i18n="common.email">Email</span>
               <strong id="reportUserEmail">-</strong>
             </div>
             <div class="info-card">
-              <span class="info-label">Vai trò</span>
+              <span class="info-label" data-i18n="common.role">Vai trò</span>
               <strong id="reportUserRole">-</strong>
             </div>
           </section>
@@ -89,60 +96,60 @@
           <section class="filter-card">
             <div class="filter-grid">
               <div class="form-group">
-                <label for="filterDateFrom">Từ ngày</label>
+                <label for="filterDateFrom" data-i18n="common.dateFrom">Từ ngày</label>
                 <input type="date" id="filterDateFrom">
               </div>
 
               <div class="form-group">
-                <label for="filterDateTo">Đến ngày</label>
+                <label for="filterDateTo" data-i18n="common.dateTo">Đến ngày</label>
                 <input type="date" id="filterDateTo">
               </div>
 
               <div class="form-group">
-                <label for="filterArea">Khu vực</label>
+                <label for="filterArea" data-i18n="common.area">Khu vực</label>
                 <select id="filterArea">
-                  <option value="ALL">Tất cả khu vực</option>
+                  <option value="ALL" data-i18n="common.allAreas">Tất cả khu vực</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label for="filterResult">Kết quả</label>
+                <label for="filterResult" data-i18n="common.result">Kết quả</label>
                 <select id="filterResult">
-                  <option value="ALL">Tất cả</option>
-                  <option value="NG">Chỉ lỗi NG</option>
-                  <option value="OK">Chỉ OK</option>
-                  <option value="N/A">Chỉ N/A</option>
+                  <option value="ALL" data-i18n="common.all">Tất cả</option>
+                  <option value="NG" data-i18n="common.onlyNg">Chỉ lỗi NG</option>
+                  <option value="OK" data-i18n="common.onlyOk">Chỉ OK</option>
+                  <option value="N/A" data-i18n="common.onlyNa">Chỉ N/A</option>
                 </select>
               </div>
 
               <div class="form-group search-group">
-                <label for="filterKeyword">Tìm kiếm</label>
-                <input type="text" id="filterKeyword" placeholder="Tìm theo họ tên / tài khoản / email">
+                <label for="filterKeyword" data-i18n="common.search">Tìm kiếm</label>
+                <input type="text" id="filterKeyword" data-i18n-placeholder="report.searchPlaceholder" placeholder="Tìm theo họ tên / tài khoản / email">
               </div>
             </div>
 
             <div class="filter-actions">
-              <button type="button" id="applyFilterBtn" class="primary-btn">Lọc dữ liệu</button>
-              <button type="button" id="resetFilterBtn" class="ghost-btn">Xóa bộ lọc</button>
-              <button type="button" id="exportCsvBtn" class="ghost-btn">Xuất CSV</button>
+              <button type="button" id="applyFilterBtn" class="primary-btn" data-i18n="common.filterApply">Lọc dữ liệu</button>
+              <button type="button" id="resetFilterBtn" class="ghost-btn" data-i18n="common.filterReset">Xóa bộ lọc</button>
+              <button type="button" id="exportCsvBtn" class="ghost-btn" data-i18n="common.exportCsv">Xuất CSV</button>
             </div>
           </section>
 
           <section class="stats-grid">
             <div class="stat-card">
-              <span class="stat-label">Tổng số phiếu</span>
+              <span class="stat-label" data-i18n="common.totalSubmissions">Tổng số phiếu</span>
               <strong id="statTotalSubmissions">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Tổng câu OK</span>
+              <span class="stat-label" data-i18n="common.totalOk">Tổng câu OK</span>
               <strong id="statTotalOk">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Tổng câu NG</span>
+              <span class="stat-label" data-i18n="common.totalNg">Tổng câu NG</span>
               <strong id="statTotalNg">0</strong>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Tổng câu N/A</span>
+              <span class="stat-label" data-i18n="common.totalNa">Tổng câu N/A</span>
               <strong id="statTotalNa">0</strong>
             </div>
           </section>
@@ -150,22 +157,22 @@
           <section class="report-layout">
             <div class="report-list-panel">
               <div class="panel-header">
-                <h2>Danh sách phiếu</h2>
+                <h2 data-i18n="report.submissionList">Danh sách phiếu</h2>
                 <span id="reportCountText">0 kết quả</span>
               </div>
               <div id="reportList" class="report-list"></div>
               <div id="reportPagination" class="report-pagination hidden">
-                <button type="button" id="reportPrevPageBtn" class="ghost-btn">← Trang trước</button>
+                <button type="button" id="reportPrevPageBtn" class="ghost-btn" data-i18n="common.prevPage">← Trang trước</button>
                 <span id="reportPageInfo" class="report-page-info">Trang 1 / 1</span>
-                <button type="button" id="reportNextPageBtn" class="ghost-btn">Trang sau →</button>
+                <button type="button" id="reportNextPageBtn" class="ghost-btn" data-i18n="common.nextPage">Trang sau →</button>
               </div>
             </div>
 
             <div class="report-detail-panel">
               <div class="panel-header">
-                <h2>Chi tiết phiếu</h2>
+                <h2 data-i18n="report.detail">Chi tiết phiếu</h2>
               </div>
-              <div id="reportDetail" class="report-detail empty-detail">
+              <div id="reportDetail" class="report-detail empty-detail" data-i18n="report.selectPrompt">
                 Chọn một phiếu bên trái để xem chi tiết.
               </div>
             </div>
