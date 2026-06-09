@@ -21,7 +21,7 @@ import {
   FALLBACK_BRANCHES,
   buildChecklistAreaOptions
 } from "./areas-service.js";
-import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js?v=20250622";
+import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js?v=20250624";
 
 let users = [];
 let checklistItems = [];

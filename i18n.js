@@ -399,7 +399,7 @@ const MESSAGES = {
     "admin.moveUp": "Lên",
     "admin.moveDown": "Xuống",
 
-    "security.confirmRoleChange": "Đổi vai trò của \"{name}\" thành \"{role}\"?\n\nThao tác này được ghi nhật ký kiểm toán.",
+    "security.confirmRoleChange": "Đổi vai trò của \"{name}\" thành \"{role}\"?",
     "security.confirmApprove": "Phê duyệt tài khoản \"{name}\"?\n\nNgười dùng sẽ được phép đăng nhập.",
     "security.confirmReject": "Từ chối tài khoản \"{name}\"?\n\nTài khoản sẽ bị khóa.",
     "security.confirmLock": "Khóa tài khoản \"{name}\"?",
@@ -807,7 +807,7 @@ const MESSAGES = {
     "admin.moveUp": "Up",
     "admin.moveDown": "Down",
 
-    "security.confirmRoleChange": "Change role for \"{name}\" to \"{role}\"?\n\nThis action is audit-logged.",
+    "security.confirmRoleChange": "Change role for \"{name}\" to \"{role}\"?",
     "security.confirmApprove": "Approve account \"{name}\"?\n\nThe user will be allowed to sign in.",
     "security.confirmReject": "Reject account \"{name}\"?\n\nThe account will be locked.",
     "security.confirmLock": "Lock account \"{name}\"?",
