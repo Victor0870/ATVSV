@@ -6,6 +6,11 @@ admin.initializeApp();
 
 const REGION = "asia-southeast1";
 
+const callableOptions = {
+  region: REGION,
+  enforceAppCheck: true
+};
+
 setGlobalOptions({ maxInstances: 10, region: REGION });
 
 const db = admin.firestore();
@@ -44,7 +49,7 @@ function sanitizeText(value, maxLen = 200) {
 /**
  * Called after Firebase Auth sign-up. Creates user profile with enforced role/status.
  */
-exports.completeRegistration = onCall({ region: REGION }, async (request) => {
+exports.completeRegistration = onCall(callableOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Bạn cần đăng nhập để hoàn tất đăng ký.");
   }
@@ -84,7 +89,7 @@ exports.completeRegistration = onCall({ region: REGION }, async (request) => {
 /**
  * Admin-only: change user role or status with audit trail and guard rails.
  */
-exports.adminUpdateUser = onCall({ region: REGION }, async (request) => {
+exports.adminUpdateUser = onCall(callableOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Bạn cần đăng nhập.");
   }
