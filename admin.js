@@ -2,7 +2,6 @@ import {
   auth,
   db,
   authPersistenceReady,
-  callAdminUpdateUser,
   initAppCheck,
   onAuthStateChanged,
   signOut,
@@ -11,6 +10,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  addDoc,
   serverTimestamp,
   collection,
   getDocs
@@ -368,17 +368,13 @@ function setupUserTableEvents() {
       }
 
       try {
-        await callAdminUpdateUser({
-          action: "changeRole",
-          userId,
-          newRole
-        });
+        await adminChangeUserRole(userId, newRole, user);
         showToast(t("admin.roleUpdated"), "success");
         await loadUsers();
       } catch (error) {
         console.error(error);
         e.target.value = currentRole;
-        showToast(getCallableErrorMessage(error, "admin.roleUpdateFailed"), "error");
+        showToast(error.message || t("admin.roleUpdateFailed"), "error");
       }
     });
   });
@@ -445,36 +441,75 @@ async function handleStatusChange(userId, action) {
   if (!confirmed) return;
 
   try {
-    await callAdminUpdateUser({
-      action,
-      userId,
-      newStatus
-    });
+    await adminChangeUserStatus(userId, newStatus, user, action);
     showToast(message, toastType);
     await loadUsers();
   } catch (error) {
     console.error(error);
-    showToast(getCallableErrorMessage(error, "admin.statusUpdateFailed"), "error");
+    showToast(error.message || t("admin.statusUpdateFailed"), "error");
   }
 }
 
-function getCallableErrorMessage(error, fallbackKey) {
-  const code = error?.code || "";
+async function adminChangeUserRole(userId, newRole, targetUser) {
+  const currentAdmin = auth.currentUser;
+  if (!currentAdmin) {
+    throw new Error(t("auth.error.permissionDenied"));
+  }
 
-  switch (code) {
-    case "functions/permission-denied":
-      return t("auth.error.permissionDenied");
-    case "functions/unauthenticated":
-      return t("auth.error.notLoggedIn");
-    case "functions/unavailable":
-    case "functions/not-found":
-      return t("security.functionNotDeployed");
-    case "functions/internal":
-      return error?.message && error.message !== "internal"
-        ? error.message
-        : t("security.serverError");
-    default:
-      return error?.message || t(fallbackKey);
+  const previousRole = String(targetUser?.role || "user").toLowerCase();
+
+  await updateDoc(doc(db, "users", userId), {
+    role: newRole,
+    updatedAt: serverTimestamp()
+  });
+
+  await writeAdminAuditLog({
+    action: "changeRole",
+    targetUserId: userId,
+    targetEmail: targetUser?.email || "",
+    targetHoTen: targetUser?.hoTen || "",
+    performedBy: currentAdmin.uid,
+    performedByEmail: currentAdmin.email || "",
+    previousRole,
+    newRole
+  });
+}
+
+async function adminChangeUserStatus(userId, newStatus, targetUser, triggerAction) {
+  const currentAdmin = auth.currentUser;
+  if (!currentAdmin) {
+    throw new Error(t("auth.error.permissionDenied"));
+  }
+
+  const previousStatus = String(targetUser?.status || "pending").toLowerCase();
+
+  await updateDoc(doc(db, "users", userId), {
+    status: newStatus,
+    updatedAt: serverTimestamp()
+  });
+
+  await writeAdminAuditLog({
+    action: "changeStatus",
+    targetUserId: userId,
+    targetEmail: targetUser?.email || "",
+    targetHoTen: targetUser?.hoTen || "",
+    performedBy: currentAdmin.uid,
+    performedByEmail: currentAdmin.email || "",
+    previousStatus,
+    newStatus,
+    triggerAction
+  });
+}
+
+async function writeAdminAuditLog(entry) {
+  try {
+    await addDoc(collection(db, "audit_logs"), {
+      ...entry,
+      reason: entry.reason || "",
+      createdAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.warn("Không thể ghi audit_logs:", error);
   }
 }
 

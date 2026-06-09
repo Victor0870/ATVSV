@@ -3,7 +3,6 @@ import {
   db,
   storage,
   authPersistenceReady,
-  callCompleteRegistration,
   initAppCheck,
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -217,11 +216,16 @@ async function handleRegister(event) {
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     createdAuthUser = credential.user;
 
-    await callCompleteRegistration({
+    await setDoc(doc(db, "users", createdAuthUser.uid), {
+      uid: createdAuthUser.uid,
       email,
       taiKhoan,
       hoTen,
-      khuVuc
+      khuVuc,
+      role: "user",
+      status: "pending",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
 
     document.getElementById("registerForm").reset();
