@@ -19,4 +19,9 @@ firebase-debug.*.log
 
 # Firebase service account (local seed only)
 tools/service-account.json
+
+# Security rules — deploy từ máy local, không public trên GitHub
+firestore.rules
+storage.rules
+
 node_modules/
