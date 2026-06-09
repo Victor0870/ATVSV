@@ -11,7 +11,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore,
+  initializeFirestore,       // Sửa đổi: Dùng hàm khởi tạo nâng cao thay vì getFirestore
+  persistentLocalCache,       // Thêm mới: Kích hoạt bộ nhớ đệm lưu trữ lâu dài dưới trình duyệt
+  persistentMultipleTabManager,// Thêm mới: Quản lý chia sẻ bộ nhớ đệm an toàn giữa nhiều tab trình duyệt
   doc,
   getDoc,
   setDoc,
@@ -39,7 +41,7 @@ import {
  * Điền cấu hình Firebase của bạn tại đây
  */
 const firebaseConfig = {
-   apiKey: "AIzaSyArUb1e4FUhIvvTUe9c_ul1falHvheeybc",
+  apiKey: "AIzaSyArUb1e4FUhIvvTUe9c_ul1falHvheeybc",
   authDomain: "e-checksheet-atvsv-c1d45.firebaseapp.com",
   projectId: "e-checksheet-atvsv-c1d45",
   storageBucket: "e-checksheet-atvsv-c1d45.firebasestorage.app",
@@ -49,7 +51,17 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+
+/**
+ * Khởi tạo Firestore với cấu hình lưu Cache ngoại tuyến (Offline Persistence)
+ * Giúp tự động lưu lại lịch sử dữ liệu đã đọc dưới IndexedDB của trình duyệt người dùng.
+ */
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager() // Đồng bộ dữ liệu mượt mà ngay cả khi quản trị viên mở nhiều tab Dashboard
+  })
+});
+
 const storage = getStorage(app);
 
 const authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch((error) => {
