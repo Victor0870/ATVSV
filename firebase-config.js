@@ -58,7 +58,7 @@ const firebaseConfig = {
  * Lấy Site Key tại: Firebase Console → App Check → ứng dụng Web → reCAPTCHA v3
  * Để trống = App Check chưa bật (dev). Production: điền key trước khi IT audit.
  */
-const APP_CHECK_RECAPTCHA_SITE_KEY = "";
+const APP_CHECK_RECAPTCHA_SITE_KEY = "6Ld50RUtAAAAAC3NDmKim7JXLeqillRscdB-0Rt2";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
