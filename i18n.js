@@ -406,7 +406,8 @@ const MESSAGES = {
     "security.confirmUnlock": "Mở khóa tài khoản \"{name}\"?",
     "security.confirmStatusChange": "Thay đổi trạng thái tài khoản \"{name}\"?",
     "security.cannotModifyOtherAdmin": "Không thể thay đổi tài khoản admin khác.",
-    "security.functionNotDeployed": "Chức năng bảo mật chưa được triển khai. Liên hệ IT để deploy Cloud Functions."
+    "security.functionNotDeployed": "Chức năng bảo mật chưa được triển khai. Liên hệ IT để deploy Cloud Functions.",
+    "security.serverError": "Lỗi máy chủ. Vui lòng thử lại hoặc tải lại trang (Ctrl+F5)."
   },
   en: {
     "lang.label": "Language",
@@ -813,7 +814,8 @@ const MESSAGES = {
     "security.confirmUnlock": "Unlock account \"{name}\"?",
     "security.confirmStatusChange": "Change status for account \"{name}\"?",
     "security.cannotModifyOtherAdmin": "Cannot modify another admin account.",
-    "security.functionNotDeployed": "Security function not deployed. Contact IT to deploy Cloud Functions."
+    "security.functionNotDeployed": "Security function not deployed. Contact IT to deploy Cloud Functions.",
+    "security.serverError": "Server error. Please retry or reload the page (Ctrl+F5)."
   }
 };
 

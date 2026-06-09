@@ -39,7 +39,11 @@ import {
 
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
+import {
+  initializeAppCheck,
+  ReCaptchaV3Provider,
+  getToken
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 
 /**
  * Cấu hình Firebase — apiKey trên client là bình thường với SPA;
@@ -100,10 +104,11 @@ export function initAppCheck() {
     }
 
     try {
-      initializeAppCheck(app, {
+      const appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider(APP_CHECK_RECAPTCHA_SITE_KEY),
         isTokenAutoRefreshEnabled: true
       });
+      await getToken(appCheck, false);
     } catch (error) {
       console.warn("Không thể khởi tạo App Check:", error);
     }

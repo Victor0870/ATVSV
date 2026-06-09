@@ -21,7 +21,7 @@ import {
   FALLBACK_BRANCHES,
   buildChecklistAreaOptions
 } from "./areas-service.js";
-import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js?v=20250620";
+import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js?v=20250622";
 
 let users = [];
 let checklistItems = [];
@@ -378,7 +378,7 @@ function setupUserTableEvents() {
       } catch (error) {
         console.error(error);
         e.target.value = currentRole;
-        showToast(error.message || t("admin.roleUpdateFailed"), "error");
+        showToast(getCallableErrorMessage(error, "admin.roleUpdateFailed"), "error");
       }
     });
   });
@@ -454,7 +454,27 @@ async function handleStatusChange(userId, action) {
     await loadUsers();
   } catch (error) {
     console.error(error);
-    showToast(error.message || t("admin.statusUpdateFailed"), "error");
+    showToast(getCallableErrorMessage(error, "admin.statusUpdateFailed"), "error");
+  }
+}
+
+function getCallableErrorMessage(error, fallbackKey) {
+  const code = error?.code || "";
+
+  switch (code) {
+    case "functions/permission-denied":
+      return t("auth.error.permissionDenied");
+    case "functions/unauthenticated":
+      return t("auth.error.notLoggedIn");
+    case "functions/unavailable":
+    case "functions/not-found":
+      return t("security.functionNotDeployed");
+    case "functions/internal":
+      return error?.message && error.message !== "internal"
+        ? error.message
+        : t("security.serverError");
+    default:
+      return error?.message || t(fallbackKey);
   }
 }
 

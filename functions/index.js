@@ -8,7 +8,8 @@ const REGION = "asia-southeast1";
 
 const callableOptions = {
   region: REGION,
-  enforceAppCheck: true
+  enforceAppCheck: true,
+  invoker: "public"
 };
 
 setGlobalOptions({ maxInstances: 10, region: REGION });
@@ -90,97 +91,109 @@ exports.completeRegistration = onCall(callableOptions, async (request) => {
  * Admin-only: change user role or status with audit trail and guard rails.
  */
 exports.adminUpdateUser = onCall(callableOptions, async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Bạn cần đăng nhập.");
-  }
-
-  const caller = await getCallerProfile(request.auth.uid);
-  assertActiveAdmin(caller);
-
-  const data = request.data || {};
-  const action = sanitizeText(data.action, 40);
-  const targetUserId = sanitizeText(data.userId, 128);
-  const reason = sanitizeText(data.reason, 500);
-
-  if (!targetUserId || !action) {
-    throw new HttpsError("invalid-argument", "Thiếu tham số thao tác.");
-  }
-
-  const targetRef = db.doc(`users/${targetUserId}`);
-  const targetSnap = await targetRef.get();
-  if (!targetSnap.exists) {
-    throw new HttpsError("not-found", "Không tìm thấy người dùng.");
-  }
-
-  const target = { id: targetSnap.id, ...targetSnap.data() };
-  const targetRole = String(target.role || "user").toLowerCase();
-  const callerId = request.auth.uid;
-
-  if (targetRole === "admin" && targetUserId !== callerId) {
-    throw new HttpsError("permission-denied", "Không thể thay đổi tài khoản admin khác.");
-  }
-
-  const updates = {
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  };
-
-  let auditAction = action;
-  let auditDetail = {};
-
-  if (action === "changeRole") {
-    const newRole = String(data.newRole || "").toLowerCase();
-    if (!ALLOWED_ROLES.has(newRole)) {
-      throw new HttpsError("invalid-argument", "Vai trò không hợp lệ.");
+  try {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Bạn cần đăng nhập.");
     }
 
-    if (targetUserId === callerId && newRole !== "admin") {
-      throw new HttpsError("permission-denied", "Admin không thể tự hạ quyền của chính mình.");
+    const caller = await getCallerProfile(request.auth.uid);
+    assertActiveAdmin(caller);
+
+    const data = request.data || {};
+    const action = sanitizeText(data.action, 40);
+    const targetUserId = sanitizeText(data.userId, 128);
+    const reason = sanitizeText(data.reason, 500);
+
+    if (!targetUserId || !action) {
+      throw new HttpsError("invalid-argument", "Thiếu tham số thao tác.");
     }
 
-    updates.role = newRole;
-    auditDetail = { previousRole: targetRole, newRole };
-  } else if (
-    action === "changeStatus" ||
-    ["approve", "reject", "lock", "unlock"].includes(action)
-  ) {
-    let newStatus = String(data.newStatus || "").toLowerCase();
-
-    if (!newStatus) {
-      if (action === "approve" || action === "unlock") newStatus = "active";
-      if (action === "reject" || action === "lock") newStatus = "locked";
+    const targetRef = db.doc(`users/${targetUserId}`);
+    const targetSnap = await targetRef.get();
+    if (!targetSnap.exists) {
+      throw new HttpsError("not-found", "Không tìm thấy người dùng.");
     }
 
-    if (!ALLOWED_STATUSES.has(newStatus)) {
-      throw new HttpsError("invalid-argument", "Trạng thái không hợp lệ.");
+    const target = { id: targetSnap.id, ...targetSnap.data() };
+    const targetRole = String(target.role || "user").toLowerCase();
+    const callerId = request.auth.uid;
+
+    if (targetRole === "admin" && targetUserId !== callerId) {
+      throw new HttpsError("permission-denied", "Không thể thay đổi tài khoản admin khác.");
     }
 
-    if (targetRole === "admin" && targetUserId !== callerId && newStatus === "locked") {
-      throw new HttpsError("permission-denied", "Không thể khóa tài khoản admin khác.");
-    }
-
-    updates.status = newStatus;
-    auditAction = "changeStatus";
-    auditDetail = {
-      previousStatus: String(target.status || "pending").toLowerCase(),
-      newStatus,
-      triggerAction: action
+    const updates = {
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
-  } else {
-    throw new HttpsError("invalid-argument", "Hành động không được hỗ trợ.");
+
+    let auditAction = action;
+    let auditDetail = {};
+
+    if (action === "changeRole") {
+      const newRole = String(data.newRole || "").toLowerCase();
+      if (!ALLOWED_ROLES.has(newRole)) {
+        throw new HttpsError("invalid-argument", "Vai trò không hợp lệ.");
+      }
+
+      if (targetUserId === callerId && newRole !== "admin") {
+        throw new HttpsError("permission-denied", "Admin không thể tự hạ quyền của chính mình.");
+      }
+
+      updates.role = newRole;
+      auditDetail = { previousRole: targetRole, newRole };
+    } else if (
+      action === "changeStatus" ||
+      ["approve", "reject", "lock", "unlock"].includes(action)
+    ) {
+      let newStatus = String(data.newStatus || "").toLowerCase();
+
+      if (!newStatus) {
+        if (action === "approve" || action === "unlock") newStatus = "active";
+        if (action === "reject" || action === "lock") newStatus = "locked";
+      }
+
+      if (!ALLOWED_STATUSES.has(newStatus)) {
+        throw new HttpsError("invalid-argument", "Trạng thái không hợp lệ.");
+      }
+
+      if (targetRole === "admin" && targetUserId !== callerId && newStatus === "locked") {
+        throw new HttpsError("permission-denied", "Không thể khóa tài khoản admin khác.");
+      }
+
+      updates.status = newStatus;
+      auditAction = "changeStatus";
+      auditDetail = {
+        previousStatus: String(target.status || "pending").toLowerCase(),
+        newStatus,
+        triggerAction: action
+      };
+    } else {
+      throw new HttpsError("invalid-argument", "Hành động không được hỗ trợ.");
+    }
+
+    await targetRef.update(updates);
+
+    try {
+      await writeAuditLog({
+        action: auditAction,
+        targetUserId,
+        targetEmail: target.email || "",
+        targetHoTen: target.hoTen || "",
+        performedBy: callerId,
+        performedByEmail: caller.email || "",
+        reason,
+        ...auditDetail
+      });
+    } catch (auditError) {
+      console.error("audit_logs write failed:", auditError);
+    }
+
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    console.error("adminUpdateUser failed:", error);
+    throw new HttpsError("internal", error.message || "Lỗi máy chủ không xác định.");
   }
-
-  await targetRef.update(updates);
-
-  await writeAuditLog({
-    action: auditAction,
-    targetUserId,
-    targetEmail: target.email || "",
-    targetHoTen: target.hoTen || "",
-    performedBy: callerId,
-    performedByEmail: caller.email || "",
-    reason,
-    ...auditDetail
-  });
-
-  return { ok: true };
 });
