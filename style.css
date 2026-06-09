@@ -1669,6 +1669,7 @@ textarea {
   background: rgba(51, 51, 51, 0.45);
 }
 
+/* Khung nền trắng của Popup Modal */
 .modal-content {
   position: relative;
   z-index: 1;
@@ -1679,18 +1680,35 @@ textarea {
   padding: 24px;
   box-shadow: var(--shadow-soft);
   border: 1px solid rgba(237, 28, 36, 0.1);
+  
+  /* Cấu hình giới hạn chiều cao và bật cuộn dọc */
+  max-height: 85vh;            /* Popup cao tối đa bằng 85% màn hình */
+  overflow-y: auto;            /* Tự động xuất hiện thanh cuộn dọc khi nội dung bên trong quá dài */
 }
 
+/* Tiêu đề của Popup (Chi tiết hành động khắc phục) */
 .modal-content h3 {
   margin: 0 0 18px;
   font-size: 20px;
+  position: sticky;            /* Ghim cố định tiêu đề ở trên cùng khi cuộn chuột */
+  top: -24px;                  /* Khớp với padding-top của modal-content để không bị hở */
+  background: #fff;            /* Đổ nền trắng để che nội dung cuộn bên dưới */
+  padding-bottom: 10px;
+  z-index: 2;
 }
 
+/* Khu vực chứa các nút bấm (Lưu cập nhật, Đóng) ở cuối Popup */
 .modal-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
   margin-top: 18px;
+  position: sticky;            /* Ghim cố định thanh nút bấm ở dưới cùng khi cuộn chuột */
+  bottom: -24px;               /* Khớp với padding-bottom của modal-content */
+  background: #fff;            /* Đổ nền trắng để che nội dung cuộn */
+  padding-top: 15px;
+  z-index: 2;
+  border-top: 1px solid rgba(0, 0, 0, 0.05); /* Đường kẻ ngang mờ tạo sự phân cách */
 }
 
 @media (min-width: 768px) {
