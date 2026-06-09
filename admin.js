@@ -2,6 +2,8 @@ import {
   auth,
   db,
   authPersistenceReady,
+  callAdminUpdateUser,
+  initAppCheck,
   onAuthStateChanged,
   signOut,
   doc,
@@ -19,7 +21,7 @@ import {
   FALLBACK_BRANCHES,
   buildChecklistAreaOptions
 } from "./areas-service.js";
-import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js?v=20250611";
+import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js?v=20250620";
 
 let users = [];
 let checklistItems = [];
@@ -38,6 +40,7 @@ document.addEventListener("DOMContentLoaded", initAdminPage);
 
 async function initAdminPage() {
   initI18n();
+  await initAppCheck();
   setCurrentDate();
   bindEvents();
 
@@ -347,17 +350,35 @@ function setupUserTableEvents() {
 
       if (newRole === currentRole) return;
 
+      const user = users.find((u) => u.id === userId);
+      const displayName = user?.hoTen || user?.email || t("common.account");
+
+      if (user?.role === "admin" && userId !== auth.currentUser?.uid) {
+        e.target.value = currentRole;
+        showToast(t("security.cannotModifyOtherAdmin"), "error");
+        return;
+      }
+
+      const confirmed = confirm(
+        t("security.confirmRoleChange", { name: displayName, role: newRole })
+      );
+      if (!confirmed) {
+        e.target.value = currentRole;
+        return;
+      }
+
       try {
-        await updateDoc(doc(db, "users", userId), {
-          role: newRole,
-          updatedAt: serverTimestamp()
+        await callAdminUpdateUser({
+          action: "changeRole",
+          userId,
+          newRole
         });
         showToast(t("admin.roleUpdated"), "success");
         await loadUsers();
       } catch (error) {
         console.error(error);
         e.target.value = currentRole;
-        showToast(t("admin.roleUpdateFailed"), "error");
+        showToast(error.message || t("admin.roleUpdateFailed"), "error");
       }
     });
   });
@@ -383,37 +404,51 @@ async function handleStatusChange(userId, action) {
   const user = users.find((u) => u.id === userId);
   const displayName = user?.hoTen || user?.email || t("common.account");
 
+  if (user?.role === "admin" && userId !== auth.currentUser?.uid) {
+    showToast(t("security.cannotModifyOtherAdmin"), "error");
+    return;
+  }
+
   let newStatus;
   let message;
   let toastType = "success";
+  let confirmKey = "security.confirmStatusChange";
 
   switch (action) {
     case "approve":
       newStatus = "active";
       message = `${t("common.approve")}: ${displayName}`;
+      confirmKey = "security.confirmApprove";
       break;
     case "reject":
       newStatus = "locked";
       message = `${t("common.reject")}: ${displayName}`;
       toastType = "info";
+      confirmKey = "security.confirmReject";
       break;
     case "lock":
       newStatus = "locked";
       message = `${t("common.lock")}: ${displayName}`;
       toastType = "info";
+      confirmKey = "security.confirmLock";
       break;
     case "unlock":
       newStatus = "active";
       message = `${t("common.unlock")}: ${displayName}`;
+      confirmKey = "security.confirmUnlock";
       break;
     default:
       return;
   }
 
+  const confirmed = confirm(t(confirmKey, { name: displayName }));
+  if (!confirmed) return;
+
   try {
-    await updateDoc(doc(db, "users", userId), {
-      status: newStatus,
-      updatedAt: serverTimestamp()
+    await callAdminUpdateUser({
+      action,
+      userId,
+      newStatus
     });
     showToast(message, toastType);
     await loadUsers();

@@ -2,6 +2,7 @@ import {
   auth,
   db,
   authPersistenceReady,
+  initAppCheck,
   onAuthStateChanged,
   signOut,
   doc,
@@ -33,7 +34,8 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250611";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
+import { buildSecureImageAttrs, hydrateSecureImages } from "./security-service.js";
 
 const ISSUE_QUERY_LIMIT = 500;
 
@@ -50,6 +52,7 @@ document.addEventListener("DOMContentLoaded", initRemediationPage);
 
 function initRemediationPage() {
   initI18n();
+  initAppCheck();
   try {
     bindRemediationEvents();
     authPersistenceReady.then(() => observeRemediationAuth());
@@ -445,7 +448,7 @@ function openIssueModal(issueId) {
           .map(
             (img) => `
               <div class="detail-image-item">
-                <img src="${img.url}" alt="${escapeHtml(t("common.imageEvidence"))}" class="report-detail-image" data-full-src="${img.url}">
+                <img ${buildSecureImageAttrs(img, "report-detail-image")} alt="${escapeHtml(t("common.imageEvidence"))}">
               </div>
             `
           )
@@ -465,6 +468,8 @@ function openIssueModal(issueId) {
     </div>
     ${imagesHtml}
   `;
+
+  hydrateSecureImages(document.getElementById("issueModalReadonly"));
 
   document.getElementById("issuePlan").value = issue.plan || "";
   document.getElementById("issueAction").value = issue.action || "";

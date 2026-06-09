@@ -3,6 +3,8 @@ import {
   db,
   storage,
   authPersistenceReady,
+  callCompleteRegistration,
+  initAppCheck,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -14,7 +16,6 @@ import {
   serverTimestamp,
   ref,
   uploadBytes,
-  getDownloadURL,
   deleteObject
 } from "./firebase-config.js";
 import { fetchChecklistItems, fetchChecklistCategories, groupChecklistForArea } from "./checklist-service.js";
@@ -27,7 +28,7 @@ import {
   buildRegistrationBranchOptions
 } from "./areas-service.js";
 import { buildIssueId, buildRemediationIssuePayload } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250611";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
 const USER_ROLES_CAN_MANAGE_REMEDIATION = ["admin", "manager"];
@@ -49,6 +50,7 @@ document.addEventListener("DOMContentLoaded", initApp);
 
 async function initApp() {
   initI18n();
+  await initAppCheck();
   bindEvents();
 
   await authPersistenceReady;
@@ -215,19 +217,12 @@ async function handleRegister(event) {
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     createdAuthUser = credential.user;
 
-    const userProfile = {
-      uid: createdAuthUser.uid,
+    await callCompleteRegistration({
       email,
       taiKhoan,
       hoTen,
-      khuVuc,
-      role: "user",
-      status: "pending",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-
-    await setDoc(doc(db, "users", createdAuthUser.uid), userProfile);
+      khuVuc
+    });
 
     document.getElementById("registerForm").reset();
     handleRegisterAreaTypeChange();
@@ -1025,10 +1020,7 @@ async function uploadQuestionImages(uid, submissionId, answer) {
       contentType: "image/jpeg"
     });
 
-    const downloadURL = await getDownloadURL(storageRef);
-
     uploadedImages.push({
-      url: downloadURL,
       path: filePath,
       name: image.name,
       size: image.resizedSize
@@ -1207,9 +1199,13 @@ function getRegisterErrorMessage(error) {
     case "auth/weak-password":
       return t("auth.error.weakPassword");
     case "permission-denied":
+    case "functions/permission-denied":
       return t("auth.error.permissionDenied");
     case "auth/network-request-failed":
-      return t("auth.error.network");
+    case "functions/unavailable":
+    case "functions/not-found":
+    case "functions/internal":
+      return code.startsWith("functions/") ? t("security.functionNotDeployed") : t("auth.error.network");
     default:
       return error?.message || t("auth.error.registerFailed");
   }

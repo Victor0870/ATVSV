@@ -2,6 +2,7 @@ import {
   auth,
   db,
   authPersistenceReady,
+  initAppCheck,
   onAuthStateChanged,
   signOut,
   doc,
@@ -21,7 +22,8 @@ import {
   matchesReportAreaFilter
 } from "./areas-service.js";
 import { buildIssueId, getRemediationStatusMeta, formatDurationVi, getIssueElapsedMs, getIssueDurationLabel } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250611";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
+import { buildSecureImageAttrs, hydrateSecureImages, getImageStoragePath } from "./security-service.js";
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
 const DEFAULT_QUERY_LIMIT = 300;
@@ -41,6 +43,7 @@ document.addEventListener("DOMContentLoaded", initReportPage);
 
 function initReportPage() {
   initI18n();
+  initAppCheck();
   try {
     bindReportEvents();
     authPersistenceReady.then(() => observeReportAuthState());
@@ -493,10 +496,8 @@ async function renderReportDetailAsync(submissionId) {
                       (img) => `
                         <div class="detail-image-item">
                           <img
-                            src="${img.url}"
+                            ${buildSecureImageAttrs(img, "report-detail-image")}
                             alt="${escapeHtml(t("common.imageEvidence"))}"
-                            class="report-detail-image"
-                            data-full-src="${img.url}"
                           >
                           <div class="detail-image-caption">
                             <div><strong>${t("checklist.previewFileName")}</strong> ${escapeHtml(img.name || "-")}</div>
@@ -534,6 +535,8 @@ async function renderReportDetailAsync(submissionId) {
 
     ${answersHtml || `<div class="empty-detail">${escapeHtml(t("common.noData"))}</div>`}
   `;
+
+  hydrateSecureImages(detailContainer);
 }
 
 async function fetchIssuesForSubmission(submissionId) {
@@ -643,7 +646,7 @@ function exportCsv() {
         answer.result || "",
         answer.note || "",
         images.length,
-        images.map((img) => img.url || "").join(" | ")
+        images.map((img) => getImageStoragePath(img) || img.path || "").join(" | ")
       ]);
     });
   });

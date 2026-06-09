@@ -397,7 +397,16 @@ const MESSAGES = {
     "admin.branchDeleted": "Đã xóa chi nhánh",
     "admin.branchDeleteFailed": "Không thể xóa chi nhánh",
     "admin.moveUp": "Lên",
-    "admin.moveDown": "Xuống"
+    "admin.moveDown": "Xuống",
+
+    "security.confirmRoleChange": "Đổi vai trò của \"{name}\" thành \"{role}\"?\n\nThao tác này được ghi nhật ký kiểm toán.",
+    "security.confirmApprove": "Phê duyệt tài khoản \"{name}\"?\n\nNgười dùng sẽ được phép đăng nhập.",
+    "security.confirmReject": "Từ chối tài khoản \"{name}\"?\n\nTài khoản sẽ bị khóa.",
+    "security.confirmLock": "Khóa tài khoản \"{name}\"?",
+    "security.confirmUnlock": "Mở khóa tài khoản \"{name}\"?",
+    "security.confirmStatusChange": "Thay đổi trạng thái tài khoản \"{name}\"?",
+    "security.cannotModifyOtherAdmin": "Không thể thay đổi tài khoản admin khác.",
+    "security.functionNotDeployed": "Chức năng bảo mật chưa được triển khai. Liên hệ IT để deploy Cloud Functions."
   },
   en: {
     "lang.label": "Language",
@@ -795,7 +804,16 @@ const MESSAGES = {
     "admin.branchDeleted": "Branch deleted",
     "admin.branchDeleteFailed": "Unable to delete branch",
     "admin.moveUp": "Up",
-    "admin.moveDown": "Down"
+    "admin.moveDown": "Down",
+
+    "security.confirmRoleChange": "Change role for \"{name}\" to \"{role}\"?\n\nThis action is audit-logged.",
+    "security.confirmApprove": "Approve account \"{name}\"?\n\nThe user will be allowed to sign in.",
+    "security.confirmReject": "Reject account \"{name}\"?\n\nThe account will be locked.",
+    "security.confirmLock": "Lock account \"{name}\"?",
+    "security.confirmUnlock": "Unlock account \"{name}\"?",
+    "security.confirmStatusChange": "Change status for account \"{name}\"?",
+    "security.cannotModifyOtherAdmin": "Cannot modify another admin account.",
+    "security.functionNotDeployed": "Security function not deployed. Contact IT to deploy Cloud Functions."
   }
 };
 

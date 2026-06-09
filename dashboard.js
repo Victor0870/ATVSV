@@ -2,6 +2,7 @@ import {
   auth,
   db,
   authPersistenceReady,
+  initAppCheck,
   onAuthStateChanged,
   signOut,
   doc,
@@ -27,7 +28,8 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250611";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
+import { buildSecureImageAttrs, hydrateSecureImages } from "./security-service.js";
 import {
   fetchChecklistItems,
   fetchChecklistCategories,
@@ -71,6 +73,7 @@ document.addEventListener("DOMContentLoaded", initDashboardPage);
 
 function initDashboardPage() {
   initI18n();
+  initAppCheck();
   try {
     bindDashboardEvents();
     authPersistenceReady.then(() => observeDashboardAuth());
@@ -1049,7 +1052,7 @@ function renderNgTable(issues) {
             ${issue.note ? `<div class="issue-subtext">${escapeHtml(issue.note)}</div>` : ""}
             ${
               firstImage
-                ? `<img src="${firstImage.url}" alt="${escapeHtml(t("common.imageEvidence"))}" class="dashboard-ng-image" data-full-src="${firstImage.url}">`
+                ? `<img ${buildSecureImageAttrs(firstImage, "dashboard-ng-image")} alt="${escapeHtml(t("common.imageEvidence"))}">`
                 : ""
             }
           </td>
@@ -1062,6 +1065,8 @@ function renderNgTable(issues) {
       `;
     })
     .join("");
+
+  hydrateSecureImages(tbody);
 }
 
 function renderEmptyNgTable(message) {

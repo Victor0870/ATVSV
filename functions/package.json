@@ -1,0 +1,13 @@
+{
+  "name": "atvsv-functions",
+  "description": "ATVSV security Cloud Functions",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^5.1.1"
+  }
+}

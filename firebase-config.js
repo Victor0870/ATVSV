@@ -11,9 +11,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  initializeFirestore,       // Sửa đổi: Dùng hàm khởi tạo nâng cao thay vì getFirestore
-  persistentLocalCache,       // Thêm mới: Kích hoạt bộ nhớ đệm lưu trữ lâu dài dưới trình duyệt
-  persistentMultipleTabManager,// Thêm mới: Quản lý chia sẻ bộ nhớ đệm an toàn giữa nhiều tab trình duyệt
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   getDoc,
   setDoc,
@@ -37,8 +37,13 @@ import {
   deleteObject
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
+
 /**
- * Điền cấu hình Firebase của bạn tại đây
+ * Cấu hình Firebase — apiKey trên client là bình thường với SPA;
+ * bảo vệ bằng Security Rules + App Check (bật trong Console).
  */
 const firebaseConfig = {
   apiKey: "AIzaSyArUb1e4FUhIvvTUe9c_ul1falHvheeybc",
@@ -49,30 +54,78 @@ const firebaseConfig = {
   appId: "1:958269031699:web:905782a636a0fed47a46e6"
 };
 
+/**
+ * Lấy Site Key tại: Firebase Console → App Check → ứng dụng Web → reCAPTCHA v3
+ * Để trống = App Check chưa bật (dev). Production: điền key trước khi IT audit.
+ */
+const APP_CHECK_RECAPTCHA_SITE_KEY = "";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-/**
- * Khởi tạo Firestore với cấu hình lưu Cache ngoại tuyến (Offline Persistence)
- * Giúp tự động lưu lại lịch sử dữ liệu đã đọc dưới IndexedDB của trình duyệt người dùng.
- */
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager() // Đồng bộ dữ liệu mượt mà ngay cả khi quản trị viên mở nhiều tab Dashboard
+    tabManager: persistentMultipleTabManager()
   })
 });
 
 const storage = getStorage(app);
+const functions = getFunctions(app, "asia-southeast1");
 
 const authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.warn("Không thể thiết lập Firebase auth persistence:", error);
 });
+
+let appCheckInitPromise = null;
+
+export function initAppCheck() {
+  if (appCheckInitPromise) return appCheckInitPromise;
+
+  appCheckInitPromise = (async () => {
+    const isLocalhost =
+      location.hostname === "localhost" || location.hostname === "127.0.0.1";
+
+    if (isLocalhost) {
+      // eslint-disable-next-line no-undef
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
+
+    if (!APP_CHECK_RECAPTCHA_SITE_KEY) {
+      if (!isLocalhost) {
+        console.warn(
+          "App Check: chưa cấu hình APP_CHECK_RECAPTCHA_SITE_KEY trong firebase-config.js"
+        );
+      }
+      return;
+    }
+
+    try {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(APP_CHECK_RECAPTCHA_SITE_KEY),
+        isTokenAutoRefreshEnabled: true
+      });
+    } catch (error) {
+      console.warn("Không thể khởi tạo App Check:", error);
+    }
+  })();
+
+  return appCheckInitPromise;
+}
+
+export function callCompleteRegistration(data) {
+  return httpsCallable(functions, "completeRegistration")(data);
+}
+
+export function callAdminUpdateUser(data) {
+  return httpsCallable(functions, "adminUpdateUser")(data);
+}
 
 export {
   app,
   auth,
   db,
   storage,
+  functions,
   authPersistenceReady,
   setPersistence,
   browserLocalPersistence,
@@ -97,5 +150,6 @@ export {
   ref,
   uploadBytes,
   getDownloadURL,
-  deleteObject
+  deleteObject,
+  httpsCallable
 };

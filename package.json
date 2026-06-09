@@ -3,7 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "seed:checklist": "node tools/seed-checklist-rest.mjs"
+    "seed:checklist": "node tools/seed-checklist-rest.mjs",
+    "deploy:rules": "firebase deploy --only firestore:rules,storage:rules",
+    "deploy:functions": "cd functions && npm install && cd .. && firebase deploy --only functions",
+    "deploy:security": "npm run deploy:rules && npm run deploy:functions"
   },
   "dependencies": {
     "firebase-admin": "^13.0.2"
