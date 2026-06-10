@@ -1,6 +1,19 @@
-import { db, collection, getDocs } from "./firebase-config.js";
+import {
+  db,
+  storage,
+  collection,
+  addDoc,
+  serverTimestamp,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  getDocs,
+  Timestamp
+} from "./firebase-config.js";
 import { isChecklistItemVisibleForArea } from "./areas-service.js";
+import { buildRemediationIssuePayload } from "./remediation-service.js";
 
+// --- DỮ LIỆU DỰ PHÒNG GỐC CỦA BẠN ---
 const FALLBACK_CHECKLIST = [
   { id: "fallback_001", category: "Quản lý an toàn và tình huống khẩn cấp", text: "Người lao động có trang bị đủ dụng cụ bảo hộ lao động (PPE) không?", area: "ALL", order: 1, active: true },
   { id: "fallback_002", category: "Quản lý an toàn và tình huống khẩn cấp", text: "Danh bạ liên lạc trong tình huống khẩn cấp có được hiển thị ở khu vực làm việc không?", area: "ALL", order: 2, active: true },
@@ -31,6 +44,7 @@ export const FALLBACK_CATEGORIES = [
   { name: "An toàn vận hành máy móc thiết bị", order: 5 }
 ];
 
+// --- CÁC HÀM TIỆN ÍCH HIỂN THỊ VÀ SẮP XẾP CHECKLIST CỦA BẠN ---
 export async function fetchChecklistCategories({ throwOnError = false } = {}) {
   try {
     const snap = await getDocs(collection(db, "checklistCategories"));
@@ -158,4 +172,175 @@ export function getNextOrderInCategory(items, categoryName) {
   const inCategory = getItemsInCategory(items, categoryName);
   if (!inCategory.length) return 1;
   return Math.max(...inCategory.map((item) => Number(item.order) || 0)) + 1;
+}
+
+// --- TÍNH NĂNG MỚI: TỰ ĐỘNG NÉN ẢNH GIẢM DUNG LƯỢNG TRÊN TRÌNH DUYỆT ---
+/**
+ * Hàm nén ảnh và giảm độ phân giải trực tiếp trên trình duyệt
+ */
+export function compressImage(file, maxWidth = 1200, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith("image/")) {
+      return resolve(file); // Trả về file gốc nếu không phải định dạng ảnh
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("Nén ảnh thất bại."));
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}
+
+/**
+ * Xử lý nén và tải từng ảnh bằng chứng lên Firebase Storage
+ */
+async function uploadEvidenceImage(file, submissionId, questionId, index, uid) {
+  if (!file) return null;
+  
+  // Tự động nén ảnh tại client trước khi thực hiện upload (vượt qua Rules giới hạn 2MB)
+  const compressedBlob = await compressImage(file, 1200, 0.75);
+  
+  const timestamp = Date.now();
+  const fileExtension = file.name ? file.name.split('.').pop() : 'jpg';
+  
+  const storagePath = `submissions/${uid}/${submissionId}/${questionId}_${index}_${timestamp}.${fileExtension}`;
+  const storageRef = ref(storage, storagePath);
+  
+  const uploadResult = await uploadBytes(storageRef, compressedBlob);
+  const downloadUrl = await getDownloadURL(uploadResult.ref);
+  
+  return {
+    path: uploadResult.metadata.fullPath,
+    url: downloadUrl
+  };
+}
+
+// --- LUỒNG NỘP PHIẾU CHECKLIST CHÍNH CỦA BẠN ---
+export async function submitChecklist({
+  userProfile,
+  branch,
+  answers,
+  createdAtText
+}) {
+  if (!userProfile || !branch || !answers || !answers.length) {
+    throw new Error("Dữ liệu nộp checklist không hợp lệ hoặc bị thiếu.");
+  }
+
+  const randStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+  const dateSegment = createdAtText.split(" ")[0].replace(/-/g, "");
+  const submissionId = `SUB_${dateSegment}_${randStr}`;
+
+  const normalAnswers = [];
+  const ngAnswers = [];
+
+  for (const ans of answers) {
+    const isNG = ans.value === "NG";
+    const uploadedImages = [];
+    
+    if (Array.isArray(ans.imageFiles) && ans.imageFiles.length > 0) {
+      for (let i = 0; i < ans.imageFiles.length; i++) {
+        const file = ans.imageFiles[i];
+        if (file) {
+          const imgMeta = await uploadEvidenceImage(file, submissionId, ans.questionId, i, userProfile.uid);
+          if (imgMeta) {
+            uploadedImages.push(imgMeta);
+          }
+        }
+      }
+    }
+
+    const finalAnswerData = {
+      questionId: ans.questionId,
+      category: ans.category || "",
+      question: ans.question || "",
+      value: ans.value || "",
+      note: ans.note || "",
+      images: uploadedImages
+    };
+
+    if (isNG) {
+      ngAnswers.push(finalAnswerData);
+    } else {
+      normalAnswers.push(finalAnswerData);
+    }
+  }
+
+  const submissionPayload = {
+    submissionId,
+    uid: userProfile.uid,
+    email: userProfile.email || "",
+    taiKhoan: userProfile.taiKhoan || userProfile.email || "",
+    hoTen: userProfile.hoTen || "",
+    khuVuc: branch,
+    createdAtText,
+    createdAt: serverTimestamp(),
+    answers: [...normalAnswers, ...ngAnswers],
+    totalQuestions: answers.length,
+    ngCount: ngAnswers.length
+  };
+
+  await addDoc(collection(db, "submissions"), submissionPayload);
+
+  if (ngAnswers.length > 0) {
+    const remediationRef = collection(db, "remediationIssues");
+    
+    for (const ngAns of ngAnswers) {
+      const issuePayload = buildRemediationIssuePayload(submissionPayload, ngAns);
+      
+      issuePayload.createdAt = serverTimestamp();
+      issuePayload.updatedAt = serverTimestamp();
+      
+      const parsedDate = parseTextToDate(createdAtText);
+      if (parsedDate) {
+        issuePayload.discoveredAt = Timestamp.fromDate(parsedDate);
+      } else {
+        issuePayload.discoveredAt = serverTimestamp();
+      }
+
+      await addDoc(remediationRef, issuePayload);
+    }
+  }
+
+  return submissionId;
+}
+
+function parseTextToDate(text) {
+  if (!text) return null;
+  const normalized = String(text).trim().replace(" ", "T");
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
