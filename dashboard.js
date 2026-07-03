@@ -12,7 +12,8 @@ import {
   where,
   orderBy,
   limit,
-  getDocs
+  getDocs,
+  Timestamp
 } from "./firebase-config.js";
 import {
   fetchBranches,
@@ -36,9 +37,16 @@ import {
   groupChecklistForArea,
   sortChecklistItems
 } from "./checklist-service.js";
+import {
+  aggregateDailyStats,
+  aggregateFromSubmissions,
+  fetchDailyStatsInRange,
+  getPeriodRange,
+  getDateKeyFromDate
+} from "./stats-service.js";
 
 const PRIVILEGED_ROLES = ["admin", "manager"];
-const QUERY_LIMIT = 500;
+const FALLBACK_SUBMISSION_LIMIT = 200;
 const NG_TABLE_LIMIT = 25;
 const TOP_DISCOVERERS_LIMIT = 5;
 const TOP_NG_QUESTIONS_LIMIT = 5;
@@ -58,7 +66,7 @@ const CHART_COLORS = [
 let currentFirebaseUser = null;
 let currentUserProfile = null;
 let branchNames = [];
-let rawSubmissions = [];
+let rawAggregatedStats = aggregateDailyStats([]);
 let rawIssues = [];
 let cachedChecklistQuestions = [];
 let currentPeriod = "week";
@@ -105,11 +113,12 @@ function bindDashboardEvents() {
   document.getElementById("resetDashboardFilterBtn")?.addEventListener("click", resetDashboardFilter);
 
   document.querySelectorAll(".dashboard-period-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const period = btn.dataset.period;
       if (!period || period === currentPeriod) return;
       currentPeriod = period;
       updatePeriodButtons();
+      await reloadPeriodScopedData();
       renderDashboardViews();
     });
   });
@@ -333,11 +342,7 @@ async function loadDashboardData(areaFilter) {
   try {
     currentAreaFilter = areaFilter;
     await loadChecklistReference(areaFilter);
-    const submissions = await loadScopedSubmissions(areaFilter);
-    const issues = await loadScopedIssues(areaFilter, submissions);
-
-    rawSubmissions = submissions;
-    rawIssues = issues;
+    await reloadPeriodScopedData();
 
     document.getElementById("dashboardScopeText").textContent = getDashboardScopeLabel(
       currentUserProfile,
@@ -357,19 +362,49 @@ async function loadDashboardData(areaFilter) {
   }
 }
 
-function renderDashboardViews() {
-  const submissions = filterByPeriod(rawSubmissions, currentPeriod, getSubmissionDate);
-  const issues = filterByPeriod(rawIssues, currentPeriod, getIssueDate);
+async function reloadPeriodScopedData() {
+  const { from, to, dateKeyFrom, dateKeyTo } = getPeriodRange(currentPeriod);
+  const scopedArea = getScopedAreaFilter();
 
+  let dailyDocs = [];
+  try {
+    dailyDocs = await fetchDailyStatsInRange({
+      khuVuc: scopedArea,
+      dateKeyFrom,
+      dateKeyTo
+    });
+  } catch (error) {
+    console.warn("Không thể tải statsDaily:", error);
+  }
+
+  rawAggregatedStats = aggregateDailyStats(dailyDocs);
+
+  if (!rawAggregatedStats.submissionCount) {
+    const submissions = await loadScopedSubmissionsForPeriod(scopedArea, from, to);
+    rawAggregatedStats = aggregateFromSubmissions(submissions);
+  }
+
+  rawIssues = await loadScopedIssuesForPeriod(scopedArea, from, to, rawAggregatedStats);
+}
+
+function getScopedAreaFilter() {
+  if (!canViewAllAreas()) {
+    return currentUserProfile?.khuVuc || "ALL";
+  }
+
+  return currentAreaFilter && currentAreaFilter !== "ALL" ? currentAreaFilter : "ALL";
+}
+
+function renderDashboardViews() {
   updatePeriodHint();
-  renderSubmissionStats(submissions);
-  renderIssueStats(issues);
-  renderTrendChart(submissions);
-  renderUnresolvedAreaChart(issues);
-  renderTopDiscoverersTable(submissions);
-  renderNgByCategoryChart(submissions);
-  renderTopNgQuestionsChart(submissions);
-  renderNgTable(issues);
+  renderSubmissionStats(rawAggregatedStats);
+  renderIssueStats(rawIssues);
+  renderTrendChart(rawAggregatedStats, currentPeriod);
+  renderUnresolvedAreaChart(rawIssues);
+  renderTopDiscoverersTable(rawAggregatedStats);
+  renderNgByCategoryChart(rawAggregatedStats);
+  renderTopNgQuestionsChart(rawAggregatedStats);
+  renderNgTable(rawIssues);
 }
 
 function updatePeriodButtons() {
@@ -397,12 +432,6 @@ function getPeriodHint(period) {
   return t("dashboard.period.hint.week");
 }
 
-function getSubmissionDate(submission) {
-  const ms = timestampToMillis(submission.createdAt);
-  if (ms) return new Date(ms);
-  return parseIssueDateText(submission.createdAtText);
-}
-
 function getIssueDate(issue) {
   const ms =
     timestampToMillis(issue.discoveredAt) ||
@@ -410,32 +439,6 @@ function getIssueDate(issue) {
     timestampToMillis(issue.updatedAt);
   if (ms) return new Date(ms);
   return parseIssueDateText(issue.discoveredAtText || issue.submissionCreatedAtText);
-}
-
-function filterByPeriod(items, period, getDateFn) {
-  const now = new Date();
-
-  return items.filter((item) => {
-    const date = getDateFn(item);
-    if (!date) return false;
-
-    if (period === "week") {
-      const weekAgo = new Date(now);
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      weekAgo.setHours(0, 0, 0, 0);
-      return date >= weekAgo;
-    }
-
-    if (period === "month") {
-      return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
-    }
-
-    if (period === "year") {
-      return date.getFullYear() === now.getFullYear();
-    }
-
-    return true;
-  });
 }
 
 function getChartAreaLabels(areaFilter = currentAreaFilter) {
@@ -450,41 +453,50 @@ function getChartAreaLabels(areaFilter = currentAreaFilter) {
   return [FACTORY_AREA, ...branchNames];
 }
 
-async function loadScopedSubmissions(areaFilter) {
+async function loadScopedSubmissionsForPeriod(areaFilter, fromDate, toDate) {
   const submissionsRef = collection(db, "submissions");
-  const constraints = [];
+  const constraints = [
+    where("createdAt", ">=", Timestamp.fromDate(fromDate)),
+    where("createdAt", "<=", Timestamp.fromDate(toDate)),
+    orderBy("createdAt", "desc"),
+    limit(FALLBACK_SUBMISSION_LIMIT)
+  ];
 
-  if (!canViewAllAreas()) {
-    constraints.push(where("khuVuc", "==", currentUserProfile.khuVuc));
-  } else if (areaFilter && areaFilter !== "ALL") {
-    constraints.push(where("khuVuc", "==", areaFilter));
+  if (areaFilter && areaFilter !== "ALL") {
+    constraints.unshift(where("khuVuc", "==", areaFilter));
+  } else if (!canViewAllAreas()) {
+    constraints.unshift(where("khuVuc", "==", currentUserProfile.khuVuc));
   }
-
-  constraints.push(orderBy("createdAt", "desc"));
-  constraints.push(limit(QUERY_LIMIT));
 
   const snapshot = await getDocs(query(submissionsRef, ...constraints));
   return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
 }
 
-async function loadScopedIssues(areaFilter, submissions = []) {
+async function loadScopedIssuesForPeriod(areaFilter, fromDate, toDate, aggregatedStats) {
   const issuesRef = collection(db, "remediationIssues");
-  const constraints = [];
+  const constraints = [
+    where("createdAt", ">=", Timestamp.fromDate(fromDate)),
+    where("createdAt", "<=", Timestamp.fromDate(toDate)),
+    orderBy("createdAt", "desc"),
+    limit(FALLBACK_SUBMISSION_LIMIT)
+  ];
 
-  if (!canViewAllAreas()) {
-    constraints.push(where("khuVuc", "==", currentUserProfile.khuVuc));
-  } else if (areaFilter && areaFilter !== "ALL") {
-    constraints.push(where("khuVuc", "==", areaFilter));
+  if (areaFilter && areaFilter !== "ALL") {
+    constraints.unshift(where("khuVuc", "==", areaFilter));
+  } else if (!canViewAllAreas()) {
+    constraints.unshift(where("khuVuc", "==", currentUserProfile.khuVuc));
   }
-
-  constraints.push(orderBy("updatedAt", "desc"));
-  constraints.push(limit(QUERY_LIMIT));
 
   try {
     const snapshot = await getDocs(query(issuesRef, ...constraints));
     return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
   } catch (error) {
-    console.warn("Không thể tải remediationIssues:", error);
+    console.warn("Không thể tải remediationIssues theo kỳ:", error);
+    if (!aggregatedStats?.submissionCount) {
+      return [];
+    }
+
+    const submissions = await loadScopedSubmissionsForPeriod(areaFilter, fromDate, toDate);
     return buildFallbackIssuesFromSubmissions(submissions);
   }
 }
@@ -514,23 +526,11 @@ function buildFallbackIssuesFromSubmissions(submissions) {
   return items;
 }
 
-function renderSubmissionStats(submissions) {
-  let totalOk = 0;
-  let totalNg = 0;
-  let totalNa = 0;
-
-  submissions.forEach((submission) => {
-    (submission.answers || []).forEach((answer) => {
-      if (answer.result === "OK") totalOk += 1;
-      if (answer.result === "NG") totalNg += 1;
-      if (answer.result === "N/A") totalNa += 1;
-    });
-  });
-
-  document.getElementById("statTotalSubmissions").textContent = submissions.length;
-  document.getElementById("statTotalOk").textContent = totalOk;
-  document.getElementById("statTotalNg").textContent = totalNg;
-  document.getElementById("statTotalNa").textContent = totalNa;
+function renderSubmissionStats(stats) {
+  document.getElementById("statTotalSubmissions").textContent = stats.submissionCount || 0;
+  document.getElementById("statTotalOk").textContent = stats.okCount || 0;
+  document.getElementById("statTotalNg").textContent = stats.ngCount || 0;
+  document.getElementById("statTotalNa").textContent = stats.naCount || 0;
 }
 
 function renderIssueStats(issues) {
@@ -565,8 +565,8 @@ function renderIssueStats(issues) {
   avgEl.textContent = formatDurationVi(Math.round(totalResolutionMs / doneWithDuration));
 }
 
-function renderTrendChart(submissions) {
-  const { labels, data } = buildTrendSeries(submissions, currentPeriod);
+function renderTrendChart(stats, period) {
+  const { labels, data } = buildTrendSeriesFromStats(stats, period);
   const canvas = document.getElementById("trendChart");
   if (!canvas) return;
 
@@ -607,33 +607,20 @@ function renderTrendChart(submissions) {
   });
 }
 
-function buildTrendSeries(submissions, period) {
-  const map = new Map();
+function buildTrendSeriesFromStats(stats, period) {
+  const map = stats.byDateKey || new Map();
   const now = new Date();
 
-  submissions.forEach((submission) => {
-    const date = getSubmissionDate(submission);
-    if (!date) return;
-
-    let ngCount = 0;
-    (submission.answers || []).forEach((answer) => {
-      if (answer.result === "NG") ngCount += 1;
-    });
-    if (!ngCount) return;
-
-    let key = "";
-    if (period === "year") {
-      key = `T${date.getMonth() + 1}`;
-    } else {
-      key = formatDayKey(date);
-    }
-
-    map.set(key, (map.get(key) || 0) + ngCount);
-  });
-
   if (period === "year") {
+    const monthTotals = new Map();
+    map.forEach((value, dateKey) => {
+      const month = Number(String(dateKey).slice(5, 7));
+      if (!month) return;
+      monthTotals.set(month, (monthTotals.get(month) || 0) + (value.ngCount || 0));
+    });
+
     const labels = Array.from({ length: 12 }, (_, index) => `T${index + 1}`);
-    const data = labels.map((label) => map.get(label) || 0);
+    const data = labels.map((_, index) => monthTotals.get(index + 1) || 0);
     return { labels, data };
   }
 
@@ -646,8 +633,9 @@ function buildTrendSeries(submissions, period) {
 
     for (let day = 1; day <= daysInMonth; day += 1) {
       const date = new Date(year, month, day);
+      const key = getDateKeyFromDate(date);
       labels.push(String(day).padStart(2, "0"));
-      data.push(map.get(formatDayKey(date)) || 0);
+      data.push(map.get(key)?.ngCount || 0);
     }
 
     return { labels, data };
@@ -658,16 +646,12 @@ function buildTrendSeries(submissions, period) {
   for (let offset = 6; offset >= 0; offset -= 1) {
     const date = new Date(now);
     date.setDate(date.getDate() - offset);
+    const key = getDateKeyFromDate(date);
     labels.push(formatDayLabel(date));
-    data.push(map.get(formatDayKey(date)) || 0);
+    data.push(map.get(key)?.ngCount || 0);
   }
 
   return { labels, data };
-}
-
-function formatDayKey(date) {
-  const pad = (value) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function formatDayLabel(date) {
@@ -733,30 +717,16 @@ function renderUnresolvedAreaChart(issues) {
   });
 }
 
-function renderTopDiscoverersTable(submissions) {
+function renderTopDiscoverersTable(stats) {
   const tbody = document.getElementById("topDiscoverersBody");
   if (!tbody) return;
 
-  const counts = new Map();
-
-  submissions.forEach((submission) => {
-    let ngCount = 0;
-    (submission.answers || []).forEach((answer) => {
-      if (answer.result === "NG") ngCount += 1;
-    });
-
-    if (!ngCount) return;
-
-    const key = submission.uid || submission.taiKhoan || submission.hoTen || "unknown";
-    const existing = counts.get(key) || { name: submission.hoTen || "", count: 0 };
-    existing.count += ngCount;
-    if (submission.hoTen) {
-      existing.name = submission.hoTen;
-    }
-    counts.set(key, existing);
-  });
-
-  const topList = [...counts.values()]
+  const topList = Object.entries(stats.discovererCounts || {})
+    .map(([key, count]) => ({
+      name: stats.discovererNames?.[key] || "",
+      count: Number(count) || 0
+    }))
+    .filter((item) => item.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, TOP_DISCOVERERS_LIMIT);
 
@@ -783,23 +753,15 @@ function destroyChartInstance(chartInstance) {
   return null;
 }
 
-function renderNgByCategoryChart(submissions) {
+function renderNgByCategoryChart(stats) {
   const canvas = document.getElementById("ngCategoryChart");
   const emptyEl = document.getElementById("ngCategoryChartEmpty");
   if (!canvas) return;
 
-  const categoryCounts = new Map();
-
-  submissions.forEach((submission) => {
-    (submission.answers || []).forEach((answer) => {
-      if (answer.result !== "NG") return;
-      const category = String(answer.category || "").trim() || "—";
-      categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
-    });
-  });
-
-  const labels = [...categoryCounts.keys()];
-  const data = labels.map((label) => categoryCounts.get(label));
+  const categoryCounts = stats.ngByCategory || {};
+  const categoryLabels = stats.ngCategoryLabels || {};
+  const labels = Object.keys(categoryCounts).map((key) => categoryLabels[key] || decodeCategoryLabel(key));
+  const data = Object.values(categoryCounts).map((value) => Number(value) || 0);
   const total = data.reduce((sum, value) => sum + value, 0);
 
   if (!total) {
@@ -854,30 +816,18 @@ function renderNgByCategoryChart(submissions) {
   });
 }
 
-function buildTopNgQuestionRows(submissions) {
-  const questionCounts = new Map();
+function buildTopNgQuestionRows(stats) {
+  const questionCounts = stats.ngByQuestion || {};
+  const questionLabels = stats.ngQuestionLabels || {};
 
-  submissions.forEach((submission) => {
-    (submission.answers || []).forEach((answer) => {
-      if (answer.result !== "NG") return;
-
-      const key = answer.questionId || answer.question || "unknown";
-      const existing = questionCounts.get(key) || {
-        key,
-        question: answer.question || "",
-        count: 0
-      };
-
-      existing.count += 1;
-      if (answer.question) {
-        existing.question = answer.question;
-      }
-
-      questionCounts.set(key, existing);
-    });
-  });
-
-  let ranked = [...questionCounts.values()].sort((a, b) => b.count - a.count);
+  let ranked = Object.entries(questionCounts)
+    .map(([key, count]) => ({
+      key,
+      question: questionLabels[key] || key,
+      count: Number(count) || 0
+    }))
+    .filter((item) => item.count > 0)
+    .sort((a, b) => b.count - a.count);
 
   if (ranked.length < TOP_NG_QUESTIONS_LIMIT && cachedChecklistQuestions.length) {
     const usedKeys = new Set(ranked.map((item) => item.key));
@@ -900,14 +850,14 @@ function buildTopNgQuestionRows(submissions) {
   return ranked.slice(0, TOP_NG_QUESTIONS_LIMIT).sort((a, b) => b.count - a.count);
 }
 
-function renderTopNgQuestionsChart(submissions) {
+function renderTopNgQuestionsChart(stats) {
   const layout = document.getElementById("topNgQuestionsChartLayout");
   const labelsCol = document.getElementById("topNgQuestionsLabels");
   const canvas = document.getElementById("topNgQuestionsChart");
   const emptyEl = document.getElementById("topNgQuestionsChartEmpty");
   if (!layout || !labelsCol || !canvas) return;
 
-  const ranked = buildTopNgQuestionRows(submissions);
+  const ranked = buildTopNgQuestionRows(stats);
 
   if (!ranked.length) {
     topNgQuestionsChart = destroyChartInstance(topNgQuestionsChart);
@@ -1117,6 +1067,11 @@ function showToast(message, type = "info") {
   toastTimer = setTimeout(() => {
     toast.classList.add("hidden");
   }, 3200);
+}
+
+function decodeCategoryLabel(key) {
+  if (!key || key === "other") return "—";
+  return key.replace(/_/g, " ");
 }
 
 function escapeHtml(value) {

@@ -27,7 +27,8 @@ import {
   getDocs,
   addDoc,
   deleteDoc,
-  Timestamp
+  Timestamp,
+  increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import {
@@ -154,6 +155,7 @@ export {
   addDoc,
   deleteDoc,
   Timestamp,
+  increment,
   ref,
   uploadBytes,
   getDownloadURL,

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "seed:checklist": "node tools/seed-checklist-rest.mjs",
+    "backfill:stats": "node tools/backfill-stats-daily.mjs",
     "deploy:rules": "firebase deploy --only firestore:rules,storage:rules",
     "deploy:functions": "cd functions && npm install && cd .. && firebase deploy --only functions",
     "deploy:security": "npm run deploy:rules && npm run deploy:functions"

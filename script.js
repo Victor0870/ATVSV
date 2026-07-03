@@ -27,6 +27,7 @@ import {
   buildRegistrationBranchOptions
 } from "./areas-service.js";
 import { buildIssueId, buildRemediationIssuePayload } from "./remediation-service.js";
+import { incrementDailyStats } from "./stats-service.js";
 import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
@@ -1085,6 +1086,18 @@ async function submitChecklist(event) {
     };
 
     await setDoc(doc(db, "submissions", submissionId), submissionDoc);
+
+    try {
+      await incrementDailyStats({
+        khuVuc: currentUserProfile.khuVuc,
+        summary,
+        ngAnswers: finalAnswers.filter((answer) => answer.result === "NG"),
+        uid: currentFirebaseUser.uid,
+        hoTen: currentUserProfile.hoTen
+      });
+    } catch (statsError) {
+      console.warn("Không thể cập nhật thống kê tổng hợp:", statsError);
+    }
 
     const ngAnswers = finalAnswers.filter((answer) => answer.result === "NG");
     if (ngAnswers.length) {

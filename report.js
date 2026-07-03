@@ -12,7 +12,8 @@ import {
   where,
   orderBy,
   limit,
-  getDocs
+  getDocs,
+  Timestamp
 } from "./firebase-config.js";
 import {
   ALL_BRANCHES_AREA,
@@ -24,6 +25,7 @@ import {
 import { buildIssueId, getRemediationStatusMeta, formatDurationVi, getIssueElapsedMs, getIssueDurationLabel } from "./remediation-service.js";
 import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
 import { buildSecureImageAttrs, hydrateSecureImages, getImageStoragePath } from "./security-service.js";
+import { getSubmissionSummaryCounts } from "./stats-service.js";
 
 const ALLOWED_REPORT_ROLES = ["admin", "manager"];
 const DEFAULT_QUERY_LIMIT = 300;
@@ -336,12 +338,10 @@ function renderReportStats(data) {
   let totalNa = 0;
 
   data.forEach((submission) => {
-    const answers = Array.isArray(submission.answers) ? submission.answers : [];
-    answers.forEach((answer) => {
-      if (answer.result === "OK") totalOk += 1;
-      if (answer.result === "NG") totalNg += 1;
-      if (answer.result === "N/A") totalNa += 1;
-    });
+    const counts = getSubmissionSummaryCounts(submission);
+    totalOk += counts.okCount;
+    totalNg += counts.ngCount;
+    totalNa += counts.naCount;
   });
 
   document.getElementById("statTotalSubmissions").textContent = data.length;
