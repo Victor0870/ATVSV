@@ -7,16 +7,17 @@ import {
   reauthenticateWithCredential,
   updatePassword
 } from "./firebase-config.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818b";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818c";
 
 let toastTimer = null;
 let currentFirebaseUser = null;
+let authListenerStarted = false;
 
 document.addEventListener("DOMContentLoaded", initChangePasswordPage);
 
-async function initChangePasswordPage() {
+function initChangePasswordPage() {
   initI18n();
-  await initAppCheck();
+  initAppCheck();
 
   document.getElementById("changePasswordForm")?.addEventListener("submit", handleChangePassword);
 
@@ -25,14 +26,29 @@ async function initChangePasswordPage() {
     renderSignedInEmail();
   });
 
-  await authPersistenceReady;
-  observeAuth();
+  authPersistenceReady
+    .then(() => observeAuth())
+    .catch((error) => {
+      console.error(error);
+      showGuestAccessDenied(t("auth.loadProfileFailed"));
+      showPageLoader(false);
+    });
 }
 
 function observeAuth() {
+  if (authListenerStarted) return;
+  authListenerStarted = true;
+
   showPageLoader(true, t("common.checkingSession"));
 
+  const authTimeout = window.setTimeout(() => {
+    console.warn("Auth session check timed out on change-password page.");
+    showGuestAccessDenied(t("auth.loadProfileFailed"));
+    showPageLoader(false);
+  }, 15000);
+
   onAuthStateChanged(auth, (user) => {
+    window.clearTimeout(authTimeout);
     currentFirebaseUser = user || null;
 
     if (!user) {
@@ -139,8 +155,17 @@ function getChangePasswordErrorMessage(error) {
 function showPageLoader(show, text = t("common.loading")) {
   const loader = document.getElementById("pageLoader");
   const loaderText = document.getElementById("pageLoaderText");
-  if (loaderText && text) loaderText.textContent = text;
-  loader?.classList.toggle("hidden", !show);
+  if (!loader) return;
+
+  if (loaderText && text) {
+    loaderText.textContent = text;
+  }
+
+  if (show) {
+    loader.classList.remove("hidden");
+  } else {
+    loader.classList.add("hidden");
+  }
 }
 
 function setButtonLoading(button, isLoading, loadingText = t("common.loading")) {
