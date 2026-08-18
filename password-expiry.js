@@ -1,9 +1,9 @@
-import { t, onLanguageChange } from "./i18n.js?v=20260818b";
+import { t, onLanguageChange } from "./i18n.js?v=20260818d";
 
 export const PASSWORD_CYCLE_DAYS = 90;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-let accountCreatedAt = null;
+let passwordCycleStartAt = null;
 let languageBound = false;
 let refreshTimer = null;
 
@@ -21,21 +21,22 @@ function toDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function resolveAccountCreatedAt(profile, firebaseUser) {
+export function resolvePasswordCycleStartAt(profile, firebaseUser) {
   return (
+    toDate(profile?.passwordChangedAt) ||
     toDate(profile?.createdAt) ||
     toDate(firebaseUser?.metadata?.creationTime) ||
     null
   );
 }
 
-export function getPasswordExpiryState(createdAt = accountCreatedAt, now = Date.now()) {
-  const created = toDate(createdAt);
-  if (!created) {
+export function getPasswordExpiryState(cycleStartAt = passwordCycleStartAt, now = Date.now()) {
+  const start = toDate(cycleStartAt);
+  if (!start) {
     return { remainingDays: null, usedDays: 0, percent: 0 };
   }
 
-  const elapsedDays = Math.floor(Math.max(0, now - created.getTime()) / MS_PER_DAY);
+  const elapsedDays = Math.floor(Math.max(0, now - start.getTime()) / MS_PER_DAY);
   const usedDays = elapsedDays % PASSWORD_CYCLE_DAYS;
   const remainingDays = PASSWORD_CYCLE_DAYS - usedDays;
   const percent = Math.round((remainingDays / PASSWORD_CYCLE_DAYS) * 100);
@@ -63,7 +64,7 @@ function renderPasswordExpiryWidgets() {
 }
 
 export function bindPasswordExpiry(profile, firebaseUser) {
-  accountCreatedAt = resolveAccountCreatedAt(profile, firebaseUser);
+  passwordCycleStartAt = resolvePasswordCycleStartAt(profile, firebaseUser);
 
   if (!languageBound) {
     languageBound = true;

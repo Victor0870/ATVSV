@@ -24,7 +24,7 @@ import {
 } from "./areas-service.js";
 import { buildIssueId, getRemediationStatusMeta, formatDurationVi, getIssueElapsedMs, getIssueDurationLabel } from "./remediation-service.js";
 import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818b";
-import { bindPasswordExpiry } from "./password-expiry.js?v=20260818";
+import { bindPasswordExpiry } from "./password-expiry.js?v=20260818d";
 import { buildSecureImageAttrs, hydrateSecureImages, getImageStoragePath } from "./security-service.js";
 import { getSubmissionSummaryCounts } from "./stats-service.js";
 

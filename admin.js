@@ -22,7 +22,7 @@ import {
   buildChecklistAreaOptions
 } from "./areas-service.js";
 import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js?v=20260818b";
-import { bindPasswordExpiry } from "./password-expiry.js?v=20260818";
+import { bindPasswordExpiry } from "./password-expiry.js?v=20260818d";
 
 let users = [];
 let checklistItems = [];

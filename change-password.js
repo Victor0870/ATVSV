@@ -1,13 +1,17 @@
 import {
   auth,
+  db,
   authPersistenceReady,
   initAppCheck,
   onAuthStateChanged,
   EmailAuthProvider,
   reauthenticateWithCredential,
-  updatePassword
+  updatePassword,
+  doc,
+  updateDoc,
+  serverTimestamp
 } from "./firebase-config.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818c";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818d";
 
 let toastTimer = null;
 let currentFirebaseUser = null;
@@ -118,6 +122,14 @@ async function handleChangePassword(event) {
     const credential = EmailAuthProvider.credential(currentFirebaseUser.email, currentPassword);
     await reauthenticateWithCredential(currentFirebaseUser, credential);
     await updatePassword(currentFirebaseUser, newPassword);
+    try {
+      await updateDoc(doc(db, "users", currentFirebaseUser.uid), {
+        passwordChangedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    } catch (firestoreError) {
+      console.warn("Không thể lưu passwordChangedAt:", firestoreError);
+    }
 
     document.getElementById("changePasswordForm")?.reset();
     showToast(t("changePassword.success"), "success");
