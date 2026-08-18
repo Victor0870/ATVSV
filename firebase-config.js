@@ -7,7 +7,10 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  deleteUser
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
@@ -141,6 +144,9 @@ export {
   createUserWithEmailAndPassword,
   signOut,
   deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
   doc,
   getDoc,
   setDoc,

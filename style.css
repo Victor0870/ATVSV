@@ -123,8 +123,13 @@ img {
   line-height: 1.5;
 }
 
-.auth-admin-link {
-  display: block;
+.change-password-email {
+  margin: -12px 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-black);
+  word-break: break-all;
+}
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
@@ -2050,6 +2055,17 @@ textarea {
   font-size: 11px;
   color: var(--muted);
   line-height: 1.4;
+}
+
+a.sidebar-password-expiry-link {
+  color: var(--brand-red);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.sidebar-password-expiry-link:hover {
+  text-decoration: underline;
 }
 
 .sidebar-lang-switch,

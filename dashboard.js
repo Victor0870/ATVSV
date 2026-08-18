@@ -29,7 +29,7 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818b";
 import { bindPasswordExpiry } from "./password-expiry.js?v=20260818";
 import { buildSecureImageAttrs, hydrateSecureImages } from "./security-service.js";
 import {

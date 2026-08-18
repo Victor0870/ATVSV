@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard thống kê - Idemitsu</title>
-  <link rel="stylesheet" href="./style.css?v=20260818">
+  <link rel="stylesheet" href="./style.css?v=20260818b">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="admin-page" data-page-title-key="page.dashboard">
@@ -52,7 +52,7 @@
             <div class="sidebar-password-expiry-track" aria-hidden="true">
               <span class="sidebar-password-expiry-fill" data-password-expiry-fill></span>
             </div>
-            <span class="sidebar-password-expiry-hint" data-i18n="passwordExpiry.hint">Chu kỳ 90 ngày · tự làm mới, không bắt đổi mật khẩu</span>
+            <a href="./change-password.html" class="sidebar-password-expiry-hint sidebar-password-expiry-link" data-i18n="passwordExpiry.hint">Click here to change pass</a>
           </div>
           <div class="sidebar-lang-switch">
             <span class="sidebar-lang-label" data-i18n="lang.label">Ngôn ngữ</span>
@@ -255,6 +255,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="./dashboard.js?v=20260818"></script>
+  <script type="module" src="./dashboard.js?v=20260818b"></script>
 </body>
 </html>

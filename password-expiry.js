@@ -1,4 +1,4 @@
-import { t, onLanguageChange } from "./i18n.js?v=20260818";
+import { t, onLanguageChange } from "./i18n.js?v=20260818b";
 
 export const PASSWORD_CYCLE_DAYS = 90;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;

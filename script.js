@@ -28,7 +28,7 @@ import {
 } from "./areas-service.js";
 import { buildIssueId, buildRemediationIssuePayload } from "./remediation-service.js";
 import { incrementDailyStats } from "./stats-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818b";
 import { bindPasswordExpiry } from "./password-expiry.js?v=20260818";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
