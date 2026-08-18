@@ -28,7 +28,8 @@ import {
 } from "./areas-service.js";
 import { buildIssueId, buildRemediationIssuePayload } from "./remediation-service.js";
 import { incrementDailyStats } from "./stats-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818";
+import { bindPasswordExpiry } from "./password-expiry.js?v=20260818";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
 const USER_ROLES_CAN_MANAGE_REMEDIATION = ["admin", "manager"];
@@ -526,6 +527,7 @@ function updateAppSidebar(profile, firebaseUser) {
   document.getElementById("sidebarUserName").textContent = profile.hoTen || "-";
   document.getElementById("sidebarUserEmail").textContent = firebaseUser.email || profile.email || "-";
   document.getElementById("appUserInitials").textContent = getUserInitials(profile.hoTen);
+  bindPasswordExpiry(profile, firebaseUser);
 }
 
 async function renderQuestions(area) {

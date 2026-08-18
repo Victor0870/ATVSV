@@ -34,7 +34,8 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818";
+import { bindPasswordExpiry } from "./password-expiry.js?v=20260818";
 import { buildSecureImageAttrs, hydrateSecureImages } from "./security-service.js";
 
 const ISSUE_QUERY_LIMIT = 500;
@@ -217,6 +218,7 @@ function showAppLayout(profile, firebaseUser) {
   document.getElementById("sidebarRemediationUserEmail").textContent =
     firebaseUser?.email || profile.email || "-";
   document.getElementById("remediationUserInitials").textContent = getUserInitials(profile.hoTen);
+  bindPasswordExpiry(profile, firebaseUser);
 
   const isAdmin = String(profile.role || "").trim().toLowerCase() === "admin";
   document.getElementById("remediationAdminLink")?.classList.toggle("hidden", !isAdmin);

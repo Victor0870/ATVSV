@@ -21,7 +21,8 @@ import {
   FALLBACK_BRANCHES,
   buildChecklistAreaOptions
 } from "./areas-service.js";
-import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js?v=20250624";
+import { initI18n, t, onLanguageChange, applyI18n, getLang } from "./i18n.js?v=20260818";
+import { bindPasswordExpiry } from "./password-expiry.js?v=20260818";
 
 let users = [];
 let checklistItems = [];
@@ -193,6 +194,7 @@ function updateAdminSidebar(firebaseUser, profile) {
   document.getElementById("adminUserName").textContent = name;
   document.getElementById("adminUserEmail").textContent = email;
   document.getElementById("adminUserInitials").textContent = getInitials(name);
+  bindPasswordExpiry(profile, firebaseUser);
 }
 
 function getInitials(name) {

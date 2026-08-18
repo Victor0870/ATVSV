@@ -3,6 +3,10 @@ const STORAGE_KEY = "atvsv_lang";
 const MESSAGES = {
   vi: {
     "lang.label": "Ngôn ngữ",
+    "passwordExpiry.label": "Thời hạn mật khẩu",
+    "passwordExpiry.remainDays": "Còn {n} ngày hết hạn",
+    "passwordExpiry.unknown": "Chưa xác định",
+    "passwordExpiry.hint": "Chu kỳ 90 ngày · tự làm mới, không bắt đổi mật khẩu",
     "page.index": "E-Checksheet ATVSV - Idemitsu",
     "page.admin": "Quản trị hệ thống - Idemitsu",
     "page.report": "Báo cáo E-Checksheet - Idemitsu",
@@ -411,6 +415,10 @@ const MESSAGES = {
   },
   en: {
     "lang.label": "Language",
+    "passwordExpiry.label": "Password validity",
+    "passwordExpiry.remainDays": "{n} days until expiry",
+    "passwordExpiry.unknown": "Unavailable",
+    "passwordExpiry.hint": "90-day cycle · auto-renews, password change not required",
     "page.index": "E-Checksheet ATVSV - Idemitsu",
     "page.admin": "System Administration - Idemitsu",
     "page.report": "E-Checksheet Report - Idemitsu",

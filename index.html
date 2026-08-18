@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>E-Checksheet ATVSV - Idemitsu</title>
-  <link rel="stylesheet" href="./style.css?v=20250623">
+  <link rel="stylesheet" href="./style.css?v=20260818">
 </head>
 <body data-page-title-key="page.index">
   <div id="pageLoader" class="page-loader">
@@ -195,6 +195,14 @@
         </nav>
 
         <div class="admin-sidebar-footer">
+          <div class="sidebar-password-expiry" data-password-expiry>
+            <span class="sidebar-password-expiry-label" data-i18n="passwordExpiry.label">Thời hạn mật khẩu</span>
+            <strong class="sidebar-password-expiry-remain" data-password-expiry-remain>—</strong>
+            <div class="sidebar-password-expiry-track" aria-hidden="true">
+              <span class="sidebar-password-expiry-fill" data-password-expiry-fill></span>
+            </div>
+            <span class="sidebar-password-expiry-hint" data-i18n="passwordExpiry.hint">Chu kỳ 90 ngày · tự làm mới, không bắt đổi mật khẩu</span>
+          </div>
           <div class="sidebar-lang-switch">
             <span class="sidebar-lang-label" data-i18n="lang.label">Ngôn ngữ</span>
             <div class="sidebar-lang-actions">
@@ -253,6 +261,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="./script.js?v=20250623"></script>
+  <script type="module" src="./script.js?v=20260818"></script>
 </body>
 </html>

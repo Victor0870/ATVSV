@@ -29,7 +29,8 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818";
+import { bindPasswordExpiry } from "./password-expiry.js?v=20260818";
 import { buildSecureImageAttrs, hydrateSecureImages } from "./security-service.js";
 import {
   fetchChecklistItems,
@@ -252,6 +253,7 @@ function showDashboardScreen(profile, firebaseUser) {
   document.getElementById("sidebarDashboardUserEmail").textContent =
     firebaseUser?.email || profile.email || "-";
   document.getElementById("dashboardUserInitials").textContent = getUserInitials(profile.hoTen);
+  bindPasswordExpiry(profile, firebaseUser);
 
   const canManage = canViewAllAreas(profile);
   const isAdmin = String(profile.role || "").trim().toLowerCase() === "admin";

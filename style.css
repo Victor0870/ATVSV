@@ -1994,6 +1994,64 @@ textarea {
   vertical-align: middle;
 }
 
+.sidebar-password-expiry {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.sidebar-password-expiry-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sidebar-password-expiry-remain {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--brand-black);
+  line-height: 1.35;
+}
+
+.sidebar-password-expiry-track {
+  height: 6px;
+  margin: 8px 0 6px;
+  border-radius: 999px;
+  background: #eef1f5;
+  overflow: hidden;
+}
+
+.sidebar-password-expiry-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--success);
+  transition: width 0.25s ease;
+}
+
+.sidebar-password-expiry.is-warning .sidebar-password-expiry-remain {
+  color: #c2410c;
+}
+
+.sidebar-password-expiry.is-warning .sidebar-password-expiry-fill {
+  background: #f59e0b;
+}
+
+.sidebar-password-expiry-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .sidebar-lang-switch,
 .auth-lang-switch {
   display: flex;

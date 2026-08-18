@@ -23,7 +23,8 @@ import {
   matchesReportAreaFilter
 } from "./areas-service.js";
 import { buildIssueId, getRemediationStatusMeta, formatDurationVi, getIssueElapsedMs, getIssueDurationLabel } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20250620";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818";
+import { bindPasswordExpiry } from "./password-expiry.js?v=20260818";
 import { buildSecureImageAttrs, hydrateSecureImages, getImageStoragePath } from "./security-service.js";
 import { getSubmissionSummaryCounts } from "./stats-service.js";
 
@@ -199,6 +200,7 @@ function showReportScreen(profile, firebaseUser) {
   document.getElementById("sidebarReportUserName").textContent = profile.hoTen || "-";
   document.getElementById("sidebarReportUserEmail").textContent = firebaseUser.email || profile.email || "-";
   document.getElementById("reportUserInitials").textContent = getUserInitials(profile.hoTen);
+  bindPasswordExpiry(profile, firebaseUser);
 
   const isAdmin = String(profile.role || "").trim().toLowerCase() === "admin";
   document.getElementById("reportAdminLink")?.classList.toggle("hidden", !isAdmin);
