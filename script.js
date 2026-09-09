@@ -28,11 +28,12 @@ import {
 } from "./areas-service.js";
 import { buildIssueId, buildRemediationIssuePayload } from "./remediation-service.js";
 import { incrementDailyStats } from "./stats-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818b";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260909";
 import { bindPasswordExpiry } from "./password-expiry.js?v=20260818d";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
 const USER_ROLES_CAN_MANAGE_REMEDIATION = ["admin", "manager"];
+const REMEMBER_LOGIN_STORAGE_KEY = "atvsv_remember_login";
 
 function isAdminRole(role) {
   return String(role || "").trim().toLowerCase() === "admin";
@@ -156,11 +157,66 @@ function observeAuthState() {
   });
 }
 
+function readRememberedLogin() {
+  try {
+    const raw = localStorage.getItem(REMEMBER_LOGIN_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data?.email || typeof data.password !== "string") return null;
+    return {
+      email: String(data.email),
+      password: String(data.password)
+    };
+  } catch (error) {
+    console.warn("Không đọc được thông tin đăng nhập đã lưu:", error);
+    return null;
+  }
+}
+
+function saveRememberedLogin(email, password) {
+  localStorage.setItem(
+    REMEMBER_LOGIN_STORAGE_KEY,
+    JSON.stringify({ email, password })
+  );
+}
+
+function clearRememberedLogin() {
+  localStorage.removeItem(REMEMBER_LOGIN_STORAGE_KEY);
+}
+
+function applyRememberedLogin(prefillEmail = "") {
+  const remembered = readRememberedLogin();
+  const emailInput = document.getElementById("emailInput");
+  const passwordInput = document.getElementById("passwordInput");
+  const rememberCheckbox = document.getElementById("rememberLoginCheckbox");
+
+  if (remembered) {
+    if (emailInput) {
+      emailInput.value = prefillEmail || remembered.email;
+    }
+    if (passwordInput && !prefillEmail) {
+      passwordInput.value = remembered.password;
+    }
+    if (rememberCheckbox) {
+      rememberCheckbox.checked = true;
+    }
+    return;
+  }
+
+  if (emailInput && prefillEmail) {
+    emailInput.value = prefillEmail;
+  }
+  if (rememberCheckbox) {
+    rememberCheckbox.checked = false;
+  }
+}
+
 async function handleLogin(event) {
   event.preventDefault();
 
   const email = document.getElementById("emailInput").value.trim();
   const password = document.getElementById("passwordInput").value;
+  const rememberLogin = document.getElementById("rememberLoginCheckbox")?.checked === true;
   const loginBtn = document.getElementById("loginBtn");
 
   if (!email || !password) {
@@ -172,6 +228,11 @@ async function handleLogin(event) {
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
+    if (rememberLogin) {
+      saveRememberedLogin(email, password);
+    } else {
+      clearRememberedLogin();
+    }
     document.getElementById("passwordInput").value = "";
     showToast(t("auth.loginSuccess"), "success");
   } catch (error) {
@@ -466,7 +527,6 @@ function showLoginScreen(prefillEmail = "") {
 
   const passwordInput = document.getElementById("passwordInput");
   const togglePasswordBtn = document.getElementById("togglePasswordBtn");
-  const emailInput = document.getElementById("emailInput");
 
   if (passwordInput) {
     passwordInput.type = "password";
@@ -476,9 +536,7 @@ function showLoginScreen(prefillEmail = "") {
     togglePasswordBtn.textContent = t("auth.showPassword");
   }
 
-  if (emailInput && prefillEmail) {
-    emailInput.value = prefillEmail;
-  }
+  applyRememberedLogin(prefillEmail);
 
   showAuthTab("login");
 }

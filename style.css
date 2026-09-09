@@ -283,6 +283,27 @@ textarea {
   flex: 1;
 }
 
+.remember-login-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-login-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--brand-red);
+  cursor: pointer;
+}
+
 .primary-btn,
 .ghost-btn,
 .inline-btn {

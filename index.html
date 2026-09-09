@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>E-Checksheet ATVSV - Idemitsu</title>
-  <link rel="stylesheet" href="./style.css?v=20260818b">
+  <link rel="stylesheet" href="./style.css?v=20260909">
 </head>
 <body data-page-title-key="page.index">
   <div id="pageLoader" class="page-loader">
@@ -66,6 +66,11 @@
             <button type="button" id="togglePasswordBtn" class="ghost-btn small-btn" data-i18n="auth.showPassword">Hiện</button>
           </div>
         </div>
+
+        <label class="remember-login-row" for="rememberLoginCheckbox">
+          <input type="checkbox" id="rememberLoginCheckbox">
+          <span data-i18n="auth.rememberLogin">Lưu tài khoản và mật khẩu</span>
+        </label>
 
         <button type="submit" id="loginBtn" class="primary-btn full-btn" data-i18n="auth.login">
           Đăng nhập
@@ -261,6 +266,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="./script.js?v=20260818b"></script>
+  <script type="module" src="./script.js?v=20260909"></script>
 </body>
 </html>
