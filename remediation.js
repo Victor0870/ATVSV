@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   collection,
   query,
+  where,
   orderBy,
   limit,
   getDocs,
@@ -23,7 +24,8 @@ import {
   getActiveBranchNames
 } from "./areas-service.js";
 import {
-  ALLOWED_REMEDIATION_ROLES,
+  canManageRemediation,
+  canViewRemediation,
   buildStatusFilterOptions,
   getRemediationStatusMeta,
   findRelatedUnresolvedIssues,
@@ -34,7 +36,7 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818b";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260918r157";
 import { bindPasswordExpiry } from "./password-expiry.js?v=20260818d";
 import { buildSecureImageAttrs, hydrateSecureImages } from "./security-service.js";
 
@@ -48,6 +50,10 @@ let branchNames = [];
 let editingIssueId = null;
 let editingIssueContext = null;
 let toastTimer = null;
+
+function userCanManageRemediation(profile = currentUserProfile) {
+  return canManageRemediation(profile?.role);
+}
 
 document.addEventListener("DOMContentLoaded", initRemediationPage);
 
@@ -64,6 +70,7 @@ function initRemediationPage() {
       });
       applyI18n();
       await loadFilterOptions();
+      applyRemediationModeUi(userCanManageRemediation(), currentUserProfile);
       renderIssueStats(filteredIssues);
       renderIssueTable();
       updateIssueCountText();
@@ -163,6 +170,7 @@ async function loadCurrentUserProfile(uid) {
     uid,
     email: data.email || "",
     hoTen: data.hoTen || "",
+    khuVuc: data.khuVuc || "",
     role: data.role || "user",
     status: data.status || "inactive"
   };
@@ -173,9 +181,12 @@ function ensureRemediationAccess(profile) {
     throw new Error(t("remediation.accountNotActive"));
   }
 
-  const role = String(profile.role || "").trim().toLowerCase();
-  if (!ALLOWED_REMEDIATION_ROLES.includes(role)) {
-    throw new Error(t("remediation.adminOnly"));
+  if (!canViewRemediation(profile.role)) {
+    throw new Error(t("remediation.noAccessGeneric"));
+  }
+
+  if (!userCanManageRemediation(profile) && !String(profile.khuVuc || "").trim()) {
+    throw new Error(t("remediation.missingArea"));
   }
 }
 
@@ -220,8 +231,44 @@ function showAppLayout(profile, firebaseUser) {
   document.getElementById("remediationUserInitials").textContent = getUserInitials(profile.hoTen);
   bindPasswordExpiry(profile, firebaseUser);
 
-  const isAdmin = String(profile.role || "").trim().toLowerCase() === "admin";
-  document.getElementById("remediationAdminLink")?.classList.toggle("hidden", !isAdmin);
+  const role = String(profile.role || "").trim().toLowerCase();
+  const canManage = userCanManageRemediation(profile);
+  document.getElementById("remediationAdminLink")?.classList.toggle("hidden", role !== "admin");
+  document.getElementById("remediationReportLink")?.classList.toggle("hidden", !canManage);
+  // Nhãn "Quản lý" vẫn hiện vì user được xem mục khắc phục
+  document.getElementById("remediationManageNavLabel")?.classList.remove("hidden");
+  applyRemediationModeUi(canManage, profile);
+}
+
+function applyRemediationModeUi(canManage, profile = currentUserProfile) {
+  const subtitle = document.querySelector("#remediationScreen .hero-card p");
+  if (subtitle) {
+    subtitle.textContent = canManage
+      ? t("remediation.hero.subtitle")
+      : t("remediation.hero.subtitleViewOnly");
+  }
+
+  const areaGroup = document.getElementById("filterIssueArea")?.closest(".form-group");
+  areaGroup?.classList.toggle("hidden", !canManage);
+
+  const carryoverActions = document.querySelector(".issue-carryover-actions");
+  carryoverActions?.classList.toggle("hidden", !canManage);
+
+  const saveBtn = document.getElementById("saveIssueBtn");
+  saveBtn?.classList.toggle("hidden", !canManage);
+
+  ["issuePlan", "issueAction", "issueResponsible", "issueStatus"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !canManage;
+  });
+
+  if (!canManage && profile?.khuVuc) {
+    const areaSelect = document.getElementById("filterIssueArea");
+    if (areaSelect) {
+      areaSelect.innerHTML = `<option value="${escapeHtml(profile.khuVuc)}" selected>${escapeHtml(profile.khuVuc)}</option>`;
+    }
+  }
 }
 
 function showRemediationScreen(profile, firebaseUser) {
@@ -235,13 +282,23 @@ async function loadFilterOptions() {
   branchNames = getActiveBranchNames(branches);
 
   document.getElementById("filterIssueStatus").innerHTML = buildStatusFilterOptions("ALL");
-  document.getElementById("filterIssueArea").innerHTML = buildReportFilterOptions(branches, "ALL");
+
+  if (userCanManageRemediation()) {
+    document.getElementById("filterIssueArea").innerHTML = buildReportFilterOptions(branches, "ALL");
+  } else if (currentUserProfile?.khuVuc) {
+    const area = currentUserProfile.khuVuc;
+    document.getElementById("filterIssueArea").innerHTML =
+      `<option value="${escapeHtml(area)}" selected>${escapeHtml(area)}</option>`;
+  }
 }
 
 function getIssueFilters() {
+  const canManage = userCanManageRemediation();
   return {
     status: document.getElementById("filterIssueStatus").value,
-    area: document.getElementById("filterIssueArea").value,
+    area: canManage
+      ? document.getElementById("filterIssueArea").value
+      : currentUserProfile?.khuVuc || document.getElementById("filterIssueArea").value,
     keyword: document.getElementById("filterIssueKeyword").value.trim().toLowerCase()
   };
 }
@@ -255,7 +312,9 @@ function applyIssueFilters() {
 
 function resetIssueFilters() {
   document.getElementById("filterIssueStatus").value = "ALL";
-  document.getElementById("filterIssueArea").value = "ALL";
+  if (userCanManageRemediation()) {
+    document.getElementById("filterIssueArea").value = "ALL";
+  }
   document.getElementById("filterIssueKeyword").value = "";
   applyIssueFilters();
 }
@@ -265,13 +324,46 @@ async function loadIssues() {
 
   try {
     const issuesRef = collection(db, "remediationIssues");
-    const q = query(issuesRef, orderBy("createdAt", "desc"), limit(ISSUE_QUERY_LIMIT));
-    const snapshot = await getDocs(q);
+    let snapshot;
 
-    allIssues = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data()
-    }));
+    if (userCanManageRemediation()) {
+      const q = query(issuesRef, orderBy("createdAt", "desc"), limit(ISSUE_QUERY_LIMIT));
+      snapshot = await getDocs(q);
+      allIssues = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data()
+      }));
+    } else {
+      const userArea = String(currentUserProfile?.khuVuc || "").trim();
+      if (!userArea) {
+        throw new Error(t("remediation.missingArea"));
+      }
+
+      try {
+        const q = query(
+          issuesRef,
+          where("khuVuc", "==", userArea),
+          orderBy("createdAt", "desc"),
+          limit(ISSUE_QUERY_LIMIT)
+        );
+        snapshot = await getDocs(q);
+      } catch (indexError) {
+        console.warn("Query khuVuc+createdAt thất bại, fallback sort client:", indexError);
+        const q = query(issuesRef, where("khuVuc", "==", userArea), limit(ISSUE_QUERY_LIMIT));
+        snapshot = await getDocs(q);
+      }
+
+      allIssues = snapshot.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        }))
+        .sort((a, b) => {
+          const timeA = timestampToMillis(a.createdAt) || 0;
+          const timeB = timestampToMillis(b.createdAt) || 0;
+          return timeB - timeA;
+        });
+    }
 
     applyIssueFilters();
 
@@ -281,7 +373,7 @@ async function loadIssues() {
   } catch (error) {
     console.error(error);
     showTableError("issueTableBody", 6, t("remediation.loadIssuesFailed"));
-    showToast(t("remediation.loadIssuesFailed"), "error");
+    showToast(error.message || t("remediation.loadIssuesFailed"), "error");
   } finally {
     showPageLoader(false);
   }
@@ -371,7 +463,7 @@ function renderIssueTable() {
           </td>
           <td class="checklist-actions-cell">
             <button type="button" class="btn-action btn-open-issue" data-issue-id="${escapeHtml(issue.id)}">
-              ${t("common.edit")}
+              ${userCanManageRemediation() ? t("common.edit") : t("remediation.viewRemediation")}
             </button>
           </td>
         </tr>
@@ -428,7 +520,10 @@ function renderIssueDiscoveryInfo(issue) {
 function updateCarryoverButtons() {
   const clearBtn = document.getElementById("clearCarryoverBtn");
   if (!clearBtn) return;
-  clearBtn.classList.toggle("hidden", !editingIssueContext?.isUnresolvedCarryover);
+  clearBtn.classList.toggle(
+    "hidden",
+    !userCanManageRemediation() || !editingIssueContext?.isUnresolvedCarryover
+  );
 }
 
 function openIssueModal(issueId) {
@@ -480,10 +575,16 @@ function openIssueModal(issueId) {
 
   renderIssueDiscoveryInfo(issue);
   updateCarryoverButtons();
+  applyRemediationModeUi(userCanManageRemediation(), currentUserProfile);
   document.getElementById("issueModal").classList.remove("hidden");
 }
 
 function openUnresolvedPickerModal() {
+  if (!userCanManageRemediation()) {
+    showToast(t("remediation.viewOnlyNoEdit"), "error");
+    return;
+  }
+
   const currentIssue = allIssues.find((item) => item.id === editingIssueId);
   if (!currentIssue) return;
 
@@ -527,6 +628,11 @@ function closeUnresolvedPickerModal() {
 }
 
 function applyCarryoverFromIssue(sourceIssueId) {
+  if (!userCanManageRemediation()) {
+    showToast(t("remediation.viewOnlyNoEdit"), "error");
+    return;
+  }
+
   const currentIssue = allIssues.find((item) => item.id === editingIssueId);
   const sourceIssue = allIssues.find((item) => item.id === sourceIssueId);
 
@@ -557,6 +663,11 @@ function applyCarryoverFromIssue(sourceIssueId) {
 }
 
 function clearCarryoverLink() {
+  if (!userCanManageRemediation()) {
+    showToast(t("remediation.viewOnlyNoEdit"), "error");
+    return;
+  }
+
   const currentIssue = allIssues.find((item) => item.id === editingIssueId);
   if (!currentIssue) return;
 
@@ -582,6 +693,11 @@ function closeIssueModal() {
 }
 
 async function saveIssue() {
+  if (!userCanManageRemediation()) {
+    showToast(t("remediation.viewOnlyNoEdit"), "error");
+    return;
+  }
+
   if (!editingIssueId || !editingIssueContext) return;
 
   const plan = document.getElementById("issuePlan").value.trim();

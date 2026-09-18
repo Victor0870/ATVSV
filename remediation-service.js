@@ -6,7 +6,26 @@ export const REMEDIATION_STATUSES = {
   done: { value: "done", label: "Hoàn thành", badgeClass: "remediation-status-done" }
 };
 
-export const ALLOWED_REMEDIATION_ROLES = ["admin", "manager"];
+/** Admin/Manager: xem + cập nhật kế hoạch / trạng thái khắc phục */
+export const ALLOWED_REMEDIATION_MANAGE_ROLES = ["admin", "manager"];
+
+/** User trở lên: xem tiến độ để theo dõi / nhắc quản lý (không sửa) */
+export const ALLOWED_REMEDIATION_VIEW_ROLES = ["admin", "manager", "user"];
+
+/** @deprecated Dùng ALLOWED_REMEDIATION_MANAGE_ROLES */
+export const ALLOWED_REMEDIATION_ROLES = ALLOWED_REMEDIATION_MANAGE_ROLES;
+
+export function normalizeRole(role) {
+  return String(role || "").trim().toLowerCase();
+}
+
+export function canManageRemediation(role) {
+  return ALLOWED_REMEDIATION_MANAGE_ROLES.includes(normalizeRole(role));
+}
+
+export function canViewRemediation(role) {
+  return ALLOWED_REMEDIATION_VIEW_ROLES.includes(normalizeRole(role));
+}
 
 export function buildIssueId(submissionId, questionId) {
   return `${submissionId}_${questionId}`;

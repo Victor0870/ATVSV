@@ -29,7 +29,7 @@ import {
   parseIssueDateText,
   timestampToMillis
 } from "./remediation-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260818b";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260918r157";
 import { bindPasswordExpiry } from "./password-expiry.js?v=20260818d";
 import { buildSecureImageAttrs, hydrateSecureImages } from "./security-service.js";
 import {
@@ -134,7 +134,7 @@ function bindDashboardEvents() {
     }
 
     const link = event.target.closest(".dashboard-issue-link");
-    if (link && canManageIssues()) {
+    if (link) {
       window.location.href = link.href;
     }
   });
@@ -256,11 +256,12 @@ function showDashboardScreen(profile, firebaseUser) {
   bindPasswordExpiry(profile, firebaseUser);
 
   const canManage = canViewAllAreas(profile);
+  const canViewRemediationNav = Boolean(profile?.status === "active" || canManage);
   const isAdmin = String(profile.role || "").trim().toLowerCase() === "admin";
 
-  document.getElementById("dashboardManageNavLabel")?.classList.toggle("hidden", !canManage);
+  document.getElementById("dashboardManageNavLabel")?.classList.toggle("hidden", !canManage && !canViewRemediationNav);
   document.getElementById("dashboardReportLink")?.classList.toggle("hidden", !canManage);
-  document.getElementById("dashboardRemediationLink")?.classList.toggle("hidden", !canManage);
+  document.getElementById("dashboardRemediationLink")?.classList.toggle("hidden", !canViewRemediationNav);
   document.getElementById("dashboardAdminLink")?.classList.toggle("hidden", !isAdmin);
   document.getElementById("dashboardFilterCard")?.classList.toggle("hidden", !canManage);
 }
@@ -987,9 +988,7 @@ function renderNgTable(issues) {
       const durationLabel = getIssueDurationLabel(issue.status);
       const images = Array.isArray(issue.images) ? issue.images : [];
       const firstImage = images[0];
-      const issueLink = canManageIssues()
-        ? `<a href="./remediation.html?issue=${encodeURIComponent(issue.id)}" class="dashboard-issue-link remediation-link-btn">${t("remediation.viewRemediation")}</a>`
-        : `<span class="issue-subtext">${t("dashboard.contactManager")}</span>`;
+      const issueLink = `<a href="./remediation.html?issue=${encodeURIComponent(issue.id)}" class="dashboard-issue-link remediation-link-btn">${t("remediation.viewRemediation")}</a>`;
 
       return `
         <tr>

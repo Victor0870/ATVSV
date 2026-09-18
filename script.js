@@ -28,11 +28,11 @@ import {
 } from "./areas-service.js";
 import { buildIssueId, buildRemediationIssuePayload } from "./remediation-service.js";
 import { incrementDailyStats } from "./stats-service.js";
-import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260909";
+import { initI18n, t, onLanguageChange, applyI18n } from "./i18n.js?v=20260918r157";
 import { bindPasswordExpiry } from "./password-expiry.js?v=20260818d";
 
 const USER_ROLES_CAN_VIEW_REPORT = ["admin", "manager"];
-const USER_ROLES_CAN_MANAGE_REMEDIATION = ["admin", "manager"];
+const USER_ROLES_CAN_VIEW_REMEDIATION = ["admin", "manager", "user"];
 const REMEMBER_LOGIN_STORAGE_KEY = "atvsv_remember_login";
 
 function isAdminRole(role) {
@@ -575,12 +575,13 @@ function updateAppSidebar(profile, firebaseUser) {
   const manageNavLabel = document.getElementById("appManageNavLabel");
   const role = String(profile.role || "").trim().toLowerCase();
   const canManageReports = USER_ROLES_CAN_VIEW_REPORT.includes(role);
+  const canViewRemediation = USER_ROLES_CAN_VIEW_REMEDIATION.includes(role);
   const isAdmin = isAdminRole(profile.role);
 
   reportLink?.classList.toggle("hidden", !canManageReports);
-  remediationLink?.classList.toggle("hidden", !canManageReports);
+  remediationLink?.classList.toggle("hidden", !canViewRemediation);
   adminLink?.classList.toggle("hidden", !isAdmin);
-  manageNavLabel?.classList.toggle("hidden", !canManageReports && !isAdmin);
+  manageNavLabel?.classList.toggle("hidden", !canManageReports && !canViewRemediation && !isAdmin);
 
   document.getElementById("sidebarUserName").textContent = profile.hoTen || "-";
   document.getElementById("sidebarUserEmail").textContent = firebaseUser.email || profile.email || "-";

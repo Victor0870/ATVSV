@@ -160,7 +160,10 @@ const MESSAGES = {
 
     "remediation.hero.title": "HÀNH ĐỘNG KHẮC PHỤC",
     "remediation.hero.subtitle": "Theo dõi và phân công xử lý các lỗi NG phát sinh từ checklist kiểm tra",
+    "remediation.hero.subtitleViewOnly": "Theo dõi tiến độ khắc phục trong khu vực của bạn để nhắc nhở quản lý khi cần",
     "remediation.noAccess": "Bạn không có quyền quản lý hành động khắc phục.",
+    "remediation.viewOnlyNoEdit": "Bạn chỉ được xem tiến độ. Chỉ Admin/Manager mới cập nhật được hành động khắc phục.",
+    "remediation.missingArea": "Tài khoản chưa gán khu vực nên không thể xem issue khắc phục.",
     "remediation.searchPlaceholder": "Phiếu / họ tên / câu hỏi / người phụ trách",
     "remediation.stats.open": "Chờ xử lý",
     "remediation.stats.inProgress": "Đang khắc phục",
@@ -587,7 +590,10 @@ const MESSAGES = {
 
     "remediation.hero.title": "CORRECTIVE ACTIONS",
     "remediation.hero.subtitle": "Track and assign resolution of NG issues from checklist inspections",
+    "remediation.hero.subtitleViewOnly": "Track corrective progress in your area so you can remind managers when needed",
     "remediation.noAccess": "You do not have permission to manage corrective actions.",
+    "remediation.viewOnlyNoEdit": "View-only access. Only Admin/Manager can update corrective actions.",
+    "remediation.missingArea": "Your account has no area assigned, so corrective issues cannot be loaded.",
     "remediation.searchPlaceholder": "Form / name / question / assignee",
     "remediation.stats.open": "Pending",
     "remediation.stats.inProgress": "In progress",
